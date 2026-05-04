@@ -18,6 +18,7 @@ const ALL = [
   { mod: "services", title: "termServices", url: "/app/services", icon: Scissors },
   { mod: "products", title: "Produtos & Estoque", url: "/app/products", icon: Boxes },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
+  { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
   { mod: "site", title: "Site Builder", url: "/app/site", icon: Globe },
   { mod: "integrations", title: "Integrações", url: "/app/integrations", icon: Plug },
