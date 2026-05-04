@@ -173,6 +173,90 @@ export type Database = {
         }
         Relationships: []
       }
+      debt_installments: {
+        Row: {
+          amount: number
+          created_at: string
+          debt_id: string
+          due_date: string
+          id: string
+          number: number
+          paid_at: string | null
+          payment_method: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          debt_id: string
+          due_date: string
+          id?: string
+          number: number
+          paid_at?: string | null
+          payment_method?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          debt_id?: string
+          due_date?: string
+          id?: string
+          number?: number
+          paid_at?: string | null
+          payment_method?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      debts: {
+        Row: {
+          appointment_id: string | null
+          client_id: string
+          created_at: string
+          id: string
+          installments_count: number
+          interest_amount: number
+          notes: string | null
+          origin: string
+          original_amount: number
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          installments_count?: number
+          interest_amount?: number
+          notes?: string | null
+          origin?: string
+          original_amount?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          installments_count?: number
+          interest_amount?: number
+          notes?: string | null
+          origin?: string
+          original_amount?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial: {
         Row: {
           category: string | null
@@ -443,9 +527,34 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
+          category_id: string | null
           cost: number | null
           created_at: string
           deleted_at: string | null
@@ -460,6 +569,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          category_id?: string | null
           cost?: number | null
           created_at?: string
           deleted_at?: string | null
@@ -474,6 +584,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          category_id?: string | null
           cost?: number | null
           created_at?: string
           deleted_at?: string | null
@@ -499,9 +610,11 @@ export type Database = {
           estimated_volume: string | null
           full_name: string | null
           id: string
+          instagram_discount: Json
           logo_url: string | null
           niche: string
           onboarding_completed: boolean
+          payment_fees: Json
           plan: string
           primary_color: string
           remember_me: boolean | null
@@ -518,9 +631,11 @@ export type Database = {
           estimated_volume?: string | null
           full_name?: string | null
           id: string
+          instagram_discount?: Json
           logo_url?: string | null
           niche?: string
           onboarding_completed?: boolean
+          payment_fees?: Json
           plan?: string
           primary_color?: string
           remember_me?: boolean | null
@@ -537,9 +652,11 @@ export type Database = {
           estimated_volume?: string | null
           full_name?: string | null
           id?: string
+          instagram_discount?: Json
           logo_url?: string | null
           niche?: string
           onboarding_completed?: boolean
+          payment_fees?: Json
           plan?: string
           primary_color?: string
           remember_me?: boolean | null
@@ -719,6 +836,105 @@ export type Database = {
           sections?: Json
           slug?: string
           theme?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          linked_post_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          linked_post_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          linked_post_id?: string | null
+          status?: string
           title?: string
           updated_at?: string
           user_id?: string
