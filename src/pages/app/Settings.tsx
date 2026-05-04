@@ -11,7 +11,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Wallet, Instagram, Crown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const COLORS = [
   { name: "Roxo", value: "271 91% 65%" },
