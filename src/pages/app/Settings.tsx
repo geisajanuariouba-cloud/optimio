@@ -13,6 +13,7 @@ import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
 import { Settings as SettingsIcon, Palette, RefreshCw, Wallet, Instagram, Crown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Link } from "react-router-dom";
 
 const COLORS = [
   { name: "Roxo", value: "271 91% 65%" },
