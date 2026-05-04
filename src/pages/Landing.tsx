@@ -75,14 +75,19 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/auth?mode=signup">
               <Button size="lg" className="bg-gradient-brand text-white border-0 hover:opacity-90 px-8 h-14 text-base animate-pulse-glow">
-                Comece grátis <ArrowRight className="ml-2 h-5 w-5" />
+                Adquirir agora <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <a href="#features">
+            <a href="#playground">
               <Button size="lg" variant="outline" className="px-8 h-14 text-base">
-                Ver recursos
+                Testar no meu nicho
               </Button>
             </a>
+          </div>
+
+          <div className="mt-10 inline-flex items-center gap-3 px-5 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-100 text-sm">
+            <AlertTriangle className="h-5 w-5 text-amber-400" />
+            <span><strong>60% das empresas fecham</strong> por má gestão. O Optimio é a sua defesa.</span>
           </div>
 
           <div className="mt-20 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
