@@ -30,7 +30,7 @@ export default function Onboarding() {
     company_name: "",
     niche: "beauty" as NicheKey,
     has_appointments: true,
-    produces_own: false,
+    produces_own: "resell" as "produce" | "resell" | "none",
     estimated_volume: "low",
     primary_color: "271 91% 65%",
     border_style: "rounded",
