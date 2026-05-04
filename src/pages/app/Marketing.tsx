@@ -11,7 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Megaphone, Trash2, ArrowRight } from "lucide-react";
+import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useTenant } from "@/hooks/useTenant";
+
+type Task = { id: string; title: string; due_date: string | null; status: string };
 
 type Post = { id: string; title: string; content: string | null; channel: string; scheduled_for: string | null; status: string };
 
@@ -28,9 +32,17 @@ export default function Marketing() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", channel: "instagram", scheduled_for: "", status: "idea" });
 
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDate, setTaskDate] = useState("");
+
   const load = async () => {
-    const { data, error } = await supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false });
-    if (error) toast.error(error.message); else setPosts(data as Post[]);
+    const [{ data: posts, error }, { data: ts }] = await Promise.all([
+      supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
+      supabase.from("tasks").select("id, title, due_date, status").is("deleted_at", null).order("due_date", { ascending: true, nullsFirst: false }),
+    ]);
+    if (error) toast.error(error.message); else setPosts((posts ?? []) as Post[]);
+    setTasks((ts ?? []) as Task[]);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -51,6 +63,39 @@ export default function Marketing() {
 
   const next = (s: string) => s === "idea" ? "scheduled" : s === "scheduled" ? "published" : null;
 
+  const addTask = async () => {
+    if (!user || !taskTitle.trim()) return;
+    await supabase.from("tasks").insert({ user_id: user.id, title: taskTitle, due_date: taskDate || null });
+    setTaskTitle(""); setTaskDate(""); load();
+  };
+  const toggleTask = async (t: Task) => {
+    await supabase.from("tasks").update({ status: t.status === "done" ? "todo" : "done" }).eq("id", t.id);
+    load();
+  };
+  const taskToPost = async (t: Task) => {
+    if (!user) return;
+    await supabase.from("marketing_posts").insert({
+      user_id: user.id, title: t.title, channel: "instagram", scheduled_for: t.due_date, status: "scheduled",
+    });
+    await supabase.from("tasks").update({ status: "scheduled" }).eq("id", t.id);
+    toast.success("Tarefa virou post agendado");
+    load();
+  };
+
+  // Build calendar grid (current month)
+  const today = new Date();
+  const year = today.getFullYear(); const month = today.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [...Array(firstDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  const eventsOn = (day: number) => {
+    const ds = new Date(year, month, day).toISOString().slice(0, 10);
+    return [
+      ...posts.filter(p => p.scheduled_for === ds).map(p => ({ kind: "post", title: p.title })),
+      ...tasks.filter(t => t.due_date === ds).map(t => ({ kind: "task", title: t.title })),
+    ];
+  };
+
   return (
     <div>
       <PageHeader title="Marketing Hub" description="Kanban de ideias, agendados e publicados — multi-canal." actionLabel="Post" onAction={() => setOpen(true)} />
@@ -60,6 +105,46 @@ export default function Marketing() {
         { label: "Publicados", value: String(posts.filter(p => p.status === "published").length) },
         { label: "Esta semana", value: String(posts.filter(p => p.scheduled_for && new Date(p.scheduled_for).getTime() < Date.now() + 7 * 86400000 && new Date(p.scheduled_for).getTime() > Date.now()).length) },
       ]} />
+
+      {/* Calendar + To-Do */}
+      <div className="grid lg:grid-cols-[1fr_340px] gap-4 mb-6">
+        <Card className="rounded-3xl border-0 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4 font-semibold"><CalIcon className="h-4 w-4 text-primary" />{today.toLocaleString("pt-BR", { month: "long", year: "numeric" })}</div>
+          <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-2">{["D","S","T","Q","Q","S","S"].map((d, i) => <div key={i} className="text-center">{d}</div>)}</div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((d, i) => (
+              <div key={i} className={`min-h-[70px] rounded-xl p-1 text-xs ${d ? "bg-secondary/40" : ""}`}>
+                {d && <div className="font-medium">{d}</div>}
+                {d && eventsOn(d).slice(0, 2).map((e, k) => (
+                  <div key={k} className={`mt-0.5 px-1.5 py-0.5 rounded truncate ${e.kind === "post" ? "bg-primary/20 text-primary" : "bg-cyan-500/20 text-cyan-700"}`}>{e.title}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4 font-semibold"><ListTodo className="h-4 w-4 text-primary" />To-Do List</div>
+          <div className="flex gap-2 mb-3">
+            <Input placeholder="Nova tarefa…" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask()} />
+            <Input type="date" value={taskDate} onChange={(e) => setTaskDate(e.target.value)} className="w-36" />
+            <Button size="icon" onClick={addTask}><Plus className="h-4 w-4" /></Button>
+          </div>
+          <div className="space-y-2 max-h-[420px] overflow-auto">
+            {tasks.length === 0 && <div className="text-xs text-muted-foreground">Sem tarefas. Adicione e arraste para virar post.</div>}
+            {tasks.map(t => (
+              <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-secondary/40 text-sm">
+                <Switch checked={t.status === "done"} onCheckedChange={() => toggleTask(t)} />
+                <div className="flex-1">
+                  <div className={t.status === "done" ? "line-through text-muted-foreground" : ""}>{t.title}</div>
+                  {t.due_date && <div className="text-[10px] text-muted-foreground">{new Date(t.due_date).toLocaleDateString("pt-BR")}</div>}
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => taskToPost(t)}>→ Post</Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
 
       {posts.length === 0 ? (
         <Card className="rounded-3xl border-0 shadow-sm">

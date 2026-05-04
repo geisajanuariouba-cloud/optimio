@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { Check, Sparkles, BarChart3, Calendar, Users, Package, Wallet, Megaphone, Zap, Shield, Rocket, ArrowRight } from "lucide-react";
+import { Check, Sparkles, BarChart3, Calendar, Users, Package, Wallet, Megaphone, Zap, Shield, Rocket, ArrowRight, AlertTriangle } from "lucide-react";
+import NicheDemo from "@/components/landing/NicheDemo";
+import AIChat from "@/components/AIChat";
 
 const features = [
   { icon: Calendar, title: "Agenda Inteligente", desc: "Calendário visual com fila de vendas integrada, anti-overbooking e métricas em tempo real." },
@@ -52,7 +54,7 @@ export default function Landing() {
         </div>
         <div className="flex items-center gap-3">
           <Link to="/auth"><Button variant="ghost">Entrar</Button></Link>
-          <Link to="/auth?mode=signup"><Button className="bg-gradient-brand text-white border-0 hover:opacity-90">Criar conta</Button></Link>
+          <Link to="/auth?mode=signup"><Button className="bg-gradient-brand text-white border-0 hover:opacity-90">Adquirir</Button></Link>
         </div>
       </nav>
 
@@ -73,14 +75,19 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/auth?mode=signup">
               <Button size="lg" className="bg-gradient-brand text-white border-0 hover:opacity-90 px-8 h-14 text-base animate-pulse-glow">
-                Comece grátis <ArrowRight className="ml-2 h-5 w-5" />
+                Adquirir agora <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <a href="#features">
+            <a href="#playground">
               <Button size="lg" variant="outline" className="px-8 h-14 text-base">
-                Ver recursos
+                Testar no meu nicho
               </Button>
             </a>
+          </div>
+
+          <div className="mt-10 inline-flex items-center gap-3 px-5 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-100 text-sm">
+            <AlertTriangle className="h-5 w-5 text-amber-400" />
+            <span><strong>60% das empresas fecham</strong> por má gestão. O Optimio é a sua defesa.</span>
           </div>
 
           <div className="mt-20 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
@@ -101,6 +108,8 @@ export default function Landing() {
         <div className="absolute top-1/4 -left-24 h-72 w-72 rounded-full bg-brand-purple/30 blur-3xl animate-float" />
         <div className="absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-brand-cyan/20 blur-3xl animate-float" style={{ animationDelay: "2s" }} />
       </section>
+
+      <div id="playground"><NicheDemo /></div>
 
       {/* Features */}
       <section id="features" className="relative px-6 lg:px-12 py-24">
@@ -192,6 +201,8 @@ export default function Landing() {
         <Logo size="sm" />
         <p>© 2026 Optimio. Todos os direitos reservados.</p>
       </footer>
+
+      <AIChat context="visitor" />
     </div>
   );
 }

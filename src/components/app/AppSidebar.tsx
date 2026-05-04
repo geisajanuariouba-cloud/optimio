@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Globe, Plug, Shield, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Globe, Plug, Shield, ClipboardList, Receipt, LifeBuoy } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -18,6 +18,7 @@ const ALL = [
   { mod: "services", title: "termServices", url: "/app/services", icon: Scissors },
   { mod: "products", title: "Produtos & Estoque", url: "/app/products", icon: Boxes },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
+  { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
   { mod: "site", title: "Site Builder", url: "/app/site", icon: Globe },
   { mod: "integrations", title: "Integrações", url: "/app/integrations", icon: Plug },
@@ -77,7 +78,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {[{ title: "Lixeira", url: "/app/trash", icon: Trash2 }, { title: "Configurações", url: "/app/settings", icon: Settings }].map(item => (
+              {[{ title: "Suporte", url: "/app/support", icon: LifeBuoy }, { title: "Lixeira", url: "/app/trash", icon: Trash2 }, { title: "Configurações", url: "/app/settings", icon: Settings }].map(item => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
                     <NavLink to={item.url} className="flex items-center gap-3">

@@ -11,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Wallet, Instagram, Crown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Link } from "react-router-dom";
 
 const COLORS = [
   { name: "Roxo", value: "271 91% 65%" },
@@ -31,6 +33,8 @@ export default function Settings() {
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [loading, setLoading] = useState(false);
+  const [fees, setFees] = useState<any>({ pix: 0, dinheiro: 0, debito: 1.5, credito: 3.5, parcelado: 4.5 });
+  const [ig, setIg] = useState<any>({ enabled: false, percent: 10, handle: "" });
 
   useEffect(() => {
     if (!profile) return;
