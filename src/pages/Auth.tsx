@@ -20,6 +20,7 @@ export default function Auth() {
   const [companyName, setCompanyName] = useState("");
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
