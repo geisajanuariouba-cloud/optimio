@@ -33,6 +33,8 @@ export default function Settings() {
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [loading, setLoading] = useState(false);
+  const [fees, setFees] = useState<any>({ pix: 0, dinheiro: 0, debito: 1.5, credito: 3.5, parcelado: 4.5 });
+  const [ig, setIg] = useState<any>({ enabled: false, percent: 10, handle: "" });
 
   useEffect(() => {
     if (!profile) return;
