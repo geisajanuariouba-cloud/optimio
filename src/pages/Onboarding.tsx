@@ -111,11 +111,15 @@ export default function Onboarding() {
                 </button>
               ))}
             </div>
-            <h2 className="text-3xl font-bold pt-4">Produz seus próprios produtos?</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {[{ v: true, l: "Sim, fabrico/produzo" }, { v: false, l: "Apenas revendo" }].map(o => (
-                <button key={String(o.v)} onClick={() => setData({ ...data, produces_own: o.v })}
-                  className={`p-6 rounded-2xl border-2 ${data.produces_own === o.v ? "border-primary bg-primary/10" : "border-border"}`}>
+            <h2 className="text-3xl font-bold pt-4">Trabalha com produtos?</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { v: "produce" as const, l: "Fabrico/produzo" },
+                { v: "resell" as const, l: "Apenas revendo" },
+                { v: "none" as const, l: "Não vendo produtos" },
+              ].map(o => (
+                <button key={o.v} onClick={() => setData({ ...data, produces_own: o.v })}
+                  className={`p-6 rounded-2xl border-2 text-sm ${data.produces_own === o.v ? "border-primary bg-primary/10" : "border-border"}`}>
                   {o.l}
                 </button>
               ))}
