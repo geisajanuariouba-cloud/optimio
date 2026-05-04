@@ -1,4 +1,5 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,10 +9,35 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
+import { supabase } from "@/integrations/supabase/client";
+
+type Hit = { kind: string; id: string; label: string; sub?: string };
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading } = useTenant();
+  const nav = useNavigate();
+  const [q, setQ] = useState("");
+  const [hits, setHits] = useState<Hit[]>([]);
+
+  useEffect(() => {
+    if (!q.trim() || !user) { setHits([]); return; }
+    const t = setTimeout(async () => {
+      const like = `%${q}%`;
+      const [c, p, s] = await Promise.all([
+        supabase.from("clients").select("id, full_name, phone").is("deleted_at", null).ilike("full_name", like).limit(5),
+        supabase.from("products").select("id, name, category").is("deleted_at", null).ilike("name", like).limit(5),
+        supabase.from("services").select("id, name, category").is("deleted_at", null).ilike("name", like).limit(5),
+      ]);
+      const h: Hit[] = [
+        ...(c.data ?? []).map((x: any) => ({ kind: "Cliente", id: x.id, label: x.full_name, sub: x.phone })),
+        ...(p.data ?? []).map((x: any) => ({ kind: "Produto", id: x.id, label: x.name, sub: x.category })),
+        ...(s.data ?? []).map((x: any) => ({ kind: "Serviço", id: x.id, label: x.name, sub: x.category })),
+      ];
+      setHits(h);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q, user]);
 
   if (authLoading || loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background bg-mesh">
@@ -21,13 +47,13 @@ export default function AppLayout() {
   if (!user) return <Navigate to="/auth" replace />;
   if (profile && !profile.onboarding_completed) return <Navigate to="/onboarding" replace />;
 
-  if (profile?.account_status === "pending_payment") {
+  if (profile?.account_status === "waiting_approval" || profile?.account_status === "pending_payment") {
     return (
       <div className="min-h-screen bg-background bg-mesh flex items-center justify-center p-4">
         <Card className="glass border-0 rounded-3xl p-10 max-w-md text-center">
           <Logo size="sm" />
-          <h1 className="text-3xl font-bold mt-6 mb-3">Conta aguardando aprovação</h1>
-          <p className="text-muted-foreground mb-6">Seu pagamento está sendo confirmado. Você receberá um e-mail assim que sua conta for liberada.</p>
+          <h1 className="text-3xl font-bold mt-6 mb-3">Aguardando aprovação</h1>
+          <p className="text-muted-foreground mb-6">Seu cadastro foi recebido e está em análise pelo admin do Optimio. Você receberá um e-mail assim que sua conta for liberada.</p>
           <Button onClick={signOut} variant="outline" className="rounded-2xl">Sair</Button>
         </Card>
       </div>
@@ -45,6 +71,13 @@ export default function AppLayout() {
     );
   }
 
+  const goTo = (h: Hit) => {
+    setQ(""); setHits([]);
+    if (h.kind === "Cliente") nav("/app/clients");
+    else if (h.kind === "Produto") nav("/app/products");
+    else nav("/app/services");
+  };
+
   return (
     <div className="theme-skillset">
       <SidebarProvider>
@@ -55,7 +88,17 @@ export default function AppLayout() {
               <SidebarTrigger />
               <div className="flex-1 max-w-md relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar…" className="pl-9 bg-secondary/50 border-0 h-10" />
+                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar clientes, produtos, serviços…" className="pl-9 bg-secondary/50 border-0 h-10" />
+                {hits.length > 0 && (
+                  <Card className="absolute top-12 left-0 right-0 z-50 rounded-2xl border-0 shadow-lg max-h-80 overflow-auto">
+                    {hits.map(h => (
+                      <button key={h.kind + h.id} onClick={() => goTo(h)} className="w-full text-left p-3 hover:bg-secondary/60 flex items-center justify-between">
+                        <div><div className="font-medium text-sm">{h.label}</div><div className="text-xs text-muted-foreground">{h.sub ?? "—"}</div></div>
+                        <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">{h.kind}</span>
+                      </button>
+                    ))}
+                  </Card>
+                )}
               </div>
               <div className="text-sm text-muted-foreground hidden md:block">{profile?.company_name}</div>
               <Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button>
