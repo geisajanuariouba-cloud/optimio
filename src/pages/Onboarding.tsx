@@ -94,6 +94,9 @@ export default function Onboarding() {
             <h2 className="text-3xl font-bold">Qual o nome da sua empresa?</h2>
             <p className="text-muted-foreground">Vamos personalizar o Optimio para você (whitelabel).</p>
             <Input autoFocus value={data.company_name} onChange={(e) => setData({ ...data, company_name: e.target.value })} placeholder="Ex.: Studio Maria" className="h-14 text-lg bg-secondary/40 border-0" />
+            <Label className="pt-2 block">WhatsApp (obrigatório)</Label>
+            <Input value={data.phone_number} onChange={(e) => setData({ ...data, phone_number: e.target.value })} placeholder="(11) 99999-9999" className="h-14 text-lg bg-secondary/40 border-0" />
+            <p className="text-xs text-muted-foreground">Usado para suporte e contato sobre sua assinatura.</p>
           </div>
         )}
 
