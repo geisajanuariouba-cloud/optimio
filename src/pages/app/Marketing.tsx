@@ -146,7 +146,7 @@ export default function Marketing() {
         </Card>
       </div>
 
-
+      {posts.length === 0 ? (
         <Card className="rounded-3xl border-0 shadow-sm">
           <EmptyState icon={Megaphone} title="Sem posts ainda" description="Crie ideias, agende publicações e organize seu calendário editorial." actionLabel="Post" onAction={() => setOpen(true)} />
         </Card>
