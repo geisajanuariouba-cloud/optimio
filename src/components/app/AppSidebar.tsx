@@ -1,4 +1,4 @@
-import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Globe, Plug, Shield, ClipboardList, Receipt, LifeBuoy } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
