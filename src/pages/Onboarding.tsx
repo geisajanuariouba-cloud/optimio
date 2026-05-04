@@ -28,6 +28,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
     company_name: "",
+    phone_number: "",
     niche: "beauty" as NicheKey,
     has_appointments: true,
     produces_own: "resell" as "produce" | "resell" | "none",
