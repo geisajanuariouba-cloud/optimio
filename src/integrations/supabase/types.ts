@@ -527,6 +527,95 @@ export type Database = {
           },
         ]
       }
+      payment_proofs: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          file_path: string
+          id: string
+          method: string | null
+          notes: string | null
+          paid_at: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by: string
+          file_path: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          paid_at?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          file_path?: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          paid_at?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_proofs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          limits: Json
+          modules: Json
+          name: string
+          price: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          limits?: Json
+          modules?: Json
+          name: string
+          price?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          limits?: Json
+          modules?: Json
+          name?: string
+          price?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           color: string | null
@@ -615,6 +704,7 @@ export type Database = {
           niche: string
           onboarding_completed: boolean
           payment_fees: Json
+          phone_number: string | null
           plan: string
           primary_color: string
           remember_me: boolean | null
@@ -636,6 +726,7 @@ export type Database = {
           niche?: string
           onboarding_completed?: boolean
           payment_fees?: Json
+          phone_number?: string | null
           plan?: string
           primary_color?: string
           remember_me?: boolean | null
@@ -657,6 +748,7 @@ export type Database = {
           niche?: string
           onboarding_completed?: boolean
           payment_fees?: Json
+          phone_number?: string | null
           plan?: string
           primary_color?: string
           remember_me?: boolean | null
@@ -837,6 +929,42 @@ export type Database = {
           slug?: string
           theme?: Json
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string
+          id: string
+          last_paid_at: string | null
+          plan_slug: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string
+          id?: string
+          last_paid_at?: string | null
+          plan_slug: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string
+          id?: string
+          last_paid_at?: string | null
+          plan_slug?: string
+          started_at?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
