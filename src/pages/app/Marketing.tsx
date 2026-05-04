@@ -32,9 +32,17 @@ export default function Marketing() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", channel: "instagram", scheduled_for: "", status: "idea" });
 
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDate, setTaskDate] = useState("");
+
   const load = async () => {
-    const { data, error } = await supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false });
-    if (error) toast.error(error.message); else setPosts(data as Post[]);
+    const [{ data: posts, error }, { data: ts }] = await Promise.all([
+      supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
+      supabase.from("tasks").select("id, title, due_date, status").is("deleted_at", null).order("due_date", { ascending: true, nullsFirst: false }),
+    ]);
+    if (error) toast.error(error.message); else setPosts((posts ?? []) as Post[]);
+    setTasks((ts ?? []) as Task[]);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
