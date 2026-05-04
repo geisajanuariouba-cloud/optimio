@@ -38,11 +38,10 @@ export default function Auth() {
           },
         });
         if (error) throw error;
-        // Mark account as PENDING_PAYMENT until super admin approves or webhook fires
         if (data.user) {
-          await supabase.from("profiles").update({ account_status: "pending_payment" }).eq("id", data.user.id);
+          await supabase.from("profiles").update({ account_status: "waiting_approval" }).eq("id", data.user.id);
         }
-        toast.success("Conta criada! Aguarde aprovação ou confirme seu pagamento.");
+        toast.success("Cadastro recebido! Sua conta aguarda aprovação do admin.");
         navigate("/onboarding");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
