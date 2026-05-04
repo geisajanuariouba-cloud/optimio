@@ -131,7 +131,7 @@ export default function Auth() {
               )}
 
               <Button type="submit" disabled={loading} className="w-full h-12 bg-gradient-brand text-white border-0 hover:opacity-90">
-                {loading ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}
+                {loading ? "Aguarde…" : mode === "login" ? "Entrar" : "Adquirir conta"}
               </Button>
             </form>
 
