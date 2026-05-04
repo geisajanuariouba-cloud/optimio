@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
+import AIChat from "@/components/AIChat";
 
 type Hit = { kind: string; id: string; label: string; sub?: string };
 
@@ -107,6 +108,7 @@ export default function AppLayout() {
               <Outlet />
             </main>
           </div>
+          <AIChat context="app" />
         </div>
       </SidebarProvider>
     </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,8 @@ type Tenant = { id: string; full_name: string | null; company_name: string | nul
 export default function SuperAdmin() {
   const { isAdmin, loading } = useTenant();
   const { signOut } = useAuth();
+  const nav = useNavigate();
+  const handleSignOut = async () => { await signOut(); nav("/auth", { replace: true }); };
   const [tenants, setTenants] = useState<Tenant[]>([]);
 
   const load = async () => {
@@ -40,7 +42,7 @@ export default function SuperAdmin() {
     <div className="min-h-screen bg-background bg-mesh">
       <header className="border-b border-border/50 px-6 py-4 flex items-center justify-between glass">
         <div className="flex items-center gap-3"><Logo size="sm" /><Badge className="bg-gradient-brand text-white border-0 gap-1"><Shield className="h-3 w-3" /> Super Admin</Badge></div>
-        <Button variant="ghost" onClick={signOut}>Sair</Button>
+        <Button variant="ghost" onClick={handleSignOut}>Sair</Button>
       </header>
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">

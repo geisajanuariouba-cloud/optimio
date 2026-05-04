@@ -39,7 +39,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
-        {collapsed ? <Logo size="sm" showWordmark={false} /> : <Logo size="sm" />}
+        {collapsed ? <Logo size="sm" showWordmark={false} to="/app" /> : <Logo size="sm" to="/app" />}
       </SidebarHeader>
 
       <SidebarContent>
