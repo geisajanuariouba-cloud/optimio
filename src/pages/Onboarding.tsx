@@ -45,10 +45,13 @@ export default function Onboarding() {
     if (!user) return;
     const niche = NICHES[data.niche];
     const suggested = data.estimated_volume === "high" ? "unlimited" : data.estimated_volume === "mid" ? "standard" : "basic";
+    let modules = [...niche.modules];
+    if (!data.has_appointments) modules = modules.filter(m => m !== "appointments" && m !== "packages");
+    if (data.produces_own === "none") modules = modules.filter(m => m !== "products");
     const { error } = await supabase.from("profiles").update({
       company_name: data.company_name || "Studio",
       niche: data.niche,
-      enabled_modules: niche.modules,
+      enabled_modules: modules,
       terms: niche.terms,
       primary_color: data.primary_color,
       border_style: data.border_style,
