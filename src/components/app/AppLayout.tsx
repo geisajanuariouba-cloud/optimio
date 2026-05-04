@@ -108,6 +108,7 @@ export default function AppLayout() {
               <Outlet />
             </main>
           </div>
+          <AIChat context="app" />
         </div>
       </SidebarProvider>
     </div>
