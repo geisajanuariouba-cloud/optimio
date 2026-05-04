@@ -1,105 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* OPTIMIO — Futuristic dark (default for landing/auth/shell) */
+    --background: 260 40% 6%;
+    --foreground: 240 20% 96%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 258 35% 10%;
+    --card-foreground: 240 20% 96%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 258 35% 10%;
+    --popover-foreground: 240 20% 96%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 271 91% 65%;
+    --primary-foreground: 240 20% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 258 30% 16%;
+    --secondary-foreground: 240 20% 96%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 258 25% 14%;
+    --muted-foreground: 240 10% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 174 80% 55%;
+    --accent-foreground: 258 60% 10%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 258 25% 18%;
+    --input: 258 25% 18%;
+    --ring: 271 91% 65%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Brand */
+    --brand-violet: 271 91% 65%;
+    --brand-purple: 280 85% 55%;
+    --brand-cyan: 174 80% 55%;
+    --brand-blue: 220 90% 65%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Skillset (backoffice) - applied via .theme-skillset */
+    --skill-bg: 220 14% 96%;
+    --skill-card: 0 0% 100%;
+    --skill-fg: 222 47% 11%;
+    --skill-muted-fg: 215 16% 47%;
+    --skill-border: 220 13% 91%;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Jewelry premium - applied via .theme-jewelry */
+    --jewel-bg: 327 73% 92%;
+    --jewel-card: 0 0% 100%;
+    --jewel-fg: 322 35% 22%;
+    --jewel-muted-fg: 322 12% 50%;
+    --jewel-border: 327 40% 86%;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-background: 258 40% 8%;
+    --sidebar-foreground: 240 15% 85%;
+    --sidebar-primary: 271 91% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 258 30% 14%;
+    --sidebar-accent-foreground: 240 20% 96%;
+    --sidebar-border: 258 25% 16%;
+    --sidebar-ring: 174 80% 55%;
 
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(280 85% 55%), hsl(271 91% 65%) 45%, hsl(220 90% 65%) 75%, hsl(174 80% 55%));
+    --gradient-radial: radial-gradient(1200px 600px at 20% 0%, hsl(271 91% 65% / 0.25), transparent 60%),
+                       radial-gradient(900px 500px at 90% 30%, hsl(174 80% 55% / 0.18), transparent 60%),
+                       radial-gradient(800px 600px at 50% 100%, hsl(280 85% 55% / 0.18), transparent 60%);
+    --gradient-card: linear-gradient(180deg, hsl(258 35% 12% / 0.9), hsl(258 40% 8% / 0.9));
+    --glow-primary: 0 0 60px hsl(271 91% 65% / 0.45);
+    --glow-accent: 0 0 50px hsl(174 80% 55% / 0.35);
+    --shadow-elegant: 0 30px 80px -20px hsl(280 60% 10% / 0.6);
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+  .theme-skillset {
+    --background: var(--skill-bg);
+    --foreground: var(--skill-fg);
+    --card: var(--skill-card);
+    --card-foreground: var(--skill-fg);
+    --popover: var(--skill-card);
+    --popover-foreground: var(--skill-fg);
+    --primary: 271 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 93%;
+    --secondary-foreground: var(--skill-fg);
+    --muted: 220 14% 95%;
+    --muted-foreground: var(--skill-muted-fg);
+    --accent: 174 70% 45%;
+    --accent-foreground: 0 0% 100%;
+    --border: var(--skill-border);
+    --input: var(--skill-border);
+    --ring: 271 91% 60%;
+    --radius: 1.25rem;
+  }
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  .theme-jewelry {
+    --background: var(--jewel-bg);
+    --foreground: var(--jewel-fg);
+    --card: var(--jewel-card);
+    --card-foreground: var(--jewel-fg);
+    --popover: var(--jewel-card);
+    --popover-foreground: var(--jewel-fg);
+    --primary: 322 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 327 60% 95%;
+    --secondary-foreground: var(--jewel-fg);
+    --muted: 327 50% 96%;
+    --muted-foreground: var(--jewel-muted-fg);
+    --accent: 271 80% 65%;
+    --accent-foreground: 0 0% 100%;
+    --border: var(--jewel-border);
+    --input: var(--jewel-border);
+    --ring: 322 70% 55%;
+    --radius: 2.5rem;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
+  * { @apply border-border; }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
   }
+  h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
+  .theme-jewelry h1, .theme-jewelry h2, .theme-jewelry h3 { font-family: 'Poppins', sans-serif; }
+}
+
+@layer utilities {
+  .text-gradient-brand {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-gradient-brand { background-image: var(--gradient-brand); }
+  .bg-mesh { background-image: var(--gradient-radial); }
+  .bg-card-gradient { background-image: var(--gradient-card); }
+  .glow-primary { box-shadow: var(--glow-primary); }
+  .glow-accent { box-shadow: var(--glow-accent); }
+  .shadow-elegant { box-shadow: var(--shadow-elegant); }
+  .glass {
+    background: hsl(258 35% 12% / 0.55);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid hsl(240 20% 96% / 0.08);
+  }
+  .border-gradient {
+    position: relative;
+  }
+  .border-gradient::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-brand);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+  .animate-grid { animation: grid-move 20s linear infinite; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 30px hsl(271 91% 65% / 0.3); }
+  50% { box-shadow: 0 0 60px hsl(271 91% 65% / 0.6), 0 0 100px hsl(174 80% 55% / 0.3); }
+}
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
 }
