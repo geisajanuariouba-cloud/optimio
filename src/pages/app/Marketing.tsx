@@ -11,7 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Megaphone, Trash2, ArrowRight } from "lucide-react";
+import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useTenant } from "@/hooks/useTenant";
+
+type Task = { id: string; title: string; due_date: string | null; status: string };
 
 type Post = { id: string; title: string; content: string | null; channel: string; scheduled_for: string | null; status: string };
 
