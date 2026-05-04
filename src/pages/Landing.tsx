@@ -109,6 +109,8 @@ export default function Landing() {
         <div className="absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-brand-cyan/20 blur-3xl animate-float" style={{ animationDelay: "2s" }} />
       </section>
 
+      <div id="playground"><NicheDemo /></div>
+
       {/* Features */}
       <section id="features" className="relative px-6 lg:px-12 py-24">
         <div className="max-w-7xl mx-auto">
