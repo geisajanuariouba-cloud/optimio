@@ -224,6 +224,45 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_posts: {
+        Row: {
+          channel: string | null
+          content: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          scheduled_for: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string | null
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          scheduled_for?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string | null
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          scheduled_for?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       package_sessions: {
         Row: {
           appointment_id: string | null
