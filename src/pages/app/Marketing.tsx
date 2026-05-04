@@ -63,6 +63,39 @@ export default function Marketing() {
 
   const next = (s: string) => s === "idea" ? "scheduled" : s === "scheduled" ? "published" : null;
 
+  const addTask = async () => {
+    if (!user || !taskTitle.trim()) return;
+    await supabase.from("tasks").insert({ user_id: user.id, title: taskTitle, due_date: taskDate || null });
+    setTaskTitle(""); setTaskDate(""); load();
+  };
+  const toggleTask = async (t: Task) => {
+    await supabase.from("tasks").update({ status: t.status === "done" ? "todo" : "done" }).eq("id", t.id);
+    load();
+  };
+  const taskToPost = async (t: Task) => {
+    if (!user) return;
+    await supabase.from("marketing_posts").insert({
+      user_id: user.id, title: t.title, channel: "instagram", scheduled_for: t.due_date, status: "scheduled",
+    });
+    await supabase.from("tasks").update({ status: "scheduled" }).eq("id", t.id);
+    toast.success("Tarefa virou post agendado");
+    load();
+  };
+
+  // Build calendar grid (current month)
+  const today = new Date();
+  const year = today.getFullYear(); const month = today.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [...Array(firstDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  const eventsOn = (day: number) => {
+    const ds = new Date(year, month, day).toISOString().slice(0, 10);
+    return [
+      ...posts.filter(p => p.scheduled_for === ds).map(p => ({ kind: "post", title: p.title })),
+      ...tasks.filter(t => t.due_date === ds).map(t => ({ kind: "task", title: t.title })),
+    ];
+  };
+
   return (
     <div>
       <PageHeader title="Marketing Hub" description="Kanban de ideias, agendados e publicados — multi-canal." actionLabel="Post" onAction={() => setOpen(true)} />
