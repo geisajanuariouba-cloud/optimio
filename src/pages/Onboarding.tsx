@@ -28,6 +28,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
     company_name: "",
+    phone_number: "",
     niche: "beauty" as NicheKey,
     has_appointments: true,
     produces_own: "resell" as "produce" | "resell" | "none",
@@ -43,6 +44,9 @@ export default function Onboarding() {
 
   const finish = async () => {
     if (!user) return;
+    if (!data.phone_number || data.phone_number.replace(/\D/g,"").length < 10) {
+      return toast.error("WhatsApp é obrigatório.");
+    }
     const niche = NICHES[data.niche];
     const suggested = data.estimated_volume === "high" ? "unlimited" : data.estimated_volume === "mid" ? "standard" : "basic";
     let modules = [...niche.modules];
@@ -50,6 +54,7 @@ export default function Onboarding() {
     if (data.produces_own === "none") modules = modules.filter(m => m !== "products");
     const { error } = await supabase.from("profiles").update({
       company_name: data.company_name || "Studio",
+      phone_number: data.phone_number,
       niche: data.niche,
       enabled_modules: modules,
       terms: niche.terms,
@@ -57,11 +62,16 @@ export default function Onboarding() {
       border_style: data.border_style,
       estimated_volume: data.estimated_volume,
       plan: suggested,
+      account_status: "pending_payment",
       onboarding_completed: true,
     }).eq("id", user.id);
     if (error) return toast.error(error.message);
+    // Cria assinatura pending de 30 dias
+    await supabase.from("subscriptions").insert({
+      user_id: user.id, plan_slug: suggested, status: "pending",
+    });
     await refresh();
-    toast.success("Tudo pronto! Bem-vindo ao Optimio.");
+    toast.success("Tudo pronto! Aguarde aprovação do pagamento.");
     nav("/app");
   };
 
@@ -84,6 +94,9 @@ export default function Onboarding() {
             <h2 className="text-3xl font-bold">Qual o nome da sua empresa?</h2>
             <p className="text-muted-foreground">Vamos personalizar o Optimio para você (whitelabel).</p>
             <Input autoFocus value={data.company_name} onChange={(e) => setData({ ...data, company_name: e.target.value })} placeholder="Ex.: Studio Maria" className="h-14 text-lg bg-secondary/40 border-0" />
+            <Label className="pt-2 block">WhatsApp (obrigatório)</Label>
+            <Input value={data.phone_number} onChange={(e) => setData({ ...data, phone_number: e.target.value })} placeholder="(11) 99999-9999" className="h-14 text-lg bg-secondary/40 border-0" />
+            <p className="text-xs text-muted-foreground">Usado para suporte e contato sobre sua assinatura.</p>
           </div>
         )}
 
