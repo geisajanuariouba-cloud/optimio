@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, Eye, EyeOff } from "lucide-react";
 
 export default function Auth() {
   const [params] = useSearchParams();
