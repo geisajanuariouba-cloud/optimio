@@ -25,6 +25,8 @@ import SiteBuilder from "./pages/app/SiteBuilder";
 import Integrations from "./pages/app/Integrations";
 import Trash from "./pages/app/Trash";
 import SettingsPage from "./pages/app/Settings";
+import Debts from "./pages/app/Debts";
+import Support from "./pages/app/Support";
 
 const queryClient = new QueryClient();
 
