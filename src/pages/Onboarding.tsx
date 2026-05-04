@@ -30,7 +30,7 @@ export default function Onboarding() {
     company_name: "",
     niche: "beauty" as NicheKey,
     has_appointments: true,
-    produces_own: false,
+    produces_own: "resell" as "produce" | "resell" | "none",
     estimated_volume: "low",
     primary_color: "271 91% 65%",
     border_style: "rounded",
@@ -45,10 +45,13 @@ export default function Onboarding() {
     if (!user) return;
     const niche = NICHES[data.niche];
     const suggested = data.estimated_volume === "high" ? "unlimited" : data.estimated_volume === "mid" ? "standard" : "basic";
+    let modules = [...niche.modules];
+    if (!data.has_appointments) modules = modules.filter(m => m !== "appointments" && m !== "packages");
+    if (data.produces_own === "none") modules = modules.filter(m => m !== "products");
     const { error } = await supabase.from("profiles").update({
       company_name: data.company_name || "Studio",
       niche: data.niche,
-      enabled_modules: niche.modules,
+      enabled_modules: modules,
       terms: niche.terms,
       primary_color: data.primary_color,
       border_style: data.border_style,
@@ -111,11 +114,15 @@ export default function Onboarding() {
                 </button>
               ))}
             </div>
-            <h2 className="text-3xl font-bold pt-4">Produz seus próprios produtos?</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {[{ v: true, l: "Sim, fabrico/produzo" }, { v: false, l: "Apenas revendo" }].map(o => (
-                <button key={String(o.v)} onClick={() => setData({ ...data, produces_own: o.v })}
-                  className={`p-6 rounded-2xl border-2 ${data.produces_own === o.v ? "border-primary bg-primary/10" : "border-border"}`}>
+            <h2 className="text-3xl font-bold pt-4">Trabalha com produtos?</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { v: "produce" as const, l: "Fabrico/produzo" },
+                { v: "resell" as const, l: "Apenas revendo" },
+                { v: "none" as const, l: "Não vendo produtos" },
+              ].map(o => (
+                <button key={o.v} onClick={() => setData({ ...data, produces_own: o.v })}
+                  className={`p-6 rounded-2xl border-2 text-sm ${data.produces_own === o.v ? "border-primary bg-primary/10" : "border-border"}`}>
                   {o.l}
                 </button>
               ))}

@@ -38,10 +38,7 @@ export default function Auth() {
           },
         });
         if (error) throw error;
-        if (data.user) {
-          await supabase.from("profiles").update({ account_status: "waiting_approval" }).eq("id", data.user.id);
-        }
-        toast.success("Cadastro recebido! Sua conta aguarda aprovação do admin.");
+        toast.success("Cadastro criado! Verifique seu e-mail e siga para o onboarding.");
         navigate("/onboarding");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
