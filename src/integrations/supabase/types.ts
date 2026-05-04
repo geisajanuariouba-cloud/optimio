@@ -14,7 +14,489 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      anamnesis: {
+        Row: {
+          answers: Json
+          client_id: string
+          client_notes: string | null
+          created_at: string
+          id: string
+          professional_notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          client_id: string
+          client_notes?: string | null
+          created_at?: string
+          id?: string
+          professional_notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          client_id?: string
+          client_notes?: string | null
+          created_at?: string
+          id?: string
+          professional_notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anamnesis_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
+        Row: {
+          amount: number
+          appointment_date: string
+          appointment_time: string
+          client_id: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_walk_in: boolean
+          notes: string | null
+          package_id: string | null
+          payment_method: string | null
+          professional: string | null
+          service_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          appointment_date: string
+          appointment_time: string
+          client_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_walk_in?: boolean
+          notes?: string | null
+          package_id?: string | null
+          payment_method?: string | null
+          professional?: string | null
+          service_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          appointment_date?: string
+          appointment_time?: string
+          client_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_walk_in?: boolean
+          notes?: string | null
+          package_id?: string | null
+          payment_method?: string | null
+          professional?: string | null
+          service_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          custom_fields: Json | null
+          deleted_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_fields?: Json | null
+          deleted_at?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_fields?: Json | null
+          deleted_at?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      financial: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          fee_amount: number | null
+          fee_percent: number | null
+          gross_amount: number
+          id: string
+          net_amount: number
+          origin: string | null
+          origin_id: string | null
+          payment_method: string | null
+          transaction_date: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          fee_amount?: number | null
+          fee_percent?: number | null
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          origin?: string | null
+          origin_id?: string | null
+          payment_method?: string | null
+          transaction_date?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          fee_amount?: number | null
+          fee_percent?: number | null
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          origin?: string | null
+          origin_id?: string | null
+          payment_method?: string | null
+          transaction_date?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      package_sessions: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          id: string
+          package_id: string
+          service_id: string | null
+          session_number: number
+          status: string
+          treatment: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          package_id: string
+          service_id?: string | null
+          session_number: number
+          status?: string
+          treatment: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          package_id?: string
+          service_id?: string | null
+          session_number?: number
+          status?: string
+          treatment?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_sessions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_sessions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_templates: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          finish_type: string
+          id: string
+          name: string
+          price: number
+          treatments: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          finish_type?: string
+          id?: string
+          name: string
+          price?: number
+          treatments?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          finish_type?: string
+          id?: string
+          name?: string
+          price?: number
+          treatments?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      packages: {
+        Row: {
+          client_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          payment_method: string | null
+          start_date: string | null
+          status: string
+          template_id: string | null
+          total_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          payment_method?: string | null
+          start_date?: string | null
+          status?: string
+          template_id?: string | null
+          total_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          payment_method?: string | null
+          start_date?: string | null
+          status?: string
+          template_id?: string | null
+          total_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "package_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string | null
+          cost: number | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_ingredient_residue: boolean
+          min_stock: number
+          name: string
+          sale_price: number
+          stock: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_ingredient_residue?: boolean
+          min_stock?: number
+          name: string
+          sale_price?: number
+          stock?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_ingredient_residue?: boolean
+          min_stock?: number
+          name?: string
+          sale_price?: number
+          stock?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          custom_properties: Json
+          enabled_modules: Json
+          full_name: string | null
+          id: string
+          logo_url: string | null
+          plan: string
+          remember_me: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          custom_properties?: Json
+          enabled_modules?: Json
+          full_name?: string | null
+          id: string
+          logo_url?: string | null
+          plan?: string
+          remember_me?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          custom_properties?: Json
+          enabled_modules?: Json
+          full_name?: string | null
+          id?: string
+          logo_url?: string | null
+          plan?: string
+          remember_me?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          category: string | null
+          cost: number | null
+          created_at: string
+          deleted_at: string | null
+          duration_minutes: number
+          id: string
+          name: string
+          starting_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          duration_minutes?: number
+          id?: string
+          name: string
+          starting_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          duration_minutes?: number
+          id?: string
+          name?: string
+          starting_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
