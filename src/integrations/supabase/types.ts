@@ -224,6 +224,36 @@ export type Database = {
         }
         Relationships: []
       }
+      integrations: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          provider: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          provider: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       marketing_posts: {
         Row: {
           channel: string | null
@@ -460,40 +490,121 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
+          border_style: string
           company_name: string | null
           created_at: string
           custom_properties: Json
           enabled_modules: Json
+          estimated_volume: string | null
           full_name: string | null
           id: string
           logo_url: string | null
+          niche: string
+          onboarding_completed: boolean
           plan: string
+          primary_color: string
           remember_me: boolean | null
+          terms: Json
           updated_at: string
         }
         Insert: {
+          account_status?: string
+          border_style?: string
           company_name?: string | null
           created_at?: string
           custom_properties?: Json
           enabled_modules?: Json
+          estimated_volume?: string | null
           full_name?: string | null
           id: string
           logo_url?: string | null
+          niche?: string
+          onboarding_completed?: boolean
           plan?: string
+          primary_color?: string
           remember_me?: boolean | null
+          terms?: Json
           updated_at?: string
         }
         Update: {
+          account_status?: string
+          border_style?: string
           company_name?: string | null
           created_at?: string
           custom_properties?: Json
           enabled_modules?: Json
+          estimated_volume?: string | null
           full_name?: string | null
           id?: string
           logo_url?: string | null
+          niche?: string
+          onboarding_completed?: boolean
           plan?: string
+          primary_color?: string
           remember_me?: boolean | null
+          terms?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      promo_commands: {
+        Row: {
+          affected_count: number
+          command: string
+          created_at: string
+          id: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          affected_count?: number
+          command: string
+          created_at?: string
+          id?: string
+          result?: Json
+          user_id: string
+        }
+        Update: {
+          affected_count?: number
+          command?: string
+          created_at?: string
+          id?: string
+          result?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      refunds: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          created_at: string
+          id: string
+          package_id: string | null
+          reason: string | null
+          restocked: Json
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          package_id?: string | null
+          reason?: string | null
+          restocked?: Json
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          package_id?: string | null
+          reason?: string | null
+          restocked?: Json
+          user_id?: string
         }
         Relationships: []
       }
@@ -536,15 +647,120 @@ export type Database = {
         }
         Relationships: []
       }
+      site_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          payload: Json
+          site_id: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          payload?: Json
+          site_id?: string | null
+          status?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          payload?: Json
+          site_id?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sites: {
+        Row: {
+          created_at: string
+          id: string
+          published: boolean
+          sections: Json
+          slug: string
+          theme: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          published?: boolean
+          sections?: Json
+          slug: string
+          theme?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          published?: boolean
+          sections?: Json
+          slug?: string
+          theme?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -671,6 +887,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
