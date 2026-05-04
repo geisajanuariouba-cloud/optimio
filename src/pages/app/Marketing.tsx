@@ -106,7 +106,47 @@ export default function Marketing() {
         { label: "Esta semana", value: String(posts.filter(p => p.scheduled_for && new Date(p.scheduled_for).getTime() < Date.now() + 7 * 86400000 && new Date(p.scheduled_for).getTime() > Date.now()).length) },
       ]} />
 
-      {posts.length === 0 ? (
+      {/* Calendar + To-Do */}
+      <div className="grid lg:grid-cols-[1fr_340px] gap-4 mb-6">
+        <Card className="rounded-3xl border-0 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4 font-semibold"><CalIcon className="h-4 w-4 text-primary" />{today.toLocaleString("pt-BR", { month: "long", year: "numeric" })}</div>
+          <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-2">{["D","S","T","Q","Q","S","S"].map((d, i) => <div key={i} className="text-center">{d}</div>)}</div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((d, i) => (
+              <div key={i} className={`min-h-[70px] rounded-xl p-1 text-xs ${d ? "bg-secondary/40" : ""}`}>
+                {d && <div className="font-medium">{d}</div>}
+                {d && eventsOn(d).slice(0, 2).map((e, k) => (
+                  <div key={k} className={`mt-0.5 px-1.5 py-0.5 rounded truncate ${e.kind === "post" ? "bg-primary/20 text-primary" : "bg-cyan-500/20 text-cyan-700"}`}>{e.title}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4 font-semibold"><ListTodo className="h-4 w-4 text-primary" />To-Do List</div>
+          <div className="flex gap-2 mb-3">
+            <Input placeholder="Nova tarefa…" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask()} />
+            <Input type="date" value={taskDate} onChange={(e) => setTaskDate(e.target.value)} className="w-36" />
+            <Button size="icon" onClick={addTask}><Plus className="h-4 w-4" /></Button>
+          </div>
+          <div className="space-y-2 max-h-[420px] overflow-auto">
+            {tasks.length === 0 && <div className="text-xs text-muted-foreground">Sem tarefas. Adicione e arraste para virar post.</div>}
+            {tasks.map(t => (
+              <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-secondary/40 text-sm">
+                <Switch checked={t.status === "done"} onCheckedChange={() => toggleTask(t)} />
+                <div className="flex-1">
+                  <div className={t.status === "done" ? "line-through text-muted-foreground" : ""}>{t.title}</div>
+                  {t.due_date && <div className="text-[10px] text-muted-foreground">{new Date(t.due_date).toLocaleDateString("pt-BR")}</div>}
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => taskToPost(t)}>→ Post</Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+
         <Card className="rounded-3xl border-0 shadow-sm">
           <EmptyState icon={Megaphone} title="Sem posts ainda" description="Crie ideias, agende publicações e organize seu calendário editorial." actionLabel="Post" onAction={() => setOpen(true)} />
         </Card>
