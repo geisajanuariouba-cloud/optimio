@@ -15,6 +15,8 @@ type Tenant = { id: string; full_name: string | null; company_name: string | nul
 export default function SuperAdmin() {
   const { isAdmin, loading } = useTenant();
   const { signOut } = useAuth();
+  const nav = useNavigate();
+  const handleSignOut = async () => { await signOut(); nav("/auth", { replace: true }); };
   const [tenants, setTenants] = useState<Tenant[]>([]);
 
   const load = async () => {
