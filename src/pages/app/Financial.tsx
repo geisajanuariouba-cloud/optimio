@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import PromoChat from "@/components/app/PromoChat";
 
 type Tx = { id: string; type: string; gross_amount: number; net_amount: number; fee_percent: number | null; description: string | null; payment_method: string | null; category: string | null; transaction_date: string };
 
@@ -52,6 +53,8 @@ export default function Financial() {
   }, [txs]);
   const income = month.filter(t => t.type === "income").reduce((a, t) => a + t.net_amount, 0);
   const expense = month.filter(t => t.type === "expense").reduce((a, t) => a + t.gross_amount, 0);
+  const fees = month.filter(t => t.type === "income").reduce((a, t) => a + (t.fee_percent ? (t.gross_amount * t.fee_percent / 100) : 0), 0);
+  const realProfit = income - expense - fees;
 
   return (
     <div>
@@ -59,9 +62,14 @@ export default function Financial() {
       <MetricsRow items={[
         { label: "Receita (mês)", value: `R$ ${income.toFixed(2)}` },
         { label: "Despesas", value: `R$ ${expense.toFixed(2)}` },
-        { label: "Lucro líquido", value: `R$ ${(income - expense).toFixed(2)}` },
-        { label: "Promissórias", value: `R$ ${month.filter(t => t.payment_method === "promissoria" && t.type === "income").reduce((a, t) => a + t.net_amount, 0).toFixed(2)}` },
+        { label: "Taxas maquininha", value: `R$ ${fees.toFixed(2)}` },
+        { label: "Lucro real", value: `R$ ${realProfit.toFixed(2)}`, hint: "receita − despesas − taxas" },
       ]} />
+
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6 mb-6">
+        <div /> 
+        <PromoChat />
+      </div>
 
       <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
         {txs.length === 0 ? (

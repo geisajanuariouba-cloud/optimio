@@ -30,15 +30,20 @@ export default function Auth() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}/app`,
+            emailRedirectTo: `${window.location.origin}/onboarding`,
             data: { full_name: fullName, company_name: companyName || "Studio" },
           },
         });
         if (error) throw error;
-        toast.success("Conta criada! Verifique seu e-mail para confirmar.");
+        // Mark account as PENDING_PAYMENT until super admin approves or webhook fires
+        if (data.user) {
+          await supabase.from("profiles").update({ account_status: "pending_payment" }).eq("id", data.user.id);
+        }
+        toast.success("Conta criada! Aguarde aprovação ou confirme seu pagamento.");
+        navigate("/onboarding");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
