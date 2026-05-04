@@ -201,6 +201,8 @@ export default function Landing() {
         <Logo size="sm" />
         <p>© 2026 Optimio. Todos os direitos reservados.</p>
       </footer>
+
+      <AIChat context="visitor" />
     </div>
   );
 }
