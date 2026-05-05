@@ -83,10 +83,19 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-6 rounded-3xl border-0 shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Agenda de hoje</h2>
-            <Link to="/app/appointments" className="text-sm text-primary font-medium">Ver agenda</Link>
+            <h2 className="text-xl font-semibold">{isRetail ? "Pedidos recentes" : "Agenda de hoje"}</h2>
+            <Link to={isRetail ? "/app/site" : "/app/appointments"} className="text-sm text-primary font-medium">{isRetail ? "Ver pedidos" : "Ver agenda"}</Link>
           </div>
-          {data.today.length === 0 ? (
+          {isRetail ? (
+            <div className="space-y-3">
+              <Link to="/app/integrations" className="flex items-center gap-3 p-4 rounded-2xl bg-secondary/50 hover:bg-secondary">
+                <Plug className="h-5 w-5 text-primary" />
+                <div className="flex-1"><div className="font-medium">Conectar Shopify</div><div className="text-xs text-muted-foreground">Sincronize produtos, pedidos e fulfillment</div></div>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+              {data.pendingOrders === 0 && <p className="text-sm text-muted-foreground py-6 text-center">Nenhum pedido pendente.</p>}
+            </div>
+          ) : data.today.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Nada agendado para hoje.</p>
           ) : (
             <div className="space-y-3">
