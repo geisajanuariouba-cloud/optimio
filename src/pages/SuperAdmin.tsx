@@ -84,11 +84,12 @@ export default function SuperAdmin() {
         </div>
 
         <Tabs defaultValue="tenants">
-          <TabsList className="bg-secondary/40">
+          <TabsList className="bg-secondary/40 flex flex-wrap h-auto">
             <TabsTrigger value="tenants">Clientes</TabsTrigger>
             <TabsTrigger value="expiring">A Vencer ({expiringSoon.length + overdue.length})</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="approval">Aprovações ({pending.length})</TabsTrigger>
+            <TabsTrigger value="settings"><SettingsIcon className="h-4 w-4 mr-1" />Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tenants">
