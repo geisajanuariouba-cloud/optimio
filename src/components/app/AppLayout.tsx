@@ -105,3 +105,23 @@ export default function AppLayout() {
     </div>
   );
 }
+
+function PendingScreen({ onSignOut }: { onSignOut: () => void }) {
+  const [wa, setWa] = useState("");
+  useEffect(() => {
+    supabase.from("app_settings").select("whatsapp_link").eq("id", 1).maybeSingle().then(({ data }) => setWa(data?.whatsapp_link ?? ""));
+  }, []);
+  return (
+    <div className="min-h-screen bg-background bg-mesh flex items-center justify-center p-4">
+      <Card className="glass border-0 rounded-3xl p-8 sm:p-10 max-w-md text-center">
+        <Logo size="sm" />
+        <h1 className="text-2xl sm:text-3xl font-bold mt-6 mb-3">Cadastro recebido!</h1>
+        <p className="text-muted-foreground mb-6">Vamos entrar em contato com você para finalização do pedido! Caso queira mais rápido, fale conosco pelo WhatsApp.</p>
+        <a href={wa || "https://wa.me/"} target="_blank" rel="noopener noreferrer">
+          <Button className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-white border-0 mb-3">Falar no WhatsApp</Button>
+        </a>
+        <Button onClick={onSignOut} variant="outline" className="rounded-2xl w-full">Sair</Button>
+      </Card>
+    </div>
+  );
+}
