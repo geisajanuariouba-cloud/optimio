@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
-import { Shield, Check, X, Users, DollarSign, AlertTriangle, Upload, Ban, Power, Receipt, Plus, Trash2 } from "lucide-react";
+import { Shield, Check, X, Users, DollarSign, AlertTriangle, Upload, Ban, Power, Receipt, Plus, Trash2, ArrowLeft, Settings as SettingsIcon, Save } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type Tenant = { id: string; full_name: string|null; company_name: string|null; phone_number: string|null; plan: string; account_status: string; created_at: string; niche: string };
@@ -20,9 +20,9 @@ type Sub = { id: string; user_id: string; plan_slug: string; status: string; cur
 
 export default function SuperAdmin() {
   const { isAdmin, loading } = useTenant();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const nav = useNavigate();
-  const handleSignOut = async () => { await signOut(); nav("/auth", { replace: true }); };
+  const backToApp = () => nav("/app");
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -60,9 +60,9 @@ export default function SuperAdmin() {
 
   return (
     <div className="min-h-screen bg-background bg-mesh">
-      <header className="border-b border-border/50 px-6 py-4 flex items-center justify-between glass">
+      <header className="border-b border-border/50 px-4 sm:px-6 py-4 flex items-center justify-between glass">
         <div className="flex items-center gap-3"><Logo size="sm" /><Badge className="bg-gradient-brand text-white border-0 gap-1"><Shield className="h-3 w-3" /> Super Admin</Badge></div>
-        <Button variant="ghost" onClick={handleSignOut}>Sair</Button>
+        <Button variant="outline" onClick={backToApp} className="gap-2"><ArrowLeft className="h-4 w-4" />Sair do painel</Button>
       </header>
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -84,11 +84,12 @@ export default function SuperAdmin() {
         </div>
 
         <Tabs defaultValue="tenants">
-          <TabsList className="bg-secondary/40">
+          <TabsList className="bg-secondary/40 flex flex-wrap h-auto">
             <TabsTrigger value="tenants">Clientes</TabsTrigger>
             <TabsTrigger value="expiring">A Vencer ({expiringSoon.length + overdue.length})</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="approval">Aprovações ({pending.length})</TabsTrigger>
+            <TabsTrigger value="settings"><SettingsIcon className="h-4 w-4 mr-1" />Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tenants">
@@ -158,13 +159,17 @@ export default function SuperAdmin() {
               {pending.length === 0
                 ? <div className="p-8 text-center text-muted-foreground text-sm">Nenhuma conta aguardando.</div>
                 : <div className="divide-y divide-border/40">{pending.map(t => (
-                    <div key={t.id} className="p-4 flex items-center gap-4">
-                      <div className="flex-1"><div className="font-medium">{t.company_name}</div><div className="text-xs text-muted-foreground">{t.full_name} · plano {t.plan} · {t.niche} · {t.phone_number}</div></div>
+                    <div key={t.id} className="p-4 flex flex-wrap items-center gap-3">
+                      <div className="flex-1 min-w-[200px]"><div className="font-medium">{t.company_name}</div><div className="text-xs text-muted-foreground">{t.full_name} · plano {t.plan} · {t.niche} · {t.phone_number}</div></div>
                       <Button size="sm" onClick={() => setStatus(t.id,"active")} className="bg-emerald-600 hover:bg-emerald-700"><Check className="h-4 w-4 mr-1" />Aprovar</Button>
                       <Button size="sm" variant="destructive" onClick={() => setStatus(t.id,"rejected")}><X className="h-4 w-4 mr-1" />Rejeitar</Button>
                     </div>
                   ))}</div>}
             </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <GlobalSettings />
           </TabsContent>
         </Tabs>
       </div>
@@ -265,6 +270,39 @@ function PlansEditor({ plans, onChange }: { plans: Plan[]; onChange: () => void 
           );
         })}
       </div>
+    </Card>
+  );
+}
+
+function GlobalSettings() {
+  const [link, setLink] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    supabase.from("app_settings").select("whatsapp_link, support_email").eq("id", 1).maybeSingle().then(({ data }) => {
+      setLink(data?.whatsapp_link ?? "");
+      setSupportEmail(data?.support_email ?? "");
+    });
+  }, []);
+  const save = async () => {
+    setBusy(true);
+    const { error } = await supabase.from("app_settings").upsert({ id: 1, whatsapp_link: link, support_email: supportEmail });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Configurações salvas");
+  };
+  return (
+    <Card className="glass border-0 rounded-3xl p-6 space-y-4 max-w-2xl">
+      <div>
+        <Label>Link do WhatsApp (oficial do Optimio)</Label>
+        <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://wa.me/5511999999999" />
+        <p className="text-xs text-muted-foreground mt-1">Aparece no modal de "Cadastro recebido" e nos botões de suporte da plataforma.</p>
+      </div>
+      <div>
+        <Label>E-mail de suporte</Label>
+        <Input value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} placeholder="suporte@optimio.com" />
+      </div>
+      <Button onClick={save} disabled={busy} className="bg-gradient-brand text-white border-0 gap-2"><Save className="h-4 w-4" />{busy ? "Salvando…" : "Salvar"}</Button>
     </Card>
   );
 }

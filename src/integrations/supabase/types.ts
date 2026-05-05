@@ -55,6 +55,27 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          id: number
+          support_email: string | null
+          updated_at: string
+          whatsapp_link: string | null
+        }
+        Insert: {
+          id?: number
+          support_email?: string | null
+          updated_at?: string
+          whatsapp_link?: string | null
+        }
+        Update: {
+          id?: number
+          support_email?: string | null
+          updated_at?: string
+          whatsapp_link?: string | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           amount: number

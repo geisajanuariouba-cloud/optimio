@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { Check, Sparkles, BarChart3, Calendar, Users, Package, Wallet, Megaphone, Zap, Shield, Rocket, ArrowRight, AlertTriangle } from "lucide-react";
 import NicheDemo from "@/components/landing/NicheDemo";
 import AIChat from "@/components/AIChat";
+import { supabase } from "@/integrations/supabase/client";
 
 const features = [
   { icon: Calendar, title: "Agenda Inteligente", desc: "Calendário visual com fila de vendas integrada, anti-overbooking e métricas em tempo real." },
@@ -14,34 +16,26 @@ const features = [
   { icon: BarChart3, title: "BI Avançado", desc: "Dashboards de Business Intelligence em todos os módulos. Decida com dados." },
 ];
 
-const plans = [
-  {
-    name: "Basic",
-    price: 159,
-    tagline: "Para começar com o pé direito",
-    features: ["30 transações/mês", "Agenda Inteligente", "Cadastro de Clientes", "Anamnese Básica", "Suporte por e-mail"],
-    cta: "Começar agora",
-    highlight: false,
-  },
-  {
-    name: "Standard",
-    price: 199,
-    tagline: "O mais escolhido — automação sólida",
-    features: ["100 transações/mês", "Tudo do Basic", "Pacotes com IA de Anamnese", "Estoque & Produção unificados", "Marketing Hub", "Suporte prioritário"],
-    cta: "Escolher plano",
-    highlight: true,
-  },
-  {
-    name: "Unlimited",
-    price: 399,
-    tagline: "Gestão total, sem limites",
-    features: ["Transações ilimitadas", "Tudo do Standard", "BI Avançado", "Chat de promoções em tempo real", "Whitelabel completo", "Gerente de conta dedicado"],
-    cta: "Escalar agora",
-    highlight: false,
-  },
+const DEFAULT_PLANS = [
+  { slug: "basic", name: "Basic", price: 159, tagline: "Para começar com o pé direito",
+    features: ["30 transações/mês", "Agenda Inteligente", "Cadastro de Clientes", "Anamnese Básica", "Suporte por e-mail"], cta: "Começar agora", highlight: false },
+  { slug: "standard", name: "Standard", price: 199, tagline: "O mais escolhido — automação sólida",
+    features: ["100 transações/mês", "Tudo do Basic", "Pacotes com IA de Anamnese", "Estoque & Produção unificados", "Marketing Hub", "Suporte prioritário"], cta: "Escolher plano", highlight: true },
+  { slug: "unlimited", name: "Unlimited", price: 399, tagline: "Gestão total, sem limites",
+    features: ["Transações ilimitadas", "Tudo do Standard", "BI Avançado", "Chat de promoções em tempo real", "Whitelabel completo", "Gerente de conta dedicado"], cta: "Escalar agora", highlight: false },
 ];
 
 export default function Landing() {
+  const [plans, setPlans] = useState(DEFAULT_PLANS);
+  useEffect(() => {
+    supabase.from("plans").select("slug, name, price, description").eq("active", true).order("sort_order").then(({ data }) => {
+      if (!data?.length) return;
+      setPlans(DEFAULT_PLANS.map(d => {
+        const found = data.find((p: any) => p.slug === d.slug);
+        return found ? { ...d, name: found.name, price: Number(found.price), tagline: found.description ?? d.tagline } : d;
+      }));
+    });
+  }, []);
   return (
     <div className="min-h-screen bg-background bg-mesh overflow-hidden">
       {/* Nav */}

@@ -1,26 +1,30 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Calendar, Users, Wallet, Package, ArrowUpRight, AlertTriangle } from "lucide-react";
+import { Calendar, Users, Wallet, Package, ArrowUpRight, AlertTriangle, ShoppingBag, Truck, Plug } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenant } from "@/hooks/useTenant";
 import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState({ income: 0, today: [] as any[], clients: 0, packages: 0, lowStock: 0, services: [] as any[] });
+  const { profile, hasModule } = useTenant();
+  const isRetail = profile?.niche === "retail";
+  const [data, setData] = useState({ income: 0, today: [] as any[], clients: 0, packages: 0, lowStock: 0, services: [] as any[], pendingOrders: 0 });
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const today = new Date().toISOString().slice(0, 10);
       const monthStart = new Date(); monthStart.setDate(1);
-      const [{ data: appts }, { data: cli }, { data: pkgs }, { data: prod }, { data: fin }, { data: svcs }] = await Promise.all([
+      const [{ data: appts }, { data: cli }, { data: pkgs }, { data: prod }, { data: fin }, { data: svcs }, { data: orders }] = await Promise.all([
         supabase.from("appointments").select("appointment_time, amount, client_id, service_id, status, is_walk_in").eq("appointment_date", today).is("deleted_at", null).order("appointment_time"),
         supabase.from("clients").select("id", { count: "exact" }).is("deleted_at", null),
         supabase.from("packages").select("id, status").is("deleted_at", null),
         supabase.from("products").select("stock, min_stock").is("deleted_at", null),
         supabase.from("financial").select("net_amount, type, transaction_date").gte("transaction_date", monthStart.toISOString().slice(0, 10)),
         supabase.from("services").select("id, name").is("deleted_at", null),
+        supabase.from("site_orders").select("id, status").eq("status", "review"),
       ]);
       setData({
         today: appts ?? [],
@@ -29,18 +33,28 @@ export default function Dashboard() {
         lowStock: (prod ?? []).filter(p => p.stock <= p.min_stock).length,
         income: (fin ?? []).filter(f => f.type === "income").reduce((a, f) => a + Number(f.net_amount), 0),
         services: svcs ?? [],
+        pendingOrders: (orders ?? []).length,
       });
     })();
   }, [user]);
 
   const sname = (id: string | null) => data.services.find(s => s.id === id)?.name ?? "Atendimento";
 
-  const stats = [
+  const baseStats = [
     { label: "Receita do mês", value: `R$ ${data.income.toFixed(2)}`, icon: Wallet, color: "from-violet-500 to-purple-500", to: "/app/financial" },
-    { label: "Agendamentos hoje", value: String(data.today.length), icon: Calendar, color: "from-cyan-500 to-blue-500", to: "/app/appointments" },
     { label: "Clientes ativos", value: String(data.clients), icon: Users, color: "from-pink-500 to-rose-500", to: "/app/clients" },
+  ];
+  const retailStats = [
+    ...baseStats,
+    { label: "Pedidos pendentes", value: String(data.pendingOrders), icon: ShoppingBag, color: "from-cyan-500 to-blue-500", to: "/app/site" },
+    { label: "Estoque baixo", value: String(data.lowStock), icon: Truck, color: "from-amber-500 to-orange-500", to: "/app/products" },
+  ];
+  const beautyStats = [
+    ...baseStats,
+    { label: "Agendamentos hoje", value: String(data.today.length), icon: Calendar, color: "from-cyan-500 to-blue-500", to: "/app/appointments" },
     { label: "Pacotes em curso", value: String(data.packages), icon: Package, color: "from-amber-500 to-orange-500", to: "/app/packages" },
   ];
+  const stats = isRetail ? retailStats : beautyStats;
 
   return (
     <div className="space-y-8">
@@ -69,10 +83,19 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-6 rounded-3xl border-0 shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Agenda de hoje</h2>
-            <Link to="/app/appointments" className="text-sm text-primary font-medium">Ver agenda</Link>
+            <h2 className="text-xl font-semibold">{isRetail ? "Pedidos recentes" : "Agenda de hoje"}</h2>
+            <Link to={isRetail ? "/app/site" : "/app/appointments"} className="text-sm text-primary font-medium">{isRetail ? "Ver pedidos" : "Ver agenda"}</Link>
           </div>
-          {data.today.length === 0 ? (
+          {isRetail ? (
+            <div className="space-y-3">
+              <Link to="/app/integrations" className="flex items-center gap-3 p-4 rounded-2xl bg-secondary/50 hover:bg-secondary">
+                <Plug className="h-5 w-5 text-primary" />
+                <div className="flex-1"><div className="font-medium">Conectar Shopify</div><div className="text-xs text-muted-foreground">Sincronize produtos, pedidos e fulfillment</div></div>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+              {data.pendingOrders === 0 && <p className="text-sm text-muted-foreground py-6 text-center">Nenhum pedido pendente.</p>}
+            </div>
+          ) : data.today.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Nada agendado para hoje.</p>
           ) : (
             <div className="space-y-3">

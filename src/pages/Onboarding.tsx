@@ -62,7 +62,7 @@ export default function Onboarding() {
       border_style: data.border_style,
       estimated_volume: data.estimated_volume,
       plan: suggested,
-      account_status: "pending_payment",
+      account_status: "waiting_approval",
       onboarding_completed: true,
     }).eq("id", user.id);
     if (error) return toast.error(error.message);
