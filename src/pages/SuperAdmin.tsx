@@ -273,3 +273,36 @@ function PlansEditor({ plans, onChange }: { plans: Plan[]; onChange: () => void 
     </Card>
   );
 }
+
+function GlobalSettings() {
+  const [link, setLink] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    supabase.from("app_settings").select("whatsapp_link, support_email").eq("id", 1).maybeSingle().then(({ data }) => {
+      setLink(data?.whatsapp_link ?? "");
+      setSupportEmail(data?.support_email ?? "");
+    });
+  }, []);
+  const save = async () => {
+    setBusy(true);
+    const { error } = await supabase.from("app_settings").upsert({ id: 1, whatsapp_link: link, support_email: supportEmail });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Configurações salvas");
+  };
+  return (
+    <Card className="glass border-0 rounded-3xl p-6 space-y-4 max-w-2xl">
+      <div>
+        <Label>Link do WhatsApp (oficial do Optimio)</Label>
+        <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://wa.me/5511999999999" />
+        <p className="text-xs text-muted-foreground mt-1">Aparece no modal de "Cadastro recebido" e nos botões de suporte da plataforma.</p>
+      </div>
+      <div>
+        <Label>E-mail de suporte</Label>
+        <Input value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} placeholder="suporte@optimio.com" />
+      </div>
+      <Button onClick={save} disabled={busy} className="bg-gradient-brand text-white border-0 gap-2"><Save className="h-4 w-4" />{busy ? "Salvando…" : "Salvar"}</Button>
+    </Card>
+  );
+}
