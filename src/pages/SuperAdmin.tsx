@@ -60,9 +60,9 @@ export default function SuperAdmin() {
 
   return (
     <div className="min-h-screen bg-background bg-mesh">
-      <header className="border-b border-border/50 px-6 py-4 flex items-center justify-between glass">
+      <header className="border-b border-border/50 px-4 sm:px-6 py-4 flex items-center justify-between glass">
         <div className="flex items-center gap-3"><Logo size="sm" /><Badge className="bg-gradient-brand text-white border-0 gap-1"><Shield className="h-3 w-3" /> Super Admin</Badge></div>
-        <Button variant="ghost" onClick={handleSignOut}>Sair</Button>
+        <Button variant="outline" onClick={backToApp} className="gap-2"><ArrowLeft className="h-4 w-4" />Sair do painel</Button>
       </header>
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
