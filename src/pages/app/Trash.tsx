@@ -34,10 +34,12 @@ export default function Trash() {
 
   const restore = async (table: string, id: string) => {
     await supabase.from(table as any).update({ deleted_at: null }).eq("id", id);
+    if (user) await supabase.from("audit_log").insert({ user_id: user.id, action: "restore", entity_table: table, entity_id: id });
     toast.success("Restaurado"); load();
   };
   const purge = async (table: string, id: string) => {
-    if (!confirm("Excluir permanentemente?")) return;
+    if (!confirm("Excluir permanentemente? Esta ação fica registrada no log de auditoria.")) return;
+    if (user) await supabase.from("audit_log").insert({ user_id: user.id, action: "purge", entity_table: table, entity_id: id });
     await supabase.from(table as any).delete().eq("id", id);
     toast.success("Excluído"); load();
   };
