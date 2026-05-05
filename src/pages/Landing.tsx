@@ -90,15 +90,15 @@ export default function Landing() {
             <span><strong>60% das empresas fecham</strong> por má gestão. O Optimio é a sua defesa.</span>
           </div>
 
-          <div className="mt-20 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
+          <div className="mt-20 grid grid-cols-3 gap-3 sm:gap-6 max-w-3xl mx-auto">
             {[
               { v: "+47%", l: "Faturamento médio" },
               { v: "3min", l: "Setup inicial" },
               { v: "24/7", l: "Automação ativa" },
             ].map((s) => (
-              <div key={s.l} className="glass rounded-2xl p-6">
-                <div className="text-3xl md:text-4xl font-bold text-gradient-brand">{s.v}</div>
-                <div className="text-sm text-muted-foreground mt-1">{s.l}</div>
+              <div key={s.l} className="glass rounded-2xl p-3 sm:p-6 min-w-0">
+                <div className="text-xl sm:text-3xl md:text-4xl font-bold text-gradient-brand break-words leading-tight">{s.v}</div>
+                <div className="text-[11px] sm:text-sm text-muted-foreground mt-1 leading-snug">{s.l}</div>
               </div>
             ))}
           </div>

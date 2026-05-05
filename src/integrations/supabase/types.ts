@@ -134,6 +134,36 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_table: string
+          id: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_table: string
+          id?: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string
+          id?: string
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           created_at: string
@@ -335,6 +365,45 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      legal_pages: {
+        Row: {
+          created_at: string
+          generated_by: string | null
+          html_content: string
+          id: string
+          page_type: string
+          published: boolean
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          generated_by?: string | null
+          html_content: string
+          id?: string
+          page_type: string
+          published?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          generated_by?: string | null
+          html_content?: string
+          id?: string
+          page_type?: string
+          published?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
         }
         Relationships: []
       }
@@ -1064,6 +1133,42 @@ export type Database = {
           linked_post_id?: string | null
           status?: string
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tenant_integrations: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          credentials: Json
+          id: string
+          metadata: Json
+          provider: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          credentials?: Json
+          id?: string
+          metadata?: Json
+          provider: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          credentials?: Json
+          id?: string
+          metadata?: Json
+          provider?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
