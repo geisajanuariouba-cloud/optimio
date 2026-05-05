@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { Check, Sparkles, BarChart3, Calendar, Users, Package, Wallet, Megaphone, Zap, Shield, Rocket, ArrowRight, AlertTriangle } from "lucide-react";
 import NicheDemo from "@/components/landing/NicheDemo";
 import AIChat from "@/components/AIChat";
+import { supabase } from "@/integrations/supabase/client";
 
 const features = [
   { icon: Calendar, title: "Agenda Inteligente", desc: "Calendário visual com fila de vendas integrada, anti-overbooking e métricas em tempo real." },
