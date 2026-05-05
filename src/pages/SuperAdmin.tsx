@@ -159,13 +159,17 @@ export default function SuperAdmin() {
               {pending.length === 0
                 ? <div className="p-8 text-center text-muted-foreground text-sm">Nenhuma conta aguardando.</div>
                 : <div className="divide-y divide-border/40">{pending.map(t => (
-                    <div key={t.id} className="p-4 flex items-center gap-4">
-                      <div className="flex-1"><div className="font-medium">{t.company_name}</div><div className="text-xs text-muted-foreground">{t.full_name} · plano {t.plan} · {t.niche} · {t.phone_number}</div></div>
+                    <div key={t.id} className="p-4 flex flex-wrap items-center gap-3">
+                      <div className="flex-1 min-w-[200px]"><div className="font-medium">{t.company_name}</div><div className="text-xs text-muted-foreground">{t.full_name} · plano {t.plan} · {t.niche} · {t.phone_number}</div></div>
                       <Button size="sm" onClick={() => setStatus(t.id,"active")} className="bg-emerald-600 hover:bg-emerald-700"><Check className="h-4 w-4 mr-1" />Aprovar</Button>
                       <Button size="sm" variant="destructive" onClick={() => setStatus(t.id,"rejected")}><X className="h-4 w-4 mr-1" />Rejeitar</Button>
                     </div>
                   ))}</div>}
             </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <GlobalSettings />
           </TabsContent>
         </Tabs>
       </div>
