@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Calendar, Users, Wallet, Package, ArrowUpRight, AlertTriangle } from "lucide-react";
+import { Calendar, Users, Wallet, Package, ArrowUpRight, AlertTriangle, ShoppingBag, Truck, Plug } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenant } from "@/hooks/useTenant";
 import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState({ income: 0, today: [] as any[], clients: 0, packages: 0, lowStock: 0, services: [] as any[] });
+  const { profile, hasModule } = useTenant();
+  const isRetail = profile?.niche === "retail";
+  const [data, setData] = useState({ income: 0, today: [] as any[], clients: 0, packages: 0, lowStock: 0, services: [] as any[], pendingOrders: 0 });
 
   useEffect(() => {
     if (!user) return;
