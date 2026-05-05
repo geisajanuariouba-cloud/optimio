@@ -20,9 +20,9 @@ type Sub = { id: string; user_id: string; plan_slug: string; status: string; cur
 
 export default function SuperAdmin() {
   const { isAdmin, loading } = useTenant();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const nav = useNavigate();
-  const handleSignOut = async () => { await signOut(); nav("/auth", { replace: true }); };
+  const backToApp = () => nav("/app");
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
