@@ -70,6 +70,21 @@ export default function Onboarding() {
     await supabase.from("subscriptions").insert({
       user_id: user.id, plan_slug: suggested, status: "pending",
     });
+    // Seed de categorias padrão por nicho
+    await supabase.rpc("seed_default_categories", { _user_id: user.id, _niche: data.niche });
+    // Seed de template de anamnese padrão (apenas para nichos com anamnese)
+    if (modules.includes("anamnesis")) {
+      await supabase.from("anamnesis_templates").upsert({
+        user_id: user.id,
+        questions: [
+          { key: "objetivo", label: "Qual o objetivo principal do tratamento?" },
+          { key: "alergias", label: "Possui alergias ou sensibilidades?" },
+          { key: "medicacoes", label: "Faz uso de medicações contínuas?" },
+          { key: "tratamentos_anteriores", label: "Realizou tratamentos similares antes?" },
+          { key: "expectativas", label: "Quais suas expectativas com o resultado?" },
+        ],
+      });
+    }
     await refresh();
     toast.success("Tudo pronto! Aguarde aprovação do pagamento.");
     nav("/app");

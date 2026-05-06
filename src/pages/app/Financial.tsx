@@ -13,8 +13,11 @@ import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import PromoChat from "@/components/app/PromoChat";
+import { CategorySelect } from "@/components/app/CategorySelect";
+import { PromissoriaFields, PromissoriaData, createPromissoria } from "@/components/app/PromissoriaFields";
 
 type Tx = { id: string; type: string; gross_amount: number; net_amount: number; fee_percent: number | null; description: string | null; payment_method: string | null; category: string | null; transaction_date: string };
+type Client = { id: string; full_name: string };
 
 const METHODS = ["pix", "dinheiro", "credito", "debito", "promissoria"];
 const FEES: Record<string, number> = { pix: 0, dinheiro: 0, credito: 3.5, debito: 1.5, promissoria: 0 };
@@ -22,17 +25,42 @@ const FEES: Record<string, number> = { pix: 0, dinheiro: 0, credito: 3.5, debito
 export default function Financial() {
   const { user } = useAuth();
   const [txs, setTxs] = useState<Tx[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ type: "income", gross_amount: 0, payment_method: "pix", category: "", description: "", transaction_date: new Date().toISOString().slice(0, 10) });
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({ type: "income", gross_amount: 0, payment_method: "pix", category: "", description: "", transaction_date: today, client_id: "" });
+  const [promo, setPromo] = useState<PromissoriaData>({ total_amount: 0, installments_count: 1, first_due: today });
 
   const load = async () => {
-    const { data, error } = await supabase.from("financial").select("*").order("transaction_date", { ascending: false }).limit(200);
+    const [{ data, error }, { data: cli }] = await Promise.all([
+      supabase.from("financial").select("*").order("transaction_date", { ascending: false }).limit(200),
+      supabase.from("clients").select("id, full_name").is("deleted_at", null).order("full_name"),
+    ]);
     if (error) toast.error(error.message); else setTxs(data as Tx[]);
+    setClients((cli ?? []) as Client[]);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
+  const isPromissoria = form.type === "income" && form.payment_method === "promissoria";
+
   const save = async () => {
     if (!user || !form.gross_amount) return toast.error("Valor obrigatório");
+    if (isPromissoria) {
+      if (!form.client_id) return toast.error("Selecione um cliente para a promissória.");
+      if (promo.total_amount <= 0 || promo.installments_count < 1 || !promo.first_due) {
+        return toast.error("Preencha todos os campos da promissória.");
+      }
+      try {
+        await createPromissoria({
+          supabase, user_id: user.id, client_id: form.client_id,
+          original_amount: form.gross_amount, data: promo, notes: form.description || null,
+        });
+        toast.success("Promissória registrada"); setOpen(false);
+        setForm({ ...form, gross_amount: 0, description: "", category: "", client_id: "" });
+        load();
+      } catch (e: any) { toast.error(e.message); }
+      return;
+    }
     const fee_percent = form.type === "income" ? FEES[form.payment_method] ?? 0 : 0;
     const fee_amount = (form.gross_amount * fee_percent) / 100;
     const net_amount = form.type === "income" ? form.gross_amount - fee_amount : form.gross_amount;
@@ -102,7 +130,7 @@ export default function Financial() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="rounded-3xl">
+        <DialogContent className="rounded-3xl max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>Novo lançamento</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -118,7 +146,7 @@ export default function Financial() {
               <div><Label>Data</Label><Input type="date" value={form.transaction_date} onChange={(e) => setForm({ ...form, transaction_date: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={form.gross_amount} onChange={(e) => setForm({ ...form, gross_amount: +e.target.value })} /></div>
+              <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={form.gross_amount} onChange={(e) => setForm({ ...form, gross_amount: +e.target.value, })} onBlur={() => isPromissoria && setPromo(p => ({ ...p, total_amount: p.total_amount || form.gross_amount }))} /></div>
               <div><Label>Método</Label>
                 <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -126,8 +154,24 @@ export default function Financial() {
                 </Select>
               </div>
             </div>
-            <div><Label>Categoria</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Serviços, Aluguel, Insumos…" /></div>
+            <div>
+              <Label>Categoria</Label>
+              <CategorySelect kind={form.type === "income" ? "income" : "expense"} value={form.category} onChange={(v) => setForm({ ...form, category: v })} />
+            </div>
             <div><Label>Descrição</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+
+            {isPromissoria && (
+              <>
+                <div>
+                  <Label>Cliente *</Label>
+                  <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                    <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <PromissoriaFields value={promo} onChange={setPromo} originalAmount={form.gross_amount} />
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Boxes, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { CategorySelect } from "@/components/app/CategorySelect";
 
 type Product = { id: string; name: string; category: string | null; stock: number; min_stock: number; sale_price: number; cost: number | null; is_ingredient_residue: boolean };
 
@@ -97,7 +98,9 @@ export default function Products() {
           <div className="space-y-4">
             <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Categoria</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
+              <div><Label>Categoria</Label>
+                <CategorySelect kind="product" value={form.category} onChange={(v) => setForm({ ...form, category: v })} />
+              </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={form.is_ingredient_residue} onChange={(e) => setForm({ ...form, is_ingredient_residue: e.target.checked })} />
