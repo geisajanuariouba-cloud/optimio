@@ -55,6 +55,27 @@ export type Database = {
           },
         ]
       }
+      anamnesis_templates: {
+        Row: {
+          id: string
+          questions: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          questions?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          questions?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: number
@@ -181,6 +202,33 @@ export type Database = {
           entity_table?: string
           id?: string
           metadata?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
@@ -1227,6 +1275,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      seed_default_categories: {
+        Args: { _niche: string; _user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
