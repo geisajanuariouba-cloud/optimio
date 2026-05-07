@@ -1,4 +1,4 @@
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useLocation, Navigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { ArrowLeft } from "lucide-react";
 
@@ -75,7 +75,7 @@ const PAGES: Record<string, { title: string; body: JSX.Element }> = {
 };
 
 export default function Legal() {
-  const { slug } = useParams<{ slug: string }>();
+  const slug = useLocation().pathname.replace("/", "");
   const page = slug ? PAGES[slug] : null;
   if (!page) return <Navigate to="/" replace />;
 
