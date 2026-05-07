@@ -22,7 +22,7 @@ const ALL = [
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
   { mod: "site", title: "Site Builder", url: "/app/site", icon: Globe },
   { mod: "integrations", title: "Integrações", url: "/app/integrations", icon: Plug },
-  { mod: "site", title: "Páginas Legais", url: "/app/legal", icon: ScrollText },
+  
 ];
 
 export function AppSidebar() {

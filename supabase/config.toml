@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-legal]
 verify_jwt = false
+
+[functions.site-builder-ai]
+verify_jwt = false
