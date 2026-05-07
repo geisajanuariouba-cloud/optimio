@@ -193,6 +193,11 @@ export default function Landing() {
 
       <footer className="px-6 lg:px-12 py-10 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
         <Logo size="sm" />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 justify-center">
+          <Link to="/termos" className="hover:text-foreground transition">Termos de Uso</Link>
+          <Link to="/privacidade" className="hover:text-foreground transition">Privacidade</Link>
+          <Link to="/reembolso" className="hover:text-foreground transition">Reembolso</Link>
+        </div>
         <p>© 2026 Optimio. Todos os direitos reservados.</p>
       </footer>
 
