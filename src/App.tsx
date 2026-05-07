@@ -45,6 +45,7 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/admin" element={<SuperAdmin />} />
               <Route path="/s/:slug" element={<PublicSite />} />
+              <Route path="/:slug(termos|privacidade|reembolso)" element={<LegalPublic />} />
               <Route path="/termos" element={<LegalPublic />} />
               <Route path="/privacidade" element={<LegalPublic />} />
               <Route path="/reembolso" element={<LegalPublic />} />
