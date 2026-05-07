@@ -27,7 +27,7 @@ import Trash from "./pages/app/Trash";
 import SettingsPage from "./pages/app/Settings";
 import Debts from "./pages/app/Debts";
 import Support from "./pages/app/Support";
-import Legal from "./pages/app/Legal";
+import LegalPublic from "./pages/Legal";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +45,9 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/admin" element={<SuperAdmin />} />
               <Route path="/s/:slug" element={<PublicSite />} />
+              <Route path="/termos" element={<LegalPublic />} />
+              <Route path="/privacidade" element={<LegalPublic />} />
+              <Route path="/reembolso" element={<LegalPublic />} />
               <Route path="/app" element={<AppLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="appointments" element={<Appointments />} />
@@ -58,7 +61,7 @@ const App = () => (
                 <Route path="marketing" element={<Marketing />} />
                 <Route path="site" element={<SiteBuilder />} />
                 <Route path="integrations" element={<Integrations />} />
-                <Route path="legal" element={<Legal />} />
+                
                 <Route path="support" element={<Support />} />
                 <Route path="trash" element={<Trash />} />
                 <Route path="settings" element={<SettingsPage />} />
