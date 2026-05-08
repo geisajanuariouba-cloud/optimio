@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Boxes, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Boxes, Pencil, Trash2, AlertTriangle, Tags, Trophy } from "lucide-react";
 import { CategorySelect } from "@/components/app/CategorySelect";
 
 type Product = { id: string; name: string; category: string | null; stock: number; min_stock: number; sale_price: number; cost: number | null; is_ingredient_residue: boolean };
+type Category = { id: string; name: string };
 
 export default function Products() {
   const { user } = useAuth();
@@ -22,11 +24,48 @@ export default function Products() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ name: "", category: "", stock: 0, min_stock: 5, sale_price: 0, cost: 0, is_ingredient_residue: false });
 
+  const [filter, setFilter] = useState<string>("all");
+  const [period, setPeriod] = useState<string>("30");
+  const [bestSeller, setBestSeller] = useState<{ name: string; count: number } | null>(null);
+
+  // Categories management
+  const [cats, setCats] = useState<Category[]>([]);
+  const [catsOpen, setCatsOpen] = useState(false);
+  const [newCat, setNewCat] = useState("");
+  const [editingCat, setEditingCat] = useState<{ id: string; name: string } | null>(null);
+
+  const loadCats = async () => {
+    const { data } = await supabase.from("categories").select("id,name").eq("kind", "product").order("name");
+    setCats((data ?? []) as any);
+  };
+
   const load = async () => {
     const { data, error } = await supabase.from("products").select("*").is("deleted_at", null).order("name");
     if (error) toast.error(error.message); else setList(data as Product[]);
   };
-  useEffect(() => { if (user) load(); }, [user]);
+
+  const loadBestSeller = async () => {
+    if (!user) return;
+    const days = parseInt(period, 10);
+    const since = new Date(); since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from("financial")
+      .select("description, transaction_date, type")
+      .eq("type", "income")
+      .gte("transaction_date", sinceStr);
+    if (!data || data.length === 0) { setBestSeller(null); return; }
+    const counts: Record<string, number> = {};
+    for (const p of list) {
+      const n = p.name.toLowerCase();
+      counts[p.name] = data.filter(d => (d.description ?? "").toLowerCase().includes(n)).length;
+    }
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    setBestSeller(top && top[1] > 0 ? { name: top[0], count: top[1] } : null);
+  };
+
+  useEffect(() => { if (user) { load(); loadCats(); } }, [user]);
+  useEffect(() => { if (user && list.length) loadBestSeller(); }, [user, period, list]);
 
   const openNew = () => { setEditing(null); setForm({ name: "", category: "", stock: 0, min_stock: 5, sale_price: 0, cost: 0, is_ingredient_residue: false }); setOpen(true); };
   const openEdit = (p: Product) => { setEditing(p); setForm({ name: p.name, category: p.category ?? "", stock: p.stock, min_stock: p.min_stock, sale_price: p.sale_price, cost: p.cost ?? 0, is_ingredient_residue: p.is_ingredient_residue }); setOpen(true); };
@@ -44,20 +83,70 @@ export default function Products() {
     load();
   };
 
-  const lowStock = list.filter(p => p.stock <= p.min_stock).length;
+  const addCat = async () => {
+    if (!user || !newCat.trim()) return;
+    const { error } = await supabase.from("categories").insert({ user_id: user.id, kind: "product", name: newCat.trim() });
+    if (error) return toast.error(error.message);
+    setNewCat(""); loadCats();
+  };
+  const renameCat = async () => {
+    if (!editingCat || !editingCat.name.trim()) return;
+    const old = cats.find(c => c.id === editingCat.id)?.name;
+    const { error } = await supabase.from("categories").update({ name: editingCat.name.trim() }).eq("id", editingCat.id);
+    if (error) return toast.error(error.message);
+    if (old) await supabase.from("products").update({ category: editingCat.name.trim() }).eq("category", old);
+    setEditingCat(null); loadCats(); load();
+  };
+  const removeCat = async (c: Category) => {
+    if (!confirm(`Remover categoria "${c.name}"? Os produtos manterão o nome antigo.`)) return;
+    await supabase.from("categories").delete().eq("id", c.id);
+    loadCats();
+  };
+
+  const filtered = useMemo(() => filter === "all" ? list : list.filter(p => (p.category ?? "") === filter), [list, filter]);
+  const lowStock = filtered.filter(p => p.stock <= p.min_stock).length;
 
   return (
     <div>
       <PageHeader title="Produtos & Estoque" description="Produtos, ingredientes e sobras (com alerta de estoque baixo)." actionLabel="Produto" onAction={openNew} />
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Categoria</Label>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {cats.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Período</Label>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">7 dias</SelectItem>
+              <SelectItem value="30">30 dias</SelectItem>
+              <SelectItem value="90">90 dias</SelectItem>
+              <SelectItem value="365">1 ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setCatsOpen(true)}>
+          <Tags className="h-4 w-4 mr-1" />Gerenciar categorias
+        </Button>
+      </div>
+
       <MetricsRow items={[
-        { label: "Cadastrados", value: String(list.length) },
+        { label: "Cadastrados", value: String(filtered.length) },
         { label: "Estoque baixo", value: String(lowStock), hint: "abaixo do mínimo" },
-        { label: "Valor estoque", value: `R$ ${list.reduce((a, p) => a + p.stock * (p.cost ?? 0), 0).toFixed(0)}` },
-        { label: "Margem média", value: `${Math.round(list.reduce((a, p) => a + (p.sale_price > 0 ? (p.sale_price - (p.cost ?? 0)) / p.sale_price : 0), 0) / Math.max(list.length, 1) * 100)}%` },
+        { label: "Valor estoque", value: `R$ ${filtered.reduce((a, p) => a + p.stock * (p.cost ?? 0), 0).toFixed(0)}` },
+        { label: `Mais vendido (${period}d)`, value: bestSeller?.name ?? "—", hint: bestSeller ? `${bestSeller.count} vendas` : "sem dados" },
       ]} />
 
       <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
-        {list.length === 0 ? (
+        {filtered.length === 0 ? (
           <EmptyState icon={Boxes} title="Estoque vazio" description="Cadastre seus produtos e ingredientes para controlar entradas e saídas." actionLabel="Produto" onAction={openNew} />
         ) : (
           <Table>
@@ -66,10 +155,11 @@ export default function Products() {
               <TableHead>Preço</TableHead><TableHead>Custo</TableHead><TableHead className="w-24" />
             </TableRow></TableHeader>
             <TableBody>
-              {list.map(p => (
+              {filtered.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium flex items-center gap-2">
                     {p.name}
+                    {bestSeller?.name === p.name && <Trophy className="h-3 w-3 text-amber-500" />}
                     {p.is_ingredient_residue && <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600">ingrediente</span>}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{p.category ?? "—"}</TableCell>
@@ -120,6 +210,41 @@ export default function Products() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={save} className="rounded-2xl">Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={catsOpen} onOpenChange={setCatsOpen}>
+        <DialogContent className="rounded-3xl">
+          <DialogHeader><DialogTitle>Categorias de produtos</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input placeholder="Nova categoria" value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addCat()} />
+              <Button onClick={addCat}>Adicionar</Button>
+            </div>
+            <div className="space-y-1 max-h-72 overflow-y-auto">
+              {cats.length === 0 && <div className="text-sm text-muted-foreground">Nenhuma categoria cadastrada.</div>}
+              {cats.map(c => (
+                <div key={c.id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-muted/40">
+                  {editingCat?.id === c.id ? (
+                    <>
+                      <Input autoFocus value={editingCat.name} onChange={(e) => setEditingCat({ ...editingCat, name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && renameCat()} />
+                      <Button size="sm" onClick={renameCat}>OK</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingCat(null)}>X</Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm">{c.name}</span>
+                      <Button size="icon" variant="ghost" onClick={() => setEditingCat({ id: c.id, name: c.name })}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => removeCat(c)}><Trash2 className="h-4 w-4" /></Button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCatsOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
