@@ -55,7 +55,7 @@ export default function SuperAdmin() {
   const overdue = subs.filter(s => new Date(s.current_period_end).getTime() < Date.now() && s.status !== "canceled");
 
   const active = tenants.filter(t => t.account_status === "active");
-  const pending = tenants.filter(t => t.account_status === "pending_payment");
+  const pending = tenants.filter(t => t.account_status === "waiting_approval" || t.account_status === "pending_payment");
   const revenue = active.reduce((a,t) => a + (plans.find(p => p.slug === t.plan)?.price ?? 0), 0);
 
   return (
