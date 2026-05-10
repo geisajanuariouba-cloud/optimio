@@ -206,6 +206,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_drawer_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          financial_id: string | null
+          id: string
+          reason: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          financial_id?: string | null
+          id?: string
+          reason: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          financial_id?: string | null
+          id?: string
+          reason?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string | null
@@ -235,6 +268,15 @@ export type Database = {
       }
       clients: {
         Row: {
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          birth_date: string | null
+          cpf_cnpj: string | null
           created_at: string
           custom_fields: Json | null
           deleted_at: string | null
@@ -247,6 +289,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          birth_date?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           custom_fields?: Json | null
           deleted_at?: string | null
@@ -259,6 +310,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          birth_date?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           custom_fields?: Json | null
           deleted_at?: string | null
@@ -356,51 +416,129 @@ export type Database = {
         }
         Relationships: []
       }
+      deliveries: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          delivered_at: string | null
+          destination_address: string
+          distance_km: number | null
+          financial_id: string | null
+          id: string
+          needs_pickup: boolean
+          notes: string | null
+          pickup_address: string | null
+          route_order: number | null
+          scheduled_for: string | null
+          status: string
+          supplier_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          destination_address: string
+          distance_km?: number | null
+          financial_id?: string | null
+          id?: string
+          needs_pickup?: boolean
+          notes?: string | null
+          pickup_address?: string | null
+          route_order?: number | null
+          scheduled_for?: string | null
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          destination_address?: string
+          distance_km?: number | null
+          financial_id?: string | null
+          id?: string
+          needs_pickup?: boolean
+          notes?: string | null
+          pickup_address?: string | null
+          route_order?: number | null
+          scheduled_for?: string | null
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial: {
         Row: {
+          cash_received: number | null
           category: string | null
+          change_amount: number | null
+          client_id: string | null
           created_at: string
           description: string | null
           fee_amount: number | null
           fee_percent: number | null
           gross_amount: number
           id: string
+          installments: number | null
+          needs_delivery: boolean
           net_amount: number
           origin: string | null
           origin_id: string | null
           payment_method: string | null
+          payment_method_id: string | null
+          supplier_id: string | null
           transaction_date: string
           type: string
           user_id: string
         }
         Insert: {
+          cash_received?: number | null
           category?: string | null
+          change_amount?: number | null
+          client_id?: string | null
           created_at?: string
           description?: string | null
           fee_amount?: number | null
           fee_percent?: number | null
           gross_amount?: number
           id?: string
+          installments?: number | null
+          needs_delivery?: boolean
           net_amount?: number
           origin?: string | null
           origin_id?: string | null
           payment_method?: string | null
+          payment_method_id?: string | null
+          supplier_id?: string | null
           transaction_date?: string
           type: string
           user_id: string
         }
         Update: {
+          cash_received?: number | null
           category?: string | null
+          change_amount?: number | null
+          client_id?: string | null
           created_at?: string
           description?: string | null
           fee_amount?: number | null
           fee_percent?: number | null
           gross_amount?: number
           id?: string
+          installments?: number | null
+          needs_delivery?: boolean
           net_amount?: number
           origin?: string | null
           origin_id?: string | null
           payment_method?: string | null
+          payment_method_id?: string | null
+          supplier_id?: string | null
           transaction_date?: string
           type?: string
           user_id?: string
@@ -665,6 +803,45 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          fee_fixed: number
+          fee_percent: number
+          id: string
+          installments: number
+          label: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          fee_fixed?: number
+          fee_percent?: number
+          id?: string
+          installments?: number
+          label: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          fee_fixed?: number
+          fee_percent?: number
+          id?: string
+          installments?: number
+          label?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_proofs: {
         Row: {
           amount: number
@@ -790,7 +967,9 @@ export type Database = {
           min_stock: number
           name: string
           sale_price: number
+          status: string
           stock: number
+          supplier_id: string | null
           updated_at: string
           user_id: string
         }
@@ -805,7 +984,9 @@ export type Database = {
           min_stock?: number
           name: string
           sale_price?: number
+          status?: string
           stock?: number
+          supplier_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -820,7 +1001,9 @@ export type Database = {
           min_stock?: number
           name?: string
           sale_price?: number
+          status?: string
           stock?: number
+          supplier_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1102,6 +1285,108 @@ export type Database = {
           last_paid_at?: string | null
           plan_slug?: string
           started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      supplier_commands: {
+        Row: {
+          affected_count: number
+          command: string
+          created_at: string
+          id: string
+          result: Json
+          supplier_id: string
+          user_id: string
+        }
+        Insert: {
+          affected_count?: number
+          command: string
+          created_at?: string
+          id?: string
+          result?: Json
+          supplier_id: string
+          user_id: string
+        }
+        Update: {
+          affected_count?: number
+          command?: string
+          created_at?: string
+          id?: string
+          result?: Json
+          supplier_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          catalog_url: string | null
+          cnpj: string | null
+          contact_name: string | null
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          full_address: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          catalog_url?: string | null
+          cnpj?: string | null
+          contact_name?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          full_address?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          catalog_url?: string | null
+          cnpj?: string | null
+          contact_name?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          full_address?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
           status?: string
           updated_at?: string
           user_id?: string
