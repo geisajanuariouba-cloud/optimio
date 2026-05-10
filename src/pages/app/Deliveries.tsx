@@ -33,7 +33,7 @@ const clientIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
-type Delivery = { id: string; client_id: string | null; supplier_id: string | null; needs_pickup: boolean; destination_address: string; pickup_address: string | null; status: string; route_order: number | null; distance_km: number | null; scheduled_for: string | null; delivered_at: string | null; notes: string | null; lat?: number; lng?: number; pickupLat?: number; pickupLng?: number };
+type Delivery = { id: string; financial_id: string | null; client_id: string | null; supplier_id: string | null; needs_pickup: boolean; destination_address: string; pickup_address: string | null; status: string; route_order: number | null; distance_km: number | null; scheduled_for: string | null; delivered_at: string | null; notes: string | null };
 
 async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
   try {
