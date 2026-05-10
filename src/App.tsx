@@ -28,6 +28,13 @@ import SettingsPage from "./pages/app/Settings";
 import Debts from "./pages/app/Debts";
 import Support from "./pages/app/Support";
 import LegalPublic from "./pages/Legal";
+import ClientDetail from "./pages/app/ClientDetail";
+import Categories from "./pages/app/Categories";
+import PaymentMethods from "./pages/app/PaymentMethods";
+import CashDrawer from "./pages/app/CashDrawer";
+import Suppliers from "./pages/app/Suppliers";
+import SupplierDetail from "./pages/app/SupplierDetail";
+import Deliveries from "./pages/app/Deliveries";
 
 const queryClient = new QueryClient();
 
@@ -52,7 +59,14 @@ const App = () => (
                 <Route index element={<Dashboard />} />
                 <Route path="appointments" element={<Appointments />} />
                 <Route path="clients" element={<Clients />} />
+                <Route path="clients/:id" element={<ClientDetail />} />
                 <Route path="packages" element={<Packages />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="suppliers" element={<Suppliers />} />
+                <Route path="suppliers/:id" element={<SupplierDetail />} />
+                <Route path="payment-methods" element={<PaymentMethods />} />
+                <Route path="cash-drawer" element={<CashDrawer />} />
+                <Route path="deliveries" element={<Deliveries />} />
                 <Route path="anamnesis" element={<Anamnesis />} />
                 <Route path="services" element={<Services />} />
                 <Route path="products" element={<Products />} />

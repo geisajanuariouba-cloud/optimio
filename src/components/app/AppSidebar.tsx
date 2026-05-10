@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Globe, Plug, Shield, ClipboardList, Receipt, LifeBuoy, ScrollText } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Globe, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -17,12 +17,15 @@ const ALL = [
   { mod: "anamnesis", title: "Anamnese", url: "/app/anamnesis", icon: ClipboardList },
   { mod: "services", title: "termServices", url: "/app/services", icon: Scissors },
   { mod: "products", title: "Produtos & Estoque", url: "/app/products", icon: Boxes },
+  { mod: "products", title: "Fornecedores", url: "/app/suppliers", icon: Factory },
+  { mod: "products", title: "Categorias", url: "/app/categories", icon: Tags },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
+  { mod: "financial", title: "Métodos de Pagamento", url: "/app/payment-methods", icon: CreditCard },
   { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
+  { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
   { mod: "site", title: "Site Builder", url: "/app/site", icon: Globe },
   { mod: "integrations", title: "Integrações", url: "/app/integrations", icon: Plug },
-  
 ];
 
 export function AppSidebar() {
@@ -49,7 +52,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const isActive = item.end ? pathname === item.url : pathname.startsWith(item.url);
+                const isActive = item.end ? pathname === item.url : pathname === item.url || pathname.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={isActive}>
