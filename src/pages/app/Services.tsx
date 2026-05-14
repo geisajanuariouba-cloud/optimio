@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Scissors, Pencil, Trash2 } from "lucide-react";
+import { CategorySelect } from "@/components/app/CategorySelect";
 
 type Service = { id: string; name: string; category: string | null; duration_minutes: number; starting_price: number; cost: number | null };
 
@@ -89,7 +90,9 @@ export default function Services() {
           <DialogHeader><DialogTitle>{editing ? "Editar serviço" : "Novo serviço"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div><Label>Categoria</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Cabelo, Estética…" /></div>
+            <div><Label>Categoria</Label>
+              <CategorySelect kind="service" value={form.category} onChange={(v) => setForm({ ...form, category: v })} placeholder="Selecione…" />
+            </div>
             <div className="grid grid-cols-3 gap-3">
               <div><Label>Duração (min)</Label><Input type="number" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: +e.target.value })} /></div>
               <div><Label>Preço (R$)</Label><Input type="number" step="0.01" value={form.starting_price} onChange={(e) => setForm({ ...form, starting_price: +e.target.value })} /></div>
