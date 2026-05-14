@@ -196,6 +196,11 @@ export default function Debts() {
                         );
                       })}
                     </div>
+                    <div className="flex justify-end pt-3">
+                      <Button size="sm" variant="ghost" onClick={() => removeDebt(d.id)} className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1.5 rounded-full h-8">
+                        <Trash2 className="h-3.5 w-3.5" />Excluir promissória
+                      </Button>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               );
