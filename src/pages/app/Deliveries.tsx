@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -8,9 +8,27 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { Truck, MapPin, Check, Route, Factory } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+// Lazy-load leaflet to avoid SSR/initial-render crash
+const MapContainer = lazy(() => import("react-leaflet").then(m => ({ default: m.MapContainer })));
+const TileLayer = lazy(() => import("react-leaflet").then(m => ({ default: m.TileLayer })));
+const Marker = lazy(() => import("react-leaflet").then(m => ({ default: m.Marker })));
+const Popup = lazy(() => import("react-leaflet").then(m => ({ default: m.Popup })));
+const Polyline = lazy(() => import("react-leaflet").then(m => ({ default: m.Polyline })));
+
+let __leafletReady = false;
+async function ensureLeaflet() {
+  if (__leafletReady) return;
+  const L = (await import("leaflet")).default;
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  });
+  __leafletReady = true;
+}
 
 // Fix default icons (vite)
 delete (L.Icon.Default.prototype as any)._getIconUrl;
