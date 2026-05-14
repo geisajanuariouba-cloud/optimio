@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Receipt, Check, Search, Calendar, AlertTriangle } from "lucide-react";
+import { Receipt, Check, Search, Calendar, AlertTriangle, Trash2 } from "lucide-react";
 
 type Client = { id: string; full_name: string };
 type Debt = { id: string; client_id: string; original_amount: number; interest_amount: number; total_amount: number; installments_count: number; status: string; notes: string | null; created_at: string };
@@ -75,6 +75,16 @@ export default function Debts() {
     const remaining = insts.filter(i => i.debt_id === inst.debt_id && i.id !== inst.id && !i.paid_at).length;
     if (remaining === 0) await supabase.from("debts").update({ status: "paid" }).eq("id", inst.debt_id);
     toast.success("Parcela paga");
+    load();
+  };
+
+  const removeDebt = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta promissória? Todas as parcelas serão removidas.")) return;
+    const { error: e1 } = await supabase.from("debt_installments").delete().eq("debt_id", id);
+    if (e1) return toast.error(e1.message);
+    const { error: e2 } = await supabase.from("debts").delete().eq("id", id);
+    if (e2) return toast.error(e2.message);
+    toast.success("Promissória excluída");
     load();
   };
 
@@ -185,6 +195,11 @@ export default function Debts() {
                           </div>
                         );
                       })}
+                    </div>
+                    <div className="flex justify-end pt-3">
+                      <Button size="sm" variant="ghost" onClick={() => removeDebt(d.id)} className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1.5 rounded-full h-8">
+                        <Trash2 className="h-3.5 w-3.5" />Excluir promissória
+                      </Button>
                     </div>
                   </AccordionContent>
                 </AccordionItem>

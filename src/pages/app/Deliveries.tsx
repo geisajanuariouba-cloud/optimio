@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -8,30 +8,42 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { Truck, MapPin, Check, Route, Factory } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix default icons (vite)
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+// Lazy-load leaflet to avoid SSR/initial-render crash
+const MapContainer = lazy(() => import("react-leaflet").then(m => ({ default: m.MapContainer })));
+const TileLayer = lazy(() => import("react-leaflet").then(m => ({ default: m.TileLayer })));
+const Marker = lazy(() => import("react-leaflet").then(m => ({ default: m.Marker })));
+const Popup = lazy(() => import("react-leaflet").then(m => ({ default: m.Popup })));
+const Polyline = lazy(() => import("react-leaflet").then(m => ({ default: m.Polyline })));
 
-const factoryIcon = L.divIcon({
-  className: "",
-  html: `<div style="background:hsl(24 95% 58%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">🏭</div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
-const clientIcon = L.divIcon({
-  className: "",
-  html: `<div style="background:hsl(271 91% 65%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">📦</div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
+let __leafletReady = false;
+async function ensureLeaflet() {
+  if (__leafletReady) return;
+  const L = (await import("leaflet")).default;
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  });
+  __leafletReady = true;
+}
+
+function makeIcons(L: any) {
+  return {
+    factory: L.divIcon({
+      className: "",
+      html: `<div style="background:hsl(24 95% 58%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">🏭</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    }),
+    client: L.divIcon({
+      className: "",
+      html: `<div style="background:hsl(271 91% 65%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">📦</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    }),
+  };
+}
 
 type Delivery = { id: string; financial_id: string | null; client_id: string | null; supplier_id: string | null; needs_pickup: boolean; destination_address: string; pickup_address: string | null; status: string; route_order: number | null; distance_km: number | null; scheduled_for: string | null; delivered_at: string | null; notes: string | null };
 
@@ -136,20 +148,41 @@ export default function Deliveries() {
 
   // Compute simple markers from geocoding cache (lazy)
   const [markers, setMarkers] = useState<{ id: string; lat: number; lng: number; type: "client" | "factory"; label: string }[]>([]);
+  const [icons, setIcons] = useState<{ factory: any; client: any } | null>(null);
+
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const m: any[] = [];
-      for (const d of list.slice(0, 20)) {
-        if (d.status === "delivered") continue;
-        const dest = await geocode(d.destination_address);
-        if (dest) m.push({ id: d.id + "-d", lat: dest.lat, lng: dest.lng, type: "client", label: d.destination_address });
-        if (d.needs_pickup && d.pickup_address) {
-          const p = await geocode(d.pickup_address);
-          if (p) m.push({ id: d.id + "-p", lat: p.lat, lng: p.lng, type: "factory", label: d.pickup_address });
-        }
-      }
-      setMarkers(m);
+      try {
+        await ensureLeaflet();
+        const L = (await import("leaflet")).default;
+        if (!cancelled) setIcons(makeIcons(L));
+      } catch (e) { console.error("Leaflet init failed", e); }
     })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const m: any[] = [];
+        const todo = list.filter(d => d.status !== "delivered").slice(0, 8);
+        for (const d of todo) {
+          if (cancelled) return;
+          if (d.destination_address) {
+            const dest = await geocode(d.destination_address);
+            if (dest) m.push({ id: d.id + "-d", lat: dest.lat, lng: dest.lng, type: "client", label: d.destination_address });
+          }
+          if (d.needs_pickup && d.pickup_address) {
+            const p = await geocode(d.pickup_address);
+            if (p) m.push({ id: d.id + "-p", lat: p.lat, lng: p.lng, type: "factory", label: d.pickup_address });
+          }
+        }
+        if (!cancelled) setMarkers(m);
+      } catch (e) { console.error("Geocode batch failed", e); }
+    })();
+    return () => { cancelled = true; };
   }, [list.length]);
 
   const center: [number, number] = markers[0] ? [markers[0].lat, markers[0].lng] : [-23.5505, -46.6333];
@@ -166,22 +199,26 @@ export default function Deliveries() {
 
       <div className="grid lg:grid-cols-[1fr_400px] gap-4">
         <Card className="rounded-3xl border-0 shadow-sm overflow-hidden h-[460px] relative">
-          <MapContainer center={center} zoom={12} className="h-full w-full" scrollWheelZoom={false}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
-            {markers.map(m => (
-              <Marker key={m.id} position={[m.lat, m.lng]} icon={m.type === "factory" ? factoryIcon : clientIcon}>
-                <Popup>{m.type === "factory" ? "🏭 Coleta: " : "📦 Entrega: "}{m.label}</Popup>
-              </Marker>
-            ))}
-            {routeCoords.length > 0 && <Polyline positions={routeCoords} pathOptions={{ color: "hsl(271 91% 65%)", weight: 4 }} />}
-          </MapContainer>
+          <Suspense fallback={<div className="h-full grid place-items-center text-muted-foreground text-sm">Carregando mapa…</div>}>
+            {icons && (
+              <MapContainer center={center} zoom={12} className="h-full w-full" scrollWheelZoom={false}>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+                {markers.map(m => (
+                  <Marker key={m.id} position={[m.lat, m.lng]} icon={m.type === "factory" ? icons.factory : icons.client}>
+                    <Popup>{m.type === "factory" ? "🏭 Coleta: " : "📦 Entrega: "}{m.label}</Popup>
+                  </Marker>
+                ))}
+                {routeCoords.length > 0 && <Polyline positions={routeCoords} pathOptions={{ color: "hsl(271 91% 65%)", weight: 4 }} />}
+              </MapContainer>
+            )}
+          </Suspense>
           {routeInfo && (
-            <div className="absolute top-3 left-3 bg-card/95 backdrop-blur rounded-2xl px-4 py-2 shadow-md text-sm">
+            <div className="absolute top-3 left-3 bg-card/95 backdrop-blur rounded-2xl px-4 py-2 shadow-md text-sm z-[400]">
               <Route className="h-4 w-4 inline mr-1 text-primary" />
               <strong>{routeInfo.distance.toFixed(1)} km</strong> · {routeInfo.duration.toFixed(0)} min
             </div>
           )}
-          {building && <div className="absolute inset-0 bg-background/60 grid place-items-center">Calculando rota…</div>}
+          {building && <div className="absolute inset-0 bg-background/60 grid place-items-center z-[400]">Calculando rota…</div>}
         </Card>
 
         <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">

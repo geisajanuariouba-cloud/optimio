@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
-type Kind = "income" | "expense" | "product";
+type Kind = "income" | "expense" | "product" | "service";
 
 export function CategorySelect({ kind, value, onChange, allowCreate = true, placeholder }: {
   kind: Kind;
