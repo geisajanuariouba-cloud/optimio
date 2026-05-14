@@ -49,8 +49,6 @@ export default function Clients() {
 
   const save = async () => {
     if (!user || !form.full_name.trim()) { toast.error("Nome obrigatório"); return; }
-    if (!form.cpf_cnpj.trim()) { toast.error("CPF/CNPJ obrigatório"); return; }
-    if (!form.address_street.trim() || !form.address_city.trim()) { toast.error("Endereço obrigatório"); return; }
     const payload: any = { ...form, user_id: user.id };
     Object.keys(payload).forEach(k => { if (payload[k] === "") payload[k] = null; });
     const { error } = editing
@@ -130,7 +128,7 @@ export default function Clients() {
           <div className="space-y-4">
             <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>CPF/CNPJ *</Label><Input value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} /></div>
+              <div><Label>CPF/CNPJ</Label><Input value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} /></div>
               <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -138,7 +136,7 @@ export default function Clients() {
               <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             </div>
             <div className="pt-2">
-              <h4 className="text-sm font-semibold mb-2">Endereço *</h4>
+              <h4 className="text-sm font-semibold mb-2">Endereço <span className="text-xs font-normal text-muted-foreground">(opcional)</span></h4>
               <AddressFields value={form} onChange={(v) => setForm({ ...form, ...v })} />
             </div>
             <div><Label>Notas</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} /></div>

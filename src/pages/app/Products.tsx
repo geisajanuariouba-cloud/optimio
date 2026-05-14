@@ -190,10 +190,10 @@ export default function Products() {
                 <CategorySelect kind="product" value={form.category} onChange={(v) => setForm({ ...form, category: v })} />
               </div>
               <div><Label>Fornecedor / Fábrica</Label>
-                <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
+                <Select value={form.supplier_id || "none"} onValueChange={(v) => setForm({ ...form, supplier_id: v === "none" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem fornecedor</SelectItem>
+                    <SelectItem value="none">Sem fornecedor</SelectItem>
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>

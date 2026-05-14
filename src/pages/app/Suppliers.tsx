@@ -37,8 +37,8 @@ export default function Suppliers() {
 
   const save = async () => {
     if (!user || !form.name.trim()) return toast.error("Nome obrigatório");
-    if (!form.address_street?.trim() || !form.address_city?.trim()) return toast.error("Endereço da fábrica obrigatório");
     const payload: any = { ...form, user_id: user.id, full_address: fullAddress(form) };
+    delete payload.catalog_url;
     Object.keys(payload).forEach(k => { if (payload[k] === "") payload[k] = null; });
     const { error } = editing
       ? await supabase.from("suppliers").update(payload).eq("id", editing.id)
@@ -112,9 +112,9 @@ export default function Suppliers() {
               <div><Label>Telefone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div><Label>E-mail</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             </div>
-            <div><Label>URL do catálogo</Label><Input value={form.catalog_url ?? ""} onChange={(e) => setForm({ ...form, catalog_url: e.target.value })} placeholder="https://..." /></div>
+            <p className="text-xs text-muted-foreground bg-secondary/40 p-3 rounded-2xl">📎 Para anexar catálogo ou tabela de preços (PDF/Excel/CSV), abra o painel do fornecedor após salvar.</p>
             <div className="pt-2">
-              <h4 className="text-sm font-semibold mb-2">Endereço da fábrica *</h4>
+              <h4 className="text-sm font-semibold mb-2">Endereço da fábrica <span className="text-xs font-normal text-muted-foreground">(opcional)</span></h4>
               <AddressFields value={form} onChange={(v) => setForm({ ...form, ...v })} />
             </div>
           </div>
