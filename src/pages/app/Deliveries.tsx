@@ -30,26 +30,20 @@ async function ensureLeaflet() {
   __leafletReady = true;
 }
 
-// Fix default icons (vite)
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-const factoryIcon = L.divIcon({
-  className: "",
-  html: `<div style="background:hsl(24 95% 58%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">🏭</div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
-const clientIcon = L.divIcon({
-  className: "",
-  html: `<div style="background:hsl(271 91% 65%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">📦</div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
+function makeIcons(L: any) {
+  return {
+    factory: L.divIcon({
+      className: "",
+      html: `<div style="background:hsl(24 95% 58%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">🏭</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    }),
+    client: L.divIcon({
+      className: "",
+      html: `<div style="background:hsl(271 91% 65%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">📦</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    }),
+  };
+}
 
 type Delivery = { id: string; financial_id: string | null; client_id: string | null; supplier_id: string | null; needs_pickup: boolean; destination_address: string; pickup_address: string | null; status: string; route_order: number | null; distance_km: number | null; scheduled_for: string | null; delivered_at: string | null; notes: string | null };
 
