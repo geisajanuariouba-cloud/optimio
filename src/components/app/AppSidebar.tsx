@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Globe, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -13,18 +13,21 @@ const ALL = [
   { mod: "dashboard", title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
   { mod: "appointments", title: "Agenda", url: "/app/appointments", icon: Calendar },
   { mod: "clients", title: "termClients", url: "/app/clients", icon: Users },
-  { mod: "packages", title: "Pacotes", url: "/app/packages", icon: Package },
+  { mod: "packages", title: "Recorrência", url: "/app/packages", icon: Package },
   { mod: "anamnesis", title: "Anamnese", url: "/app/anamnesis", icon: ClipboardList },
   { mod: "services", title: "termServices", url: "/app/services", icon: Scissors },
   { mod: "products", title: "Produtos & Estoque", url: "/app/products", icon: Boxes },
   { mod: "products", title: "Fornecedores", url: "/app/suppliers", icon: Factory },
   { mod: "products", title: "Categorias", url: "/app/categories", icon: Tags },
+  { mod: "products", title: "Orçamentos", url: "/app/quotes", icon: FileText },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
   { mod: "financial", title: "Métodos de Pagamento", url: "/app/payment-methods", icon: CreditCard },
   { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
   { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
-  { mod: "site", title: "Site Builder", url: "/app/site", icon: Globe },
+  { mod: "marketing", title: "Combos", url: "/app/combos", icon: Gift },
+  { mod: "marketing", title: "Projetos", url: "/app/projects", icon: KanbanSquare },
+  { mod: "integrations", title: "Automações (Make)", url: "/app/automations", icon: Zap },
   { mod: "integrations", title: "Integrações", url: "/app/integrations", icon: Plug },
 ];
 
