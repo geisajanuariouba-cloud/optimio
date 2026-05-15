@@ -9,7 +9,6 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import SuperAdmin from "./pages/SuperAdmin";
-import PublicSite from "./pages/PublicSite";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./components/app/AppLayout";
 import Dashboard from "./pages/app/Dashboard";
@@ -21,7 +20,6 @@ import Services from "./pages/app/Services";
 import Products from "./pages/app/Products";
 import Financial from "./pages/app/Financial";
 import Marketing from "./pages/app/Marketing";
-import SiteBuilder from "./pages/app/SiteBuilder";
 import Integrations from "./pages/app/Integrations";
 import Trash from "./pages/app/Trash";
 import SettingsPage from "./pages/app/Settings";
@@ -35,6 +33,10 @@ import CashDrawer from "./pages/app/CashDrawer";
 import Suppliers from "./pages/app/Suppliers";
 import SupplierDetail from "./pages/app/SupplierDetail";
 import Deliveries from "./pages/app/Deliveries";
+import Combos from "./pages/app/Combos";
+import Projects from "./pages/app/Projects";
+import Quotes from "./pages/app/Quotes";
+import Automations from "./pages/app/Automations";
 
 const queryClient = new QueryClient();
 
@@ -51,7 +53,6 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/admin" element={<SuperAdmin />} />
-              <Route path="/s/:slug" element={<PublicSite />} />
               <Route path="/termos" element={<LegalPublic />} />
               <Route path="/privacidade" element={<LegalPublic />} />
               <Route path="/reembolso" element={<LegalPublic />} />
@@ -70,12 +71,14 @@ const App = () => (
                 <Route path="anamnesis" element={<Anamnesis />} />
                 <Route path="services" element={<Services />} />
                 <Route path="products" element={<Products />} />
+                <Route path="quotes" element={<Quotes />} />
                 <Route path="financial" element={<Financial />} />
                 <Route path="debts" element={<Debts />} />
                 <Route path="marketing" element={<Marketing />} />
-                <Route path="site" element={<SiteBuilder />} />
+                <Route path="combos" element={<Combos />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="automations" element={<Automations />} />
                 <Route path="integrations" element={<Integrations />} />
-                
                 <Route path="support" element={<Support />} />
                 <Route path="trash" element={<Trash />} />
                 <Route path="settings" element={<SettingsPage />} />
