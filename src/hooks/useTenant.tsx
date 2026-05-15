@@ -48,12 +48,16 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Apply primary color
+  // Apply primary color + border style globally
   useEffect(() => {
     if (profile?.primary_color) {
       document.documentElement.style.setProperty("--primary", profile.primary_color);
+      document.documentElement.style.setProperty("--ring", profile.primary_color);
     }
-  }, [profile?.primary_color]);
+    if (profile?.border_style) {
+      document.documentElement.style.setProperty("--radius", profile.border_style === "sharp" ? "0.25rem" : "1rem");
+    }
+  }, [profile?.primary_color, profile?.border_style]);
 
   const niche = NICHES[(profile?.niche as NicheKey) ?? "beauty"] ?? NICHES.beauty;
   const enabled = profile?.enabled_modules?.length ? profile.enabled_modules : niche.modules;
