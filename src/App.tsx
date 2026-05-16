@@ -37,6 +37,7 @@ import Combos from "./pages/app/Combos";
 import Projects from "./pages/app/Projects";
 import Quotes from "./pages/app/Quotes";
 import Automations from "./pages/app/Automations";
+import Assemblers from "./pages/app/Assemblers";
 
 const queryClient = new QueryClient();
 
