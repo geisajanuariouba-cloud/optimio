@@ -21,6 +21,7 @@ export type Database = {
           client_notes: string | null
           created_at: string
           id: string
+          next_due_date: string | null
           professional_notes: string | null
           updated_at: string
           user_id: string
@@ -31,6 +32,7 @@ export type Database = {
           client_notes?: string | null
           created_at?: string
           id?: string
+          next_due_date?: string | null
           professional_notes?: string | null
           updated_at?: string
           user_id: string
@@ -41,6 +43,7 @@ export type Database = {
           client_notes?: string | null
           created_at?: string
           id?: string
+          next_due_date?: string | null
           professional_notes?: string | null
           updated_at?: string
           user_id?: string
@@ -110,6 +113,7 @@ export type Database = {
           notes: string | null
           package_id: string | null
           payment_method: string | null
+          payment_method_id: string | null
           professional: string | null
           service_id: string | null
           status: string
@@ -128,6 +132,7 @@ export type Database = {
           notes?: string | null
           package_id?: string | null
           payment_method?: string | null
+          payment_method_id?: string | null
           professional?: string | null
           service_id?: string | null
           status?: string
@@ -146,6 +151,7 @@ export type Database = {
           notes?: string | null
           package_id?: string | null
           payment_method?: string | null
+          payment_method_id?: string | null
           professional?: string | null
           service_id?: string | null
           status?: string
@@ -175,6 +181,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      assembler_commissions: {
+        Row: {
+          amount: number
+          assembler_id: string
+          cost_base: number
+          created_at: string
+          delivery_id: string | null
+          financial_id: string | null
+          id: string
+          notes: string | null
+          paid_at: string | null
+          percent: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          assembler_id: string
+          cost_base?: number
+          created_at?: string
+          delivery_id?: string | null
+          financial_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          percent?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          assembler_id?: string
+          cost_base?: number
+          created_at?: string
+          delivery_id?: string | null
+          financial_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          percent?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assemblers: {
+        Row: {
+          created_at: string
+          default_commission_percent: number
+          deleted_at: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_commission_percent?: number
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_commission_percent?: number
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       audit_log: {
         Row: {
@@ -493,6 +589,7 @@ export type Database = {
           id: string
           installments_count: number
           interest_amount: number
+          interest_type: string
           notes: string | null
           origin: string
           original_amount: number
@@ -508,6 +605,7 @@ export type Database = {
           id?: string
           installments_count?: number
           interest_amount?: number
+          interest_type?: string
           notes?: string | null
           origin?: string
           original_amount?: number
@@ -523,6 +621,7 @@ export type Database = {
           id?: string
           installments_count?: number
           interest_amount?: number
+          interest_type?: string
           notes?: string | null
           origin?: string
           original_amount?: number
@@ -535,14 +634,20 @@ export type Database = {
       }
       deliveries: {
         Row: {
+          assembler_id: string | null
           client_id: string | null
+          commission_percent: number | null
+          commission_status: string | null
+          commission_value: number | null
           created_at: string
           delivered_at: string | null
           destination_address: string
           distance_km: number | null
           financial_id: string | null
           id: string
+          is_pickup: boolean
           max_delivery_date: string | null
+          needs_assembly: boolean
           needs_pickup: boolean
           notes: string | null
           pickup_address: string | null
@@ -554,14 +659,20 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assembler_id?: string | null
           client_id?: string | null
+          commission_percent?: number | null
+          commission_status?: string | null
+          commission_value?: number | null
           created_at?: string
           delivered_at?: string | null
           destination_address: string
           distance_km?: number | null
           financial_id?: string | null
           id?: string
+          is_pickup?: boolean
           max_delivery_date?: string | null
+          needs_assembly?: boolean
           needs_pickup?: boolean
           notes?: string | null
           pickup_address?: string | null
@@ -573,14 +684,20 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assembler_id?: string | null
           client_id?: string | null
+          commission_percent?: number | null
+          commission_status?: string | null
+          commission_value?: number | null
           created_at?: string
           delivered_at?: string | null
           destination_address?: string
           distance_km?: number | null
           financial_id?: string | null
           id?: string
+          is_pickup?: boolean
           max_delivery_date?: string | null
+          needs_assembly?: boolean
           needs_pickup?: boolean
           notes?: string | null
           pickup_address?: string | null
@@ -605,15 +722,20 @@ export type Database = {
           fee_amount: number | null
           fee_percent: number | null
           gross_amount: number
+          has_local_stock: boolean | null
           id: string
           installments: number | null
           is_duplicate: boolean
+          items: Json
+          needs_assembly: boolean
           needs_delivery: boolean
           net_amount: number
           origin: string | null
           origin_id: string | null
           payment_method: string | null
           payment_method_id: string | null
+          production_status: string | null
+          quote_id: string | null
           supplier_id: string | null
           transaction_date: string
           type: string
@@ -631,15 +753,20 @@ export type Database = {
           fee_amount?: number | null
           fee_percent?: number | null
           gross_amount?: number
+          has_local_stock?: boolean | null
           id?: string
           installments?: number | null
           is_duplicate?: boolean
+          items?: Json
+          needs_assembly?: boolean
           needs_delivery?: boolean
           net_amount?: number
           origin?: string | null
           origin_id?: string | null
           payment_method?: string | null
           payment_method_id?: string | null
+          production_status?: string | null
+          quote_id?: string | null
           supplier_id?: string | null
           transaction_date?: string
           type: string
@@ -657,15 +784,20 @@ export type Database = {
           fee_amount?: number | null
           fee_percent?: number | null
           gross_amount?: number
+          has_local_stock?: boolean | null
           id?: string
           installments?: number | null
           is_duplicate?: boolean
+          items?: Json
+          needs_assembly?: boolean
           needs_delivery?: boolean
           net_amount?: number
           origin?: string | null
           origin_id?: string | null
           payment_method?: string | null
           payment_method_id?: string | null
+          production_status?: string | null
+          quote_id?: string | null
           supplier_id?: string | null
           transaction_date?: string
           type?: string
@@ -1645,9 +1777,11 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          avg_delivery_days: number | null
           catalog_url: string | null
           cnpj: string | null
           contact_name: string | null
+          cost_fee_percent: number
           created_at: string
           default_margin_percent: number
           default_markup_percent: number
@@ -1671,9 +1805,11 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          avg_delivery_days?: number | null
           catalog_url?: string | null
           cnpj?: string | null
           contact_name?: string | null
+          cost_fee_percent?: number
           created_at?: string
           default_margin_percent?: number
           default_markup_percent?: number
@@ -1697,9 +1833,11 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          avg_delivery_days?: number | null
           catalog_url?: string | null
           cnpj?: string | null
           contact_name?: string | null
+          cost_fee_percent?: number
           created_at?: string
           default_margin_percent?: number
           default_markup_percent?: number
