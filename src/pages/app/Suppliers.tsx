@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { Factory, Pencil, Trash2, ExternalLink, Phone, MapPin } from "lucide-react";
 import { AddressFields, fullAddress } from "@/components/app/AddressFields";
 
-const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
+const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", cost_fee_percent: 10, default_margin_percent: 100, default_markup_percent: 20, avg_delivery_days: 15, address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
 
 export default function Suppliers() {
   const { user } = useAuth();
