@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -21,9 +21,11 @@ const ALL = [
   { mod: "products", title: "Categorias", url: "/app/categories", icon: Tags },
   { mod: "products", title: "Orçamentos", url: "/app/quotes", icon: FileText },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
+  { mod: "financial", title: "Caixa em Dinheiro", url: "/app/cash-drawer", icon: Banknote },
   { mod: "financial", title: "Métodos de Pagamento", url: "/app/payment-methods", icon: CreditCard },
   { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
   { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },
+  { mod: "financial", title: "Montadores", url: "/app/assemblers", icon: Wrench },
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
   { mod: "marketing", title: "Combos", url: "/app/combos", icon: Gift },
   { mod: "marketing", title: "Projetos", url: "/app/projects", icon: KanbanSquare },

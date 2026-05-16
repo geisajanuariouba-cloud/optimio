@@ -105,11 +105,11 @@ export default function Appointments() {
       user_id: user.id,
       appointment_date: form.appointment_date,
       appointment_time: form.appointment_time,
-      client_id: form.client_id || null,
-      service_id: form.service_id || null,
+      client_id: form.client_id ? form.client_id : null,
+      service_id: form.service_id ? form.service_id : null,
       status: form.status,
       amount,
-      is_walk_in: form.is_walk_in,
+      is_walk_in: false,
       notes: form.notes || null,
       professional: form.professional || null,
       payment_method: form.payment_method,
@@ -129,7 +129,7 @@ export default function Appointments() {
         await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: amount, data: promissoria, appointment_id: apptId, notes: form.notes });
       } catch (e: any) { return toast.error("Falha promissória: " + e.message); }
     }
-    toast.success(editing ? "Agendamento atualizado" : form.is_walk_in ? "Venda registrada" : "Agendamento criado");
+    toast.success(editing ? "Agendamento atualizado" : "Agendamento criado");
     setOpen(false); load();
   };
 
@@ -182,9 +182,6 @@ export default function Appointments() {
           <p className="text-muted-foreground text-sm">Métricas, fila de vendas e venda rápida no mesmo lugar.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={openQuickSale} variant="outline" className="rounded-2xl gap-2 border-amber-500/40 text-amber-600 hover:bg-amber-500/10">
-            <Zap className="h-4 w-4" />Venda Rápida (Balcão)
-          </Button>
           <Button onClick={() => openNew()} className="bg-gradient-brand text-white border-0 rounded-2xl gap-2">
             <Calendar className="h-4 w-4" />Agendamento
           </Button>

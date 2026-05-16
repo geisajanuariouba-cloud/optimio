@@ -1,268 +1,208 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
-import { Truck, MapPin, Check, Route, Factory } from "lucide-react";
-import "leaflet/dist/leaflet.css";
+import { Truck, MapPin, Check, Factory, Store, Wrench } from "lucide-react";
 
-// Lazy-load leaflet to avoid SSR/initial-render crash
-const MapContainer = lazy(() => import("react-leaflet").then(m => ({ default: m.MapContainer })));
-const TileLayer = lazy(() => import("react-leaflet").then(m => ({ default: m.TileLayer })));
-const Marker = lazy(() => import("react-leaflet").then(m => ({ default: m.Marker })));
-const Popup = lazy(() => import("react-leaflet").then(m => ({ default: m.Popup })));
-const Polyline = lazy(() => import("react-leaflet").then(m => ({ default: m.Polyline })));
+type Delivery = {
+  id: string; financial_id: string | null; client_id: string | null; supplier_id: string | null;
+  needs_pickup: boolean; needs_assembly: boolean; is_pickup: boolean;
+  assembler_id: string | null; destination_address: string; pickup_address: string | null;
+  status: string; scheduled_for: string | null; max_delivery_date: string | null;
+  notes: string | null;
+};
 
-let __leafletReady = false;
-async function ensureLeaflet() {
-  if (__leafletReady) return;
-  const L = (await import("leaflet")).default;
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  });
-  __leafletReady = true;
-}
+const COLUMNS = [
+  { key: "pending", label: "Pendente", icon: Truck, tone: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
+  { key: "with_assembler", label: "Com Montador", icon: Wrench, tone: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
+  { key: "assembled", label: "Pronto p/ Entregar", icon: Factory, tone: "bg-cyan-500/10 text-cyan-600 border-cyan-500/30" },
+  { key: "delivered", label: "Entregue", icon: Check, tone: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
+];
 
-function makeIcons(L: any) {
-  return {
-    factory: L.divIcon({
-      className: "",
-      html: `<div style="background:hsl(24 95% 58%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">🏭</div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14],
-    }),
-    client: L.divIcon({
-      className: "",
-      html: `<div style="background:hsl(271 91% 65%);color:white;padding:6px;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px">📦</div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14],
-    }),
-  };
-}
-
-type Delivery = { id: string; financial_id: string | null; client_id: string | null; supplier_id: string | null; needs_pickup: boolean; destination_address: string; pickup_address: string | null; status: string; route_order: number | null; distance_km: number | null; scheduled_for: string | null; delivered_at: string | null; notes: string | null };
-
-async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`);
-    const j = await r.json();
-    if (j[0]) return { lat: parseFloat(j[0].lat), lng: parseFloat(j[0].lon) };
-  } catch {}
-  return null;
-}
-
-async function osrmRoute(coords: { lat: number; lng: number }[]) {
-  if (coords.length < 2) return null;
-  const path = coords.map(c => `${c.lng},${c.lat}`).join(";");
-  try {
-    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson`);
-    const j = await r.json();
-    if (j.routes?.[0]) {
-      const coordsLatLng = j.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
-      return { coords: coordsLatLng, distance: j.routes[0].distance / 1000, duration: j.routes[0].duration / 60 };
-    }
-  } catch {}
-  return null;
-}
+const NEXT: Record<string, string> = { pending: "with_assembler", with_assembler: "assembled", assembled: "delivered" };
 
 export default function Deliveries() {
   const { user } = useAuth();
   const [list, setList] = useState<Delivery[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
-  const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
-  const [building, setBuilding] = useState(false);
+  const [assemblers, setAssemblers] = useState<any[]>([]);
+  const [commissionFor, setCommissionFor] = useState<Delivery | null>(null);
+  const [commForm, setCommForm] = useState({ mode: "percent" as "percent" | "fixed" | "pending", percent: 10, fixed: 0 });
 
   const load = async () => {
-    const [d, c, s] = await Promise.all([
+    const [d, c, s, a] = await Promise.all([
       supabase.from("deliveries").select("*").order("scheduled_for", { ascending: true }).order("created_at"),
       supabase.from("clients").select("id,full_name").is("deleted_at", null),
       supabase.from("suppliers").select("id,name,full_address").is("deleted_at", null),
+      supabase.from("assemblers").select("id,name,default_commission_percent").is("deleted_at", null).eq("status", "active"),
     ]);
     setList((d.data ?? []) as Delivery[]);
-    setClients(c.data ?? []); setSuppliers(s.data ?? []);
+    setClients(c.data ?? []); setSuppliers(s.data ?? []); setAssemblers(a.data ?? []);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
-  const togglePickup = async (d: Delivery) => {
-    const newVal = !d.needs_pickup;
-    const sup = suppliers.find(s => s.id === d.supplier_id);
-    await supabase.from("deliveries").update({ needs_pickup: newVal, pickup_address: newVal ? sup?.full_address ?? null : null }).eq("id", d.id);
+  const setAssembler = async (d: Delivery, assembler_id: string) => {
+    await supabase.from("deliveries").update({ assembler_id }).eq("id", d.id);
     load();
   };
 
-  const setSupplier = async (d: Delivery, supplierId: string) => {
-    const sup = suppliers.find(s => s.id === supplierId);
-    await supabase.from("deliveries").update({ supplier_id: supplierId, pickup_address: d.needs_pickup ? sup?.full_address ?? null : null }).eq("id", d.id);
-    load();
-  };
-
-  const markDone = async (d: Delivery) => {
-    await supabase.from("deliveries").update({ status: "delivered", delivered_at: new Date().toISOString() }).eq("id", d.id);
-    if (d.financial_id) {
-      // mark financial as delivered via notes? For now we just update the delivery.
+  const advance = async (d: Delivery) => {
+    const next = NEXT[d.status];
+    if (!next) return;
+    if (next === "with_assembler" && d.needs_assembly && !d.assembler_id) {
+      return toast.error("Selecione o montador antes de avançar.");
     }
-    toast.success("Entrega concluída"); load();
-  };
-
-  const buildRoute = async () => {
-    setBuilding(true); setRouteCoords([]); setRouteInfo(null);
-    const pending = list.filter(d => d.status === "pending" || d.status === "in_route");
-    const stops: { lat: number; lng: number; label: string }[] = [];
-    // Pickup first if needed
-    for (const d of pending) {
-      if (d.needs_pickup && d.pickup_address) {
-        const p = await geocode(d.pickup_address);
-        if (p) stops.push({ ...p, label: "pickup" });
+    if (next === "delivered") {
+      // open commission modal if has assembler
+      if (d.needs_assembly && d.assembler_id) {
+        const ass = assemblers.find(a => a.id === d.assembler_id);
+        setCommForm({ mode: "percent", percent: Number(ass?.default_commission_percent ?? 10), fixed: 0 });
+        setCommissionFor(d);
+        return;
       }
-    }
-    for (const d of pending) {
-      const p = await geocode(d.destination_address);
-      if (p) stops.push({ ...p, label: "dest" });
-    }
-    if (stops.length < 2) {
-      toast.error("Sem endereços suficientes para montar rota");
-      setBuilding(false); return;
-    }
-    const r = await osrmRoute(stops);
-    if (r) {
-      setRouteCoords(r.coords);
-      setRouteInfo({ distance: r.distance, duration: r.duration });
-      toast.success(`Rota gerada: ${r.distance.toFixed(1)} km · ${r.duration.toFixed(0)} min`);
+      await supabase.from("deliveries").update({ status: "delivered", delivered_at: new Date().toISOString() }).eq("id", d.id);
     } else {
-      toast.error("OSRM indisponível");
+      await supabase.from("deliveries").update({ status: next }).eq("id", d.id);
     }
-    setBuilding(false);
+    toast.success("Status atualizado"); load();
   };
 
-  const pending = list.filter(d => d.status === "pending");
-  const inRoute = list.filter(d => d.status === "in_route");
-  const delivered = list.filter(d => d.status === "delivered");
-  const today = list.filter(d => d.scheduled_for && d.scheduled_for === new Date().toISOString().slice(0, 10));
+  const confirmCommission = async () => {
+    if (!commissionFor || !user) return;
+    const d = commissionFor;
+    // compute cost_base from financial items
+    let costBase = 0;
+    if (d.financial_id) {
+      const { data: fin } = await supabase.from("financial").select("items").eq("id", d.financial_id).maybeSingle();
+      const items: any[] = (fin?.items as any[]) ?? [];
+      costBase = items.reduce((a, it) => a + Number(it.unit_cost ?? 0) * Number(it.quantity ?? 1), 0);
+    }
+    const status = commForm.mode === "pending" ? "pending" : "calculated";
+    const amount = commForm.mode === "percent" ? costBase * (commForm.percent / 100) : commForm.mode === "fixed" ? commForm.fixed : 0;
+    await supabase.from("assembler_commissions").insert({
+      user_id: user.id, assembler_id: d.assembler_id, delivery_id: d.id, financial_id: d.financial_id,
+      cost_base: costBase, percent: commForm.mode === "percent" ? commForm.percent : null,
+      amount, status,
+    });
+    await supabase.from("deliveries").update({
+      status: "delivered", delivered_at: new Date().toISOString(),
+      commission_status: status, commission_value: amount, commission_percent: commForm.mode === "percent" ? commForm.percent : null,
+    }).eq("id", d.id);
+    toast.success("Entrega concluída"); setCommissionFor(null); load();
+  };
 
-  // Compute simple markers from geocoding cache (lazy)
-  const [markers, setMarkers] = useState<{ id: string; lat: number; lng: number; type: "client" | "factory"; label: string }[]>([]);
-  const [icons, setIcons] = useState<{ factory: any; client: any } | null>(null);
+  const today = useMemo(() => list.filter(d => d.scheduled_for === new Date().toISOString().slice(0, 10)).length, [list]);
+  const totals = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const d of list) c[d.status] = (c[d.status] ?? 0) + 1;
+    return c;
+  }, [list]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        await ensureLeaflet();
-        const L = (await import("leaflet")).default;
-        if (!cancelled) setIcons(makeIcons(L));
-      } catch (e) { console.error("Leaflet init failed", e); }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const m: any[] = [];
-        const todo = list.filter(d => d.status !== "delivered").slice(0, 8);
-        for (const d of todo) {
-          if (cancelled) return;
-          if (d.destination_address) {
-            const dest = await geocode(d.destination_address);
-            if (dest) m.push({ id: d.id + "-d", lat: dest.lat, lng: dest.lng, type: "client", label: d.destination_address });
-          }
-          if (d.needs_pickup && d.pickup_address) {
-            const p = await geocode(d.pickup_address);
-            if (p) m.push({ id: d.id + "-p", lat: p.lat, lng: p.lng, type: "factory", label: d.pickup_address });
-          }
-        }
-        if (!cancelled) setMarkers(m);
-      } catch (e) { console.error("Geocode batch failed", e); }
-    })();
-    return () => { cancelled = true; };
-  }, [list.length]);
-
-  const center: [number, number] = markers[0] ? [markers[0].lat, markers[0].lng] : [-23.5505, -46.6333];
+  const clientName = (id: string | null) => id ? (clients.find(c => c.id === id)?.full_name ?? "Cliente") : "—";
 
   return (
     <div>
-      <PageHeader title="Logística & Entregas" description="Rota do dia, coleta na fábrica e entregas concluídas." actionLabel="Gerar rota do dia" onAction={buildRoute} />
+      <PageHeader title="Logística & Entregas" description="Funil de entregas e montagens. Sem mapa — foco no fluxo." />
       <MetricsRow items={[
-        { label: "Pendentes", value: String(pending.length), tone: pending.length > 0 ? "warning" : "primary" },
-        { label: "Em rota", value: String(inRoute.length), tone: "primary" },
-        { label: "Entregues", value: String(delivered.length), tone: "success" },
-        { label: "Para hoje", value: String(today.length), tone: "primary" },
+        { label: "Pendentes", value: String(totals.pending ?? 0), tone: (totals.pending ?? 0) > 0 ? "warning" : "primary" },
+        { label: "Com montador", value: String(totals.with_assembler ?? 0), tone: "primary" },
+        { label: "Prontos", value: String(totals.assembled ?? 0), tone: "primary" },
+        { label: "Para hoje", value: String(today), tone: "primary" },
       ]} />
 
-      <div className="grid lg:grid-cols-[1fr_400px] gap-4">
-        <Card className="rounded-3xl border-0 shadow-sm overflow-hidden h-[460px] relative">
-          <Suspense fallback={<div className="h-full grid place-items-center text-muted-foreground text-sm">Carregando mapa…</div>}>
-            {icons && (
-              <MapContainer center={center} zoom={12} className="h-full w-full" scrollWheelZoom={false}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
-                {markers.map(m => (
-                  <Marker key={m.id} position={[m.lat, m.lng]} icon={m.type === "factory" ? icons.factory : icons.client}>
-                    <Popup>{m.type === "factory" ? "🏭 Coleta: " : "📦 Entrega: "}{m.label}</Popup>
-                  </Marker>
-                ))}
-                {routeCoords.length > 0 && <Polyline positions={routeCoords} pathOptions={{ color: "hsl(271 91% 65%)", weight: 4 }} />}
-              </MapContainer>
-            )}
-          </Suspense>
-          {routeInfo && (
-            <div className="absolute top-3 left-3 bg-card/95 backdrop-blur rounded-2xl px-4 py-2 shadow-md text-sm z-[400]">
-              <Route className="h-4 w-4 inline mr-1 text-primary" />
-              <strong>{routeInfo.distance.toFixed(1)} km</strong> · {routeInfo.duration.toFixed(0)} min
-            </div>
-          )}
-          {building && <div className="absolute inset-0 bg-background/60 grid place-items-center z-[400]">Calculando rota…</div>}
-        </Card>
-
-        <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
-          <div className="p-3 border-b border-border text-sm font-semibold">Entregas</div>
-          <div className="divide-y divide-border max-h-[420px] overflow-auto">
-            {list.length === 0 && <div className="p-6 text-sm text-muted-foreground text-center">Sem entregas. Marque "Necessita entrega" em vendas.</div>}
-            {list.map(d => {
-              const cli = clients.find(c => c.id === d.client_id);
-              return (
-                <div key={d.id} className="p-3 text-sm space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{cli?.full_name ?? "Cliente"}</div>
-                      <div className="text-xs text-muted-foreground flex items-start gap-1"><MapPin className="h-3 w-3 mt-0.5" />{d.destination_address}</div>
-                    </div>
-                    <Badge className={
-                      d.status === "delivered" ? "bg-emerald-500/15 text-emerald-600" :
-                      d.status === "in_route" ? "bg-primary/15 text-primary" :
-                      "bg-amber-500/15 text-amber-600"
-                    }>{d.status}</Badge>
+      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {COLUMNS.map(col => {
+          const items = list.filter(d => d.status === col.key && !d.is_pickup);
+          return (
+            <Card key={col.key} className="rounded-3xl border-0 shadow-sm overflow-hidden">
+              <div className={`p-3 border-b border-border flex items-center gap-2 ${col.tone}`}>
+                <col.icon className="h-4 w-4" />
+                <div className="font-semibold text-sm flex-1">{col.label}</div>
+                <Badge variant="secondary">{items.length}</Badge>
+              </div>
+              <div className="divide-y divide-border max-h-[60vh] overflow-auto">
+                {items.length === 0 && <div className="p-6 text-center text-xs text-muted-foreground">Vazio</div>}
+                {items.map(d => (
+                  <div key={d.id} className="p-3 text-sm space-y-2">
+                    <div className="font-medium truncate">{clientName(d.client_id)}</div>
+                    <div className="text-xs text-muted-foreground flex items-start gap-1"><MapPin className="h-3 w-3 mt-0.5 shrink-0" /><span className="line-clamp-2">{d.destination_address}</span></div>
+                    {d.max_delivery_date && <div className="text-[11px] text-amber-600">Prazo: {new Date(d.max_delivery_date).toLocaleDateString("pt-BR")}</div>}
+                    {d.needs_assembly && (
+                      <Select value={d.assembler_id ?? ""} onValueChange={(v) => setAssembler(d, v)}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar montador" /></SelectTrigger>
+                        <SelectContent>
+                          {assemblers.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {d.status !== "delivered" && (
+                      <Button size="sm" onClick={() => advance(d)} className="w-full rounded-2xl h-8 text-xs">
+                        Avançar →
+                      </Button>
+                    )}
                   </div>
-                  {d.status !== "delivered" && (
-                    <>
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <label className="flex items-center gap-1.5">
-                          <Switch checked={d.needs_pickup} onCheckedChange={() => togglePickup(d)} />
-                          Coletar na fábrica
-                        </label>
-                      </div>
-                      {d.needs_pickup && (
-                        <select className="w-full bg-secondary/50 rounded-xl text-xs p-2 border-0" value={d.supplier_id ?? ""} onChange={(e) => setSupplier(d, e.target.value)}>
-                          <option value="">Selecione fábrica…</option>
-                          {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                      )}
-                      <Button size="sm" onClick={() => markDone(d)} className="w-full rounded-2xl gap-1"><Check className="h-3.5 w-3.5" />Entrega feita</Button>
-                    </>
-                  )}
+                ))}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Pickup-only list (sem mapa, sem motoboy) */}
+      {list.some(d => d.is_pickup && d.status !== "delivered") && (
+        <Card className="rounded-3xl border-0 shadow-sm mt-4 overflow-hidden">
+          <div className="p-3 border-b border-border flex items-center gap-2 bg-blue-500/10 text-blue-700 dark:text-blue-300">
+            <Store className="h-4 w-4" />
+            <div className="font-semibold text-sm">Retirada em Loja</div>
+          </div>
+          <div className="divide-y divide-border">
+            {list.filter(d => d.is_pickup && d.status !== "delivered").map(d => (
+              <div key={d.id} className="p-3 flex items-center justify-between text-sm">
+                <div>
+                  <div className="font-medium">{clientName(d.client_id)}</div>
+                  <div className="text-xs text-muted-foreground">Cliente vai retirar na loja</div>
                 </div>
-              );
-            })}
+                <Button size="sm" variant="outline" onClick={() => advance({ ...d, status: "assembled" } as Delivery)} className="rounded-2xl">Marcar entregue</Button>
+              </div>
+            ))}
           </div>
         </Card>
-      </div>
+      )}
+
+      <Dialog open={!!commissionFor} onOpenChange={(o) => !o && setCommissionFor(null)}>
+        <DialogContent className="rounded-3xl">
+          <DialogHeader><DialogTitle>Comissão do Montador</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Button size="sm" variant={commForm.mode === "percent" ? "default" : "outline"} onClick={() => setCommForm({ ...commForm, mode: "percent" })} className="flex-1 rounded-2xl">% sobre custo</Button>
+              <Button size="sm" variant={commForm.mode === "fixed" ? "default" : "outline"} onClick={() => setCommForm({ ...commForm, mode: "fixed" })} className="flex-1 rounded-2xl">Valor fixo</Button>
+              <Button size="sm" variant={commForm.mode === "pending" ? "default" : "outline"} onClick={() => setCommForm({ ...commForm, mode: "pending" })} className="flex-1 rounded-2xl">Deixar pendente</Button>
+            </div>
+            {commForm.mode === "percent" && (
+              <div><Label>Porcentagem (%)</Label><Input type="number" step="0.1" value={commForm.percent} onChange={(e) => setCommForm({ ...commForm, percent: +e.target.value })} /></div>
+            )}
+            {commForm.mode === "fixed" && (
+              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={commForm.fixed} onChange={(e) => setCommForm({ ...commForm, fixed: +e.target.value })} /></div>
+            )}
+            {commForm.mode === "pending" && (
+              <p className="text-sm text-muted-foreground bg-secondary/40 p-3 rounded-2xl">Vai aparecer no painel do montador como "A Calcular" para definir comissão depois em lote.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCommissionFor(null)}>Cancelar</Button>
+            <Button onClick={confirmCommission} className="rounded-2xl">Confirmar entrega</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -101,7 +101,7 @@ export default function Products() {
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 w-40 bg-primary/10 border-primary/30 hover:bg-primary/15"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="active">Ativos</SelectItem>
             <SelectItem value="discontinued">Fora de linha</SelectItem>
@@ -109,19 +109,10 @@ export default function Products() {
           </SelectContent>
         </Select>
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="h-9 w-44"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-44 bg-primary/10 border-primary/30 hover:bg-primary/15"><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas categorias</SelectItem>
             {allCats.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">7 dias</SelectItem>
-            <SelectItem value="30">30 dias</SelectItem>
-            <SelectItem value="90">90 dias</SelectItem>
-            <SelectItem value="365">1 ano</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { Factory, Pencil, Trash2, ExternalLink, Phone, MapPin } from "lucide-react";
 import { AddressFields, fullAddress } from "@/components/app/AddressFields";
 
-const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
+const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", cost_fee_percent: 10, default_margin_percent: 100, default_markup_percent: 20, avg_delivery_days: 15, address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
 
 export default function Suppliers() {
   const { user } = useAuth();
@@ -112,7 +112,16 @@ export default function Suppliers() {
               <div><Label>Telefone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div><Label>E-mail</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             </div>
-            <p className="text-xs text-muted-foreground bg-secondary/40 p-3 rounded-2xl">📎 Para anexar catálogo ou tabela de preços (PDF/Excel/CSV), abra o painel do fornecedor após salvar.</p>
+            <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3 space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Motor de precificação</h4>
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label className="text-xs">Taxa custo (%)</Label><Input type="number" step="0.1" value={form.cost_fee_percent} onChange={(e) => setForm({ ...form, cost_fee_percent: +e.target.value })} /></div>
+                <div><Label className="text-xs">Margem (%)</Label><Input type="number" step="0.1" value={form.default_margin_percent} onChange={(e) => setForm({ ...form, default_margin_percent: +e.target.value })} /></div>
+                <div><Label className="text-xs">Taxa extra (%)</Label><Input type="number" step="0.1" value={form.default_markup_percent} onChange={(e) => setForm({ ...form, default_markup_percent: +e.target.value })} /></div>
+              </div>
+              <div><Label className="text-xs">Prazo médio de entrega (dias)</Label><Input type="number" value={form.avg_delivery_days ?? ""} onChange={(e) => setForm({ ...form, avg_delivery_days: +e.target.value })} /></div>
+            </div>
+            <p className="text-xs text-muted-foreground bg-secondary/40 p-3 rounded-2xl">📎 Para anexar catálogo (PDF/Excel/CSV), abra o painel do fornecedor após salvar.</p>
             <div className="pt-2">
               <h4 className="text-sm font-semibold mb-2">Endereço da fábrica <span className="text-xs font-normal text-muted-foreground">(opcional)</span></h4>
               <AddressFields value={form} onChange={(v) => setForm({ ...form, ...v })} />
