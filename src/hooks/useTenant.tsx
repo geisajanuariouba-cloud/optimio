@@ -42,7 +42,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", user.id),
     ]);
-    if (data) setProfile({ ...data, enabled_modules: (data.enabled_modules as string[]) ?? [], terms: (data.terms as any) ?? {} });
+    if (data) setProfile({ ...data, enabled_modules: (data.enabled_modules as string[]) ?? [], terms: (data.terms as any) ?? {}, dashboard_widgets: (data.dashboard_widgets as any) ?? {} });
     setIsAdmin(!!roles?.some((r: any) => r.role === "admin"));
     setLoading(false);
   }, [user]);
