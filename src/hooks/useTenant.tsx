@@ -15,6 +15,7 @@ type Profile = {
   enabled_modules: string[];
   plan: string;
   terms: Record<string, string>;
+  dashboard_widgets?: Record<string, boolean>;
 };
 
 type Ctx = {
