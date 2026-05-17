@@ -1,148 +1,237 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Calendar, Users, Wallet, Package, ArrowUpRight, AlertTriangle, ShoppingBag, Truck, Receipt } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Calendar, Users, Wallet, Package, ArrowUpRight, ShoppingBag, Truck, Receipt,
+  Boxes, FileText, AlertCircle, Settings2, StickyNote, Plus, Check, Store, HeartPulse,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
+
+type Widgets = {
+  sales_month: boolean; stock: boolean; deliveries_pending: boolean; pickups_pending: boolean;
+  tables: boolean; catalog: boolean; overdue_debts: boolean; quick_notes: boolean; anamnesis_due: boolean;
+};
+const DEFAULT_WIDGETS: Widgets = {
+  sales_month: true, stock: true, deliveries_pending: true, pickups_pending: true,
+  tables: true, catalog: true, overdue_debts: true, quick_notes: true, anamnesis_due: true,
+};
+
+const LABELS: Record<keyof Widgets, string> = {
+  sales_month: "Venda do Mês", stock: "Estoque Depósito",
+  deliveries_pending: "Entregas Pendentes", pickups_pending: "Retiradas Pendentes",
+  tables: "Tabelas", catalog: "Catálogo", overdue_debts: "Promissórias Vencidas",
+  quick_notes: "Anotações Rápidas", anamnesis_due: "Anamneses a Refazer",
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { profile, hasModule } = useTenant();
-  const isRetail = profile?.niche === "retail";
-  const [data, setData] = useState({ income: 0, todayIncome: 0, today: [] as any[], clients: 0, packages: 0, lowStock: 0, services: [] as any[], todaySales: [] as any[] });
+  const { profile, refresh } = useTenant();
+  const widgets: Widgets = { ...DEFAULT_WIDGETS, ...((profile?.dashboard_widgets as any) ?? {}) };
+
+  const [stats, setStats] = useState({
+    salesMonth: 0, salesCount: 0, stock: 0, lowStock: 0,
+    deliveriesPending: 0, pickupsPending: 0, products: 0, services: 0,
+    overdueDebts: [] as any[], anamnesisDue: [] as any[], anamnesisPending: [] as any[],
+  });
+  const [notes, setNotes] = useState<any[]>([]);
+  const [noteInput, setNoteInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchHits, setSearchHits] = useState<any[]>([]);
+
+  const load = async () => {
+    if (!user) return;
+    const monthStart = new Date(); monthStart.setDate(1);
+    const ms = monthStart.toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    const [fin, prod, svc, deliv, debts, anam, qn] = await Promise.all([
+      supabase.from("financial").select("net_amount,type,transaction_date").eq("type", "income").gte("transaction_date", ms),
+      supabase.from("products").select("stock,min_stock").is("deleted_at", null),
+      supabase.from("services").select("id").is("deleted_at", null),
+      supabase.from("deliveries").select("id,status,is_pickup").neq("status", "delivered"),
+      supabase.from("debts").select("id,total_amount,client_id,status").eq("status", "open"),
+      supabase.from("anamnesis").select("id,client_id,next_due_date,updated_at"),
+      supabase.from("quick_notes").select("*").eq("resolved", false).order("created_at", { ascending: false }),
+    ]);
+    const products = prod.data ?? [];
+    const dlist = deliv.data ?? [];
+    const dueAnam = (anam.data ?? []).filter((a: any) => a.next_due_date && a.next_due_date < today);
+    setStats({
+      salesMonth: (fin.data ?? []).reduce((a: number, f: any) => a + Number(f.net_amount), 0),
+      salesCount: (fin.data ?? []).length,
+      stock: products.reduce((a: number, p: any) => a + Number(p.stock ?? 0), 0),
+      lowStock: products.filter((p: any) => !(p.min_stock === 0 && p.stock === 0) && p.stock <= p.min_stock).length,
+      deliveriesPending: dlist.filter((d: any) => !d.is_pickup).length,
+      pickupsPending: dlist.filter((d: any) => d.is_pickup).length,
+      products: products.length,
+      services: (svc.data ?? []).length,
+      overdueDebts: debts.data ?? [],
+      anamnesisDue: dueAnam,
+      anamnesisPending: anam.data ?? [],
+    });
+    setNotes(qn.data ?? []);
+  };
+
+  useEffect(() => { load(); }, [user]);
 
   useEffect(() => {
+    if (!search.trim() || !user) { setSearchHits([]); return; }
+    const t = setTimeout(async () => {
+      const like = `%${search}%`;
+      const { data } = await supabase.from("products").select("id,name,sale_price,image_url,category")
+        .is("deleted_at", null).ilike("name", like).limit(8);
+      setSearchHits(data ?? []);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [search, user]);
+
+  const addNote = async () => {
+    if (!noteInput.trim() || !user) return;
+    await supabase.from("quick_notes").insert({ user_id: user.id, content: noteInput.trim() });
+    setNoteInput(""); load();
+  };
+  const resolveNote = async (id: string) => {
+    await supabase.from("quick_notes").update({ resolved: true, resolved_at: new Date().toISOString() }).eq("id", id);
+    load();
+  };
+
+  const toggleWidget = async (k: keyof Widgets) => {
     if (!user) return;
-    (async () => {
-      const today = new Date().toISOString().slice(0, 10);
-      const monthStart = new Date(); monthStart.setDate(1);
-      const [{ data: appts }, { data: cli }, { data: pkgs }, { data: prod }, { data: finMonth }, { data: finToday }, { data: svcs }] = await Promise.all([
-        supabase.from("appointments").select("appointment_time, amount, client_id, service_id, status, is_walk_in").eq("appointment_date", today).is("deleted_at", null).order("appointment_time"),
-        supabase.from("clients").select("id", { count: "exact" }).is("deleted_at", null),
-        supabase.from("packages").select("id, status").is("deleted_at", null),
-        supabase.from("products").select("stock, min_stock").is("deleted_at", null),
-        supabase.from("financial").select("net_amount, type, transaction_date").gte("transaction_date", monthStart.toISOString().slice(0, 10)),
-        supabase.from("financial").select("net_amount, description, transaction_date").eq("transaction_date", today).eq("type", "income").order("created_at", { ascending: false }).limit(6),
-        supabase.from("services").select("id, name").is("deleted_at", null),
-      ]);
-      setData({
-        today: appts ?? [],
-        clients: cli?.length ?? 0,
-        packages: (pkgs ?? []).filter(p => p.status === "active").length,
-        lowStock: (prod ?? []).filter(p => p.stock <= p.min_stock).length,
-        income: (finMonth ?? []).filter(f => f.type === "income").reduce((a, f) => a + Number(f.net_amount), 0),
-        todayIncome: (finToday ?? []).reduce((a, f) => a + Number(f.net_amount), 0),
-        services: svcs ?? [],
-        todaySales: finToday ?? [],
-      });
-    })();
-  }, [user]);
+    const next = { ...widgets, [k]: !widgets[k] };
+    await supabase.from("profiles").update({ dashboard_widgets: next }).eq("id", user.id);
+    refresh();
+  };
 
-  const sname = (id: string | null) => data.services.find(s => s.id === id)?.name ?? "Atendimento";
-
-  const baseStats = [
-    { label: "Receita do mês", value: `R$ ${data.income.toFixed(2)}`, icon: Wallet, color: "from-violet-500 to-purple-500", to: "/app/financial" },
-    { label: "Clientes ativos", value: String(data.clients), icon: Users, color: "from-pink-500 to-rose-500", to: "/app/clients" },
-  ];
-  const retailStats = [
-    ...baseStats,
-    { label: "Vendas hoje", value: `R$ ${data.todayIncome.toFixed(2)}`, icon: ShoppingBag, color: "from-cyan-500 to-blue-500", to: "/app/financial" },
-    { label: "Estoque baixo", value: String(data.lowStock), icon: Truck, color: "from-amber-500 to-orange-500", to: "/app/products" },
-  ];
-  const beautyStats = [
-    ...baseStats,
-    { label: "Agendamentos hoje", value: String(data.today.length), icon: Calendar, color: "from-cyan-500 to-blue-500", to: "/app/appointments" },
-    { label: "Pacotes em curso", value: String(data.packages), icon: Package, color: "from-amber-500 to-orange-500", to: "/app/packages" },
-  ];
-  const stats = isRetail ? retailStats : beautyStats;
+  const W = ({ k, children }: { k: keyof Widgets; children: React.ReactNode }) =>
+    widgets[k] ? <>{children}</> : null;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do seu negócio em tempo real.</p>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral do seu negócio.</p>
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="rounded-2xl"><Settings2 className="h-4 w-4 mr-2" />Personalizar</Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-72 rounded-2xl">
+            <div className="text-sm font-semibold mb-2">Widgets visíveis</div>
+            <div className="space-y-2">
+              {(Object.keys(LABELS) as (keyof Widgets)[]).map(k => (
+                <label key={k} className="flex items-center justify-between text-sm cursor-pointer">
+                  <span>{LABELS[k]}</span>
+                  <Switch checked={widgets[k]} onCheckedChange={() => toggleWidget(k)} />
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <Link key={s.label} to={s.to}>
-            <Card className="p-6 border-0 shadow-sm rounded-3xl hover:shadow-md transition cursor-pointer">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-lg`}>
-                  <s.icon className="h-6 w-6 text-white" />
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-3xl font-bold mb-1">{s.value}</div>
-              <div className="text-sm text-muted-foreground">{s.label}</div>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 p-6 rounded-3xl border-0 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">{isRetail ? "Vendas de hoje" : "Agenda de hoje"}</h2>
-            <Link to={isRetail ? "/app/financial" : "/app/appointments"} className="text-sm text-primary font-medium">{isRetail ? "Ver financeiro" : "Ver agenda"}</Link>
-          </div>
-          {isRetail ? (
-            data.todaySales.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma venda registrada hoje.</p>
-            ) : (
-              <div className="space-y-3">
-                {data.todaySales.map((s, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                      <Receipt className="h-5 w-5 text-emerald-500" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{s.description || "Venda"}</div>
-                      <div className="text-xs text-muted-foreground">{s.transaction_date}</div>
-                    </div>
-                    <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">R$ {Number(s.net_amount).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            )
-          ) : data.today.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">Nada agendado para hoje.</p>
-          ) : (
-            <div className="space-y-3">
-              {data.today.slice(0, 6).map((a, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50">
-                  <div className="text-sm font-mono font-semibold text-primary">{a.appointment_time?.slice(0, 5)}</div>
+      {/* Busca global no catálogo */}
+      <Card className="p-4 rounded-3xl border-0 shadow-sm">
+        <div className="relative">
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔎 Buscar no catálogo (nome, código)…" className="h-11 rounded-2xl" />
+          {searchHits.length > 0 && (
+            <Card className="absolute top-12 left-0 right-0 z-50 rounded-2xl border-0 shadow-lg max-h-80 overflow-auto">
+              {searchHits.map(p => (
+                <div key={p.id} className="p-3 flex items-center gap-3 hover:bg-secondary/60">
+                  {p.image_url ? <img src={p.image_url} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-secondary" />}
                   <div className="flex-1">
-                    <div className="font-medium">{a.is_walk_in ? "Walk-in" : sname(a.service_id)}</div>
-                    <div className="text-xs text-muted-foreground">R$ {Number(a.amount).toFixed(2)}</div>
+                    <div className="font-medium text-sm">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">{p.category ?? "—"} · R$ {Number(p.sale_price).toFixed(2)}</div>
                   </div>
-                  <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium capitalize">{a.status}</span>
+                  <Link to="/app/quotes"><Button size="sm" variant="outline" className="rounded-xl"><FileText className="h-3 w-3 mr-1" />Orçar</Button></Link>
+                </div>
+              ))}
+            </Card>
+          )}
+        </div>
+      </Card>
+
+      {/* Quick Notes flutuante */}
+      <W k="quick_notes">
+        <Card className="p-4 rounded-3xl border-0 shadow-sm bg-amber-500/5 border border-amber-500/20">
+          <div className="flex items-center gap-2 mb-3">
+            <StickyNote className="h-5 w-5 text-amber-600" />
+            <h2 className="text-sm font-semibold">Anotações rápidas — pendências</h2>
+            {notes.length > 0 && <Badge className="bg-amber-500 text-white">{notes.length}</Badge>}
+          </div>
+          <div className="flex gap-2 mb-3">
+            <Input value={noteInput} onChange={(e) => setNoteInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()}
+                   placeholder="Ex.: Venda Maria, falta endereço…" className="h-9 rounded-xl" />
+            <Button size="sm" onClick={addNote} className="rounded-xl"><Plus className="h-4 w-4" /></Button>
+          </div>
+          {notes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sem pendências. ✨</p>
+          ) : (
+            <div className="space-y-1.5">
+              {notes.map(n => (
+                <div key={n.id} className="flex items-center gap-2 text-sm p-2 rounded-xl bg-background/70">
+                  <AlertCircle className="h-3 w-3 text-amber-600 shrink-0" />
+                  <span className="flex-1">{n.content}</span>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => resolveNote(n.id)}><Check className="h-3.5 w-3.5 text-emerald-600" /></Button>
                 </div>
               ))}
             </div>
           )}
         </Card>
+      </W>
 
-        <Card className="p-6 rounded-3xl border-0 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <h2 className="text-xl font-semibold">Alertas</h2>
-          </div>
-          <div className="space-y-3 text-sm">
-            {data.lowStock > 0 && (
-              <Link to="/app/products" className="block p-3 rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                {data.lowStock} produto(s) com estoque baixo
-              </Link>
-            )}
-            {data.lowStock === 0 && (
-              <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                Tudo certo por aqui ✨
-              </div>
-            )}
-          </div>
-        </Card>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <W k="sales_month">
+          <StatCard to="/app/financial" label="Venda do mês" value={`R$ ${stats.salesMonth.toFixed(2)}`} hint={`${stats.salesCount} lançamento(s)`} icon={Wallet} color="from-violet-500 to-purple-500" />
+        </W>
+        <W k="stock">
+          <StatCard to="/app/products" label="Estoque depósito" value={String(stats.stock)} hint={stats.lowStock > 0 ? `${stats.lowStock} em alerta` : "OK"} icon={Boxes} color="from-cyan-500 to-blue-500" warn={stats.lowStock > 0} />
+        </W>
+        <W k="deliveries_pending">
+          <StatCard to="/app/deliveries" label="Entregas pendentes" value={String(stats.deliveriesPending)} icon={Truck} color="from-amber-500 to-orange-500" warn={stats.deliveriesPending > 0} />
+        </W>
+        <W k="pickups_pending">
+          <StatCard to="/app/deliveries" label="Retiradas pendentes" value={String(stats.pickupsPending)} icon={Store} color="from-emerald-500 to-teal-500" />
+        </W>
+        <W k="tables">
+          <StatCard to="/app/services" label="Tabelas (Serviços)" value={String(stats.services)} icon={Package} color="from-pink-500 to-rose-500" />
+        </W>
+        <W k="catalog">
+          <StatCard to="/app/products" label="Catálogo" value={String(stats.products)} hint="produtos cadastrados" icon={ShoppingBag} color="from-indigo-500 to-blue-500" />
+        </W>
+        <W k="overdue_debts">
+          <StatCard to="/app/debts" label="Promissórias vencidas" value={String(stats.overdueDebts.length)} icon={Receipt} color="from-red-500 to-rose-600" warn={stats.overdueDebts.length > 0} />
+        </W>
+        <W k="anamnesis_due">
+          <StatCard to="/app/anamnesis" label="Anamneses a refazer" value={String(stats.anamnesisDue.length)} hint="ciclo 90 dias" icon={HeartPulse} color="from-fuchsia-500 to-pink-500" warn={stats.anamnesisDue.length > 0} />
+        </W>
       </div>
     </div>
+  );
+}
+
+function StatCard({ to, label, value, hint, icon: Icon, color, warn }: any) {
+  return (
+    <Link to={to}>
+      <Card className={`p-6 border-0 shadow-sm rounded-3xl hover:shadow-md transition cursor-pointer ${warn ? "ring-2 ring-amber-400/40" : ""}`}>
+        <div className="flex items-start justify-between mb-4">
+          <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="text-3xl font-bold mb-1">{value}</div>
+        <div className="text-sm text-muted-foreground">{label}</div>
+        {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
+      </Card>
+    </Link>
   );
 }
