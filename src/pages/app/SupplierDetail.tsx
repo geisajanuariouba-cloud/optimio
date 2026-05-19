@@ -35,11 +35,20 @@ export default function SupplierDetail() {
       supabase.from("suppliers").select("*").eq("id", id).maybeSingle(),
       supabase.from("products").select("*").eq("supplier_id", id).is("deleted_at", null).order("name"),
       supabase.from("supplier_commands").select("*").eq("supplier_id", id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("supplier_catalogs").select("*").eq("supplier_id", id).order("created_at", { ascending: false }),
+      supabase.from("supplier_catalogs").select("*").eq("supplier_id", id).eq("internal_only", false).order("created_at", { ascending: false }),
     ]);
     setSupplier(s.data); setProducts(p.data ?? []); setHistory(h.data ?? []); setCatalogs(c.data ?? []);
   };
   useEffect(() => { if (user) load(); }, [user, id]);
+
+  // Polling de status enquanto houver catálogos em processamento
+  useEffect(() => {
+    const processing = catalogs.some((c: any) => ["pending", "processing", "splitting", "extracting", "consolidating"].includes(c.processing_status));
+    if (!processing) return;
+    const t = setInterval(load, 4000);
+    return () => clearInterval(t);
+  }, [catalogs]);
+
 
   const downloadCatalog = async (path: string, filename: string) => {
     const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(path, 60);
@@ -103,32 +112,34 @@ export default function SupplierDetail() {
     setImporting(kind);
     try {
       let upload: Blob = f;
-      let mime = f.type;
+      let mime = f.type || (f.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
       let outName = f.name;
       if (f.type.startsWith("image/")) {
         upload = await compressImage(f);
         mime = "image/jpeg";
         outName = f.name.replace(/\.[^.]+$/, "") + ".jpg";
-      } else if (f.size > 25 * 1024 * 1024) {
-        throw new Error("Arquivo muito grande (máx 25MB). Divida o PDF em partes menores.");
+      } else if (f.size > 200 * 1024 * 1024) {
+        throw new Error("Arquivo muito grande (máx 200MB).");
       }
       const safeName = outName.replace(/[^\w.\-]+/g, "_");
       const storagePath = `${user.id}/${id}/${kind}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("supplier-catalogs")
-        .upload(storagePath, upload, { contentType: mime || "application/octet-stream", upsert: false });
-      if (upErr) throw new Error("Falha ao enviar o arquivo. Tente novamente.");
+        .upload(storagePath, upload, { contentType: mime, upsert: false });
+      if (upErr) throw new Error("Erro ao enviar catálogo. Tente novamente.");
+      toast.success("Catálogo enviado com sucesso. Processando produtos…");
+      load();
       const { data, error } = await supabase.functions.invoke("supplier-catalog-import", {
         body: { supplier_id: id, filename: outName, mime, storage_path: storagePath, size_bytes: upload.size, kind },
       });
       if (error) {
-        const msg = (data as any)?.error || "Erro ao processar o arquivo com a IA.";
+        const msg = (data as any)?.error || "Erro ao processar catálogo.";
         throw new Error(msg);
       }
-      toast.success(`${data?.created ?? 0} novos · ${data?.updated ?? 0} atualizados`);
       load();
     } catch (err: any) {
       toast.error(err?.message ?? "Erro na importação");
+      load();
     } finally {
       setImporting(null);
       e.target.value = "";
@@ -138,8 +149,10 @@ export default function SupplierDetail() {
   const openPreview = async (c: any) => {
     const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(c.storage_path, 60 * 30);
     if (error || !data?.signedUrl) { toast.error("Não foi possível abrir o arquivo"); return; }
-    setPreview({ url: data.signedUrl, mime: c.mime || "", filename: c.filename });
+    const mime = c.mime || (c.filename?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "");
+    setPreview({ url: data.signedUrl, mime, filename: c.filename });
   };
+
 
   if (!supplier) return <div className="p-6 text-muted-foreground">Carregando…</div>;
 
@@ -195,20 +208,40 @@ export default function SupplierDetail() {
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     {k === "catalog" ? "Catálogos anexados" : "Tabelas de preço de custo"}
                   </div>
-                  {list.map((c: any) => (
-                    <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
-                      {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{c.filename}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(c.created_at).toLocaleString("pt-BR")} · {c.products_created} novos · {c.products_updated} atualizados
+                  {list.map((c: any) => {
+                    const statusMap: Record<string, { label: string; cls: string }> = {
+                      pending: { label: "Enviado", cls: "bg-slate-500/15 text-slate-600" },
+                      splitting: { label: "Dividindo para processamento", cls: "bg-blue-500/15 text-blue-600" },
+                      processing: { label: "Extraindo informações", cls: "bg-blue-500/15 text-blue-600" },
+                      extracting: { label: "Extraindo informações", cls: "bg-blue-500/15 text-blue-600" },
+                      consolidating: { label: "Consolidando produtos", cls: "bg-blue-500/15 text-blue-600" },
+                      completed: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-600" },
+                      failed: { label: "Erro no processamento", cls: "bg-rose-500/15 text-rose-600" },
+                    };
+                    const st = statusMap[c.processing_status] ?? statusMap.completed;
+                    const busy = ["pending", "splitting", "processing", "extracting", "consolidating"].includes(c.processing_status);
+                    const progress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 100) : null;
+                    return (
+                      <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
+                        {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{c.filename}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                            <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                            <Badge className={st.cls + " font-normal"}>
+                              {busy && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
+                              {st.label}{progress !== null && busy ? ` ${progress}%` : ""}
+                            </Badge>
+                            {c.processing_status === "completed" && <span>· {c.products_created} novos · {c.products_updated} atualizados</span>}
+                            {c.processing_status === "failed" && c.error_message && <span className="text-rose-600">· {c.error_message}</span>}
+                          </div>
                         </div>
+                        <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
+                        <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
+                        <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
                       </div>
-                      <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
-                      <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
-                      <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })}
@@ -257,18 +290,26 @@ export default function SupplierDetail() {
       </Tabs>
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
-          <DialogHeader className="px-5 py-3 border-b">
-            <DialogTitle className="text-sm font-semibold truncate">{preview?.filename}</DialogTitle>
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-5 py-3 border-b flex-row items-center justify-between gap-3 space-y-0">
+            <DialogTitle className="text-sm font-semibold truncate flex-1">{preview?.filename}</DialogTitle>
+            {preview && (
+              <a href={preview.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline shrink-0">Abrir em nova aba</a>
+            )}
           </DialogHeader>
-          <div className="flex-1 h-full bg-secondary/30">
-            {preview?.mime.startsWith("image/")
+          <div className="flex-1 min-h-0 bg-secondary/30">
+            {preview && (preview.mime.startsWith("image/")
               ? <img src={preview.url} alt={preview.filename} className="w-full h-full object-contain" />
-              : <iframe src={preview?.url} title={preview?.filename} className="w-full h-full" />}
+              : <object data={preview.url} type={preview.mime || "application/pdf"} className="w-full h-full">
+                  <div className="p-6 text-sm text-muted-foreground">
+                    Não foi possível exibir o arquivo aqui. <a className="text-primary underline" href={preview.url} target="_blank" rel="noreferrer">Abrir em nova aba</a>.
+                  </div>
+                </object>)}
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
 
