@@ -31,11 +31,37 @@ function applyPricingMotor(rawCost: number, rules: any) {
   return { cost: +cost.toFixed(2), sale: +sale.toFixed(2) };
 }
 
+function generateCodname(name: string, size?: string | null, color?: string | null): string {
+  if (!name) return "";
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const firstToken = norm(name).trim().split(/\s+/)[0] || "";
+  const base = firstToken.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();
+  const sizePart = size ? (size.match(/[0-9]+/g)?.join("") ?? "").slice(0, 4) : "";
+  const colorPart = color ? norm(color).replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() : "";
+  return `${base}${sizePart}${colorPart}`;
+}
+
+const variationSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "Ex: '2.30m Linho Cinza'" },
+    color: { type: "string" },
+    fabric: { type: "string" },
+    material: { type: "string" },
+    size: { type: "string" },
+    sku: { type: "string" },
+    cost: { type: "number" },
+    width: { type: "number" }, height: { type: "number" }, depth: { type: "number" },
+    length_cm: { type: "number" }, weight: { type: "number" },
+  },
+  additionalProperties: false,
+};
+
 const productTools = (existingCatNames: string[]) => [{
   type: "function",
   function: {
     name: "extract_products",
-    description: "Extrai produtos de uma tabela de preços de fornecedor",
+    description: "Extrai produtos de catálogo/tabela de fornecedor com variações e medidas quando houver",
     parameters: {
       type: "object",
       properties: {
@@ -45,11 +71,19 @@ const productTools = (existingCatNames: string[]) => [{
             type: "object",
             properties: {
               name: { type: "string" },
+              codname: { type: "string", description: "Apelido curto se aparecer (ex: SOFA230CZ)" },
               code: { type: "string" },
-              cost: { type: "number", description: "Preço da tabela (CUSTO, não venda)" },
+              cost: { type: "number", description: "Preço da tabela (CUSTO, nunca venda)" },
               category: { type: "string", description: `Categorias existentes: ${existingCatNames.join(", ") || "(nenhuma)"}` },
               description: { type: "string" },
-              measurements: { type: "string" },
+              color: { type: "string" }, fabric: { type: "string" }, material: { type: "string" }, size: { type: "string" },
+              width: { type: "number", description: "em cm" },
+              height: { type: "number", description: "em cm" },
+              depth: { type: "number", description: "em cm" },
+              length_cm: { type: "number", description: "em cm" },
+              weight: { type: "number", description: "em kg" },
+              measurements: { type: "string", description: "Texto bruto das medidas se não conseguir separar" },
+              variations: { type: "array", items: variationSchema, description: "Variações (cor/tecido/tamanho) quando o item tem múltiplas opções" },
             },
             required: ["name", "cost"],
             additionalProperties: false,
@@ -69,9 +103,9 @@ async function callAI(signedUrl: string, existingCatNames: string[]): Promise<an
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "Você é um extrator de catálogos. O preço é SEMPRE custo. Sempre chame extract_products." },
+        { role: "system", content: "Você é um extrator de catálogos de móveis/varejo. O preço da tabela é SEMPRE CUSTO. Identifique variações (cor, tecido, tamanho) e medidas (largura, altura, profundidade, comprimento, peso) quando aparecerem. Se um produto tem várias opções de cor/tecido/tamanho com preços diferentes, retorne como variations[]. Se o codname/apelido aparecer no catálogo, capture; caso contrário deixe vazio. Sempre chame extract_products." },
         { role: "user", content: [
-          { type: "text", text: "Extraia TODOS os produtos desta tabela/catálogo. O valor é o CUSTO (não venda). Inclua código, categoria e medidas quando aparecerem." },
+          { type: "text", text: "Extraia TODOS os produtos. Valor = CUSTO. Capture código, categoria, codnome, cor, tecido, material, tamanho, medidas (LxAxP, comprimento, peso) e variações." },
           { type: "image_url", image_url: { url: signedUrl } },
         ] },
       ],
@@ -208,25 +242,54 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
         const rawCost = Number(p.cost ?? 0);
         const { cost, sale } = applyPricingMotor(rawCost, rules);
         const category_id = await ensureCategory(p.category);
+        const codname = (p.codname && String(p.codname).trim()) || generateCodname(p.name, p.size, p.color);
+        const hasVariations = Array.isArray(p.variations) && p.variations.length > 0;
         const pid = (p.code && byCode.get(String(p.code).toLowerCase())) || byName.get(String(p.name).toLowerCase());
+        const num = (v: any) => (v === undefined || v === null || v === "" ? null : Number(v));
         const payload: any = {
           cost, sale_price: sale, supplier_id: supplierId, status: "active",
+          codname, has_variations: hasVariations,
           ...(p.code ? { code: p.code } : {}),
+          ...(p.description ? { description: p.description } : {}),
           ...(category_id ? { category_id, category: p.category } : (p.category ? { category: p.category } : {})),
           ...(p.measurements ? { measurements: { raw: p.measurements } } : {}),
+          width: num(p.width), height: num(p.height), depth: num(p.depth),
+          length_cm: num(p.length_cm), weight: num(p.weight),
         };
+        let prodId: string | null = null;
         if (pid) {
           await supabase.from("products").update(payload).eq("id", pid);
+          prodId = pid as string;
           updated++;
         } else {
           const { data: ins } = await supabase.from("products")
             .insert({ user_id: userId, name: p.name, stock: 0, min_stock: 0, ...payload })
             .select("id").single();
           if (ins?.id) {
+            prodId = ins.id;
             if (p.code) byCode.set(String(p.code).toLowerCase(), ins.id);
             byName.set(String(p.name).toLowerCase(), ins.id);
           }
           created++;
+        }
+        if (hasVariations && prodId) {
+          // limpa variações antigas dessa importação para não duplicar
+          await supabase.from("product_variations").delete().eq("product_id", prodId);
+          const rows = p.variations.map((v: any) => {
+            const vCost = applyPricingMotor(Number(v.cost ?? rawCost), rules);
+            return {
+              product_id: prodId, user_id: userId, supplier_id: supplierId,
+              name: v.name || [v.size, v.color, v.fabric].filter(Boolean).join(" ") || "Variação",
+              codname: generateCodname(p.name, v.size, v.color),
+              sku: v.sku || null,
+              color: v.color || null, fabric: v.fabric || null, material: v.material || null, size: v.size || null,
+              cost: vCost.cost, sale_price: vCost.sale, stock: 0, min_stock: 0,
+              width: num(v.width), height: num(v.height), depth: num(v.depth),
+              length_cm: num(v.length_cm), weight: num(v.weight),
+              attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size },
+            };
+          });
+          if (rows.length) await supabase.from("product_variations").insert(rows);
         }
       }
       return { created, updated };
