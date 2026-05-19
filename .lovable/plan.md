@@ -1,111 +1,98 @@
-## Objetivo
+# Etapa 1 — Estabilização do Core Operacional
 
-Reestruturar o módulo de Produtos para suportar **codnome**, **variações reais** e **medidas detalhadas**, garantindo que cadastro manual, importação por catálogo (OCR), busca, orçamentos, vendas e logística reconheçam essa nova estrutura — sem quebrar produtos antigos.
+Esta etapa foca em consertar e estruturar o que já existe. Sem OCR avançado, sem redesign, sem IA pesada.
 
----
+## 1. Produtos — Reestruturação
 
-## 1. Banco de dados (migração)
+### Renomear "Codnome" → "Apelido Curto"
+- Trocar todos os rótulos visíveis em `Products.tsx`, `VariationEditor.tsx` e telas relacionadas (Quotes, Sales, Detail).
+- Coluna `codname` no banco permanece (sem migration de rename) — só a UI muda.
 
-### `products` (ajustes)
-- Adicionar: `codname` (text), `has_variations` (boolean, default false)
-- Adicionar bloco de medidas no produto principal: `width`, `height`, `depth`, `length_cm`, `weight`, `measure_unit` (default `cm`)
-- Manter campos existentes (`cost`, `sale_price`, `stock`, `image_url`, `supplier_id`, `category_id`, `code`, `measurements` jsonb legado).
-- Índice em `codname` e `code` para busca rápida.
+### Botão "Gerar Apelido Curto"
+- Corrigir `generateCodname` em `src/lib/codname.ts` para considerar **nome + medida + cor + categoria**.
+- Botão funcional no form do produto e em cada variação.
+- Campo continua editável manualmente.
 
-### `product_variations` (ajustes — já existe)
-- Adicionar: `codname`, `sku`, `color`, `fabric`, `material`, `size`, `variation_type`, `supplier_id`
-- Adicionar medidas próprias: `width`, `height`, `depth`, `length_cm`, `weight`, `measure_unit`
-- Manter `attributes jsonb` para combinações personalizadas.
-- Índice por `product_id`, `codname`, `sku`.
+### Busca
+- Filtro de produtos suporta: nome, apelido curto, código, descrição, fornecedor.
 
-### Tabela auxiliar
-- Não criar `product_measures` separada (medidas ficam embutidas em `products` e `product_variations` — mais simples e performático, equivalente em capacidade).
+### Variações reais
+- Editor já existe — garantir que salvam corretamente em `product_variations` com: cor, tecido, tamanho, material, modelo, acabamento, imagem própria, custo, preço, estoque, medidas, código.
+- Adicionar campos `model` e `finish` (acabamento) à tabela.
 
-### RLS
-- Manter políticas existentes (`owner all` por `user_id`).
+### Medidas
+- Já existem colunas (`width`, `height`, `depth`, `length_cm`, `weight`, `measure_unit`) no produto e na variação. Garantir UI funcional em ambos.
 
----
+### Upload real de imagens (CRÍTICO)
+- Remover input de URL manual.
+- Usar bucket `product-images` (já existe, público).
+- Componente reutilizável `ImageUploader` com drag-and-drop, preview, remover, trocar.
+- Funciona para produto E cada variação.
+- Caminho: `{user_id}/products/{product_id}/...` e `{user_id}/variations/{variation_id}/...`.
 
-## 2. Geração automática de codnome
+### Buckets
+- `product-images` (existe, público) — produtos e variações.
+- `supplier-catalogs` (existe) — catálogos.
+- Não criar bucket novo para fornecedores agora (sem necessidade imediata).
 
-Função utilitária (TS) que recebe nome + atributos (cor, tamanho) e gera código curto:
-- `"Sofá Retrátil 2.30m Bege"` → `SOFA230BG`
-- Estratégia: primeiros 4 chars do nome principal + número (tamanho sem ponto) + 2 chars da cor.
-- Usada tanto na importação de catálogos quanto como sugestão no formulário manual.
+### UI / Filtros
+- Aumentar contraste em filtros (remover transparência baixa, estados apagados).
+- Melhorar grid/cards de produtos.
 
----
+### Categorias
+- Manter categorias de produto e de saída inalteradas.
+- Não tocar nas categorias de entrada.
 
-## 3. UI — `src/pages/app/Products.tsx` e componentes
+## 2. Vendas — Módulo separado
 
-### Lista
-- Coluna **Codnome** visível.
-- Busca por: nome, codnome, código, descrição, fornecedor.
+- Rota já existe (`/app/sales`). Reforçar como dashboard próprio:
+  - Vendas por período, ticket médio, lucro, margem, formas de pagamento (incluindo promissória), produtos mais vendidos, promissórias em aberto, entregas pendentes.
+- Sem migrations novas — usar `financial` + `deliveries` + `debts`.
 
-### Formulário de produto (dialog/sheet)
-- Aba **Geral**: nome, codnome (com botão "gerar"), código, categoria, fornecedor, descrição, imagem.
-- Aba **Preço e estoque**: custo, preço de venda, estoque, estoque mínimo.
-- Aba **Medidas**: largura, altura, profundidade, comprimento, peso, unidade.
-- Aba **Variações**: toggle `has_variations`. Quando ativo:
-  - Cards/accordion por variação com: nome, cor, tecido, material, tamanho, sku, codnome, imagem, custo, preço, estoque, medidas próprias, fornecedor.
-  - Botões: adicionar/duplicar/remover variação.
-  - Quando desativado: produto funciona como antes (compatibilidade total).
+## 3. Promissórias
+- Já integradas em Quotes/Financial/Sales. Garantir filtro "Promissória" em Sales e Financial.
+- Baixa de promissória (em `Debts.tsx`) já cria movimentação em caixa em dinheiro — verificar e ajustar se necessário.
 
-### Visualização (detalhe)
-- Cabeçalho com imagem grande, codnome em destaque, fornecedor, categoria.
-- Chips de variações com miniatura + preço + estoque.
-- Bloco de medidas formatado (`L × A × P` + peso).
+## 4. Logística — Fluxo
+Status padronizados em `deliveries`:
+1. `pedido_fornecedor`
+2. `aguardando_fornecedor`
+3. `pronto_entrega`
+4. `com_montador`
+5. `entregue`
 
----
+- Ao criar venda sem estoque suficiente → criar entrega automaticamente em `pedido_fornecedor`.
+- Seleção obrigatória de montador quando `needs_assembly = true`.
+- Comissão padrão 5% sobre custo, editável.
 
-## 4. Importação de catálogo (OCR)
+## 5. Dashboard contextual
+- `Dashboard.tsx` filtra widgets por `niche`:
+  - **beauty**: agenda, recorrência, sessões, clientes (ocultar logística/montagem/fornecedores).
+  - **retail/furniture**: vendas, estoque, logística, orçamento, montagem.
 
-`supabase/functions/supplier-catalog-import/index.ts`:
-- Prompt da IA atualizado para extrair: `name`, `codname` (se houver), `code`, `description`, `category`, `cost_price`, `sale_price`, `color`, `fabric`, `material`, `size`, `measures {width,height,depth,length,weight,unit}`, `variations[]` (array com mesmos campos).
-- Persistência:
-  - Se produto vem com `variations[]` → cria `products` com `has_variations=true` + cria N linhas em `product_variations`.
-  - Se vem simples → cria `products` plano.
-  - Se `codname` ausente → gerar via util compartilhada (replicada inline na edge function).
-  - Deduplicação por (`user_id`, `supplier_id`, `code` OR `codname` OR `name` normalizado).
+## 6. Erros / Mensagens
+- Auditar toasts e garantir português em todo o app.
 
----
+## Arquivos a tocar
 
-## 5. Integrações dependentes (compatibilidade)
+**Migrations:**
+- Adicionar `model` e `finish` a `product_variations`.
 
-- **Orçamentos** (`Quotes.tsx`, `quote_items`): seletor de produto já aceita `variation_id` — exibir codnome + variação selecionada no item.
-- **Vendas** (`Sales.tsx`) e **Financeiro**: usar codnome no resumo do item quando existir.
-- **Logística/Entregas**: o `items` jsonb já guarda snapshot — incluir `codname` no snapshot.
-- **Estoque**: continua decrementando em `products.stock` para simples e em `product_variations.stock` quando houver variação.
+**Novos:**
+- `src/components/products/ImageUploader.tsx` — upload com drag/drop/preview.
 
----
+**Editados:**
+- `src/lib/codname.ts` — incluir categoria.
+- `src/components/products/VariationEditor.tsx` — "Apelido Curto", upload real, modelo/acabamento.
+- `src/pages/app/Products.tsx` — rótulo, upload, filtros, contraste.
+- `src/pages/app/Sales.tsx` — dashboard de vendas + filtro promissória.
+- `src/pages/app/Financial.tsx` — filtro promissória.
+- `src/pages/app/Deliveries.tsx` — status novos + criação auto a partir de venda sem estoque.
+- `src/pages/app/Dashboard.tsx` — widgets por nicho.
+- `src/pages/app/Quotes.tsx` — usar mesmo `ImageUploader` se necessário e ajustar criação de delivery.
 
-## 6. Migração de dados existentes
+## Fora do escopo (próxima etapa)
+- OCR avançado, IA pesada, redesign, analytics complexos, automações.
 
-- Produtos antigos: `has_variations` default `false`, `codname` preenchido via trigger one-shot (UPDATE) gerando a partir do nome para todos onde for nulo.
-- Medidas legadas em `products.measurements` (jsonb) — copiar para as colunas novas quando possível, manter jsonb intacto como fallback.
-
----
-
-## Arquivos afetados
-
-**Migração SQL** (nova):
-- `supabase/migrations/<timestamp>_products_codname_variations_measures.sql`
-
-**Frontend**:
-- `src/pages/app/Products.tsx`
-- `src/pages/app/ProductDetail.tsx` (se existir; senão criar dialog dedicado)
-- `src/components/products/ProductForm.tsx` (novo, extraído)
-- `src/components/products/VariationEditor.tsx` (novo)
-- `src/lib/codname.ts` (novo — utilitário de geração)
-- `src/pages/app/Quotes.tsx` (exibir codnome no item)
-
-**Edge function**:
-- `supabase/functions/supplier-catalog-import/index.ts` (novo prompt + persistência variações/medidas)
-
-**Tipos**:
-- `src/integrations/supabase/types.ts` (regenera automaticamente após migração)
-
----
-
-## Aprovação
-
-Posso aplicar a migração SQL agora e em seguida implementar a UI e a edge function?
+## Confirmação
+Aprovar para eu iniciar a migration e depois os arquivos de UI.
