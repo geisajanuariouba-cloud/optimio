@@ -215,7 +215,10 @@ export default function Products() {
                 {filtered.map(p => {
                   const sup = suppliers.find(s => s.id === p.supplier_id);
                   return (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} data-state={selected.has(p.id) ? "selected" : undefined}>
+                      <TableCell className="w-10">
+                        <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} aria-label={`Selecionar ${p.name}`} />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2 flex-wrap">
                           {p.name}
