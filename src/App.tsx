@@ -61,8 +61,11 @@ const App = () => (
               <Route path="/termos" element={<LegalPublic />} />
               <Route path="/privacidade" element={<LegalPublic />} />
               <Route path="/reembolso" element={<LegalPublic />} />
+              <Route path="/invite/:token" element={<InviteAccept />} />
               <Route path="/app" element={<AppLayout />}>
                 <Route index element={<Dashboard />} />
+                <Route path="start" element={<StartHere />} />
+                <Route path="team" element={<Team />} />
                 <Route path="appointments" element={<Appointments />} />
                 <Route path="clients" element={<Clients />} />
                 <Route path="clients/:id" element={<ClientDetail />} />
