@@ -123,11 +123,30 @@ export default function SupplierDetail() {
         <TabsContent value="chat" className="space-y-4">
           <Card className="p-5 rounded-3xl border-0 shadow-sm">
             <div className="text-sm font-semibold mb-2">Importar catálogo / tabela de preços</div>
-            <p className="text-xs text-muted-foreground mb-3">A IA lê PDF, Excel ou CSV, cadastra novos produtos, atualiza preços e vincula a este fornecedor.</p>
+            <p className="text-xs text-muted-foreground mb-3">A IA lê PDF, Excel ou CSV e cadastra produtos com <strong>preço de custo</strong> (não venda). O preço de venda é calculado pelo motor de precificação do fornecedor (custo + margem + taxa extra). O arquivo fica salvo aqui para reabrir ou baixar quando quiser.</p>
             <input ref={fileRef} type="file" accept=".pdf,.csv,.xlsx,.xls" hidden onChange={onFile} />
             <Button onClick={() => fileRef.current?.click()} disabled={importing} className="rounded-2xl gap-2">
               {importing ? <><Loader2 className="h-4 w-4 animate-spin" />Importando…</> : <><Upload className="h-4 w-4" />Anexar catálogo</>}
             </Button>
+
+            {catalogs.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Catálogos anexados</div>
+                {catalogs.map((c: any) => (
+                  <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
+                    <Upload className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{c.filename}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(c.created_at).toLocaleString("pt-BR")} · {c.products_created} novos · {c.products_updated} atualizados
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="rounded-xl" onClick={() => downloadCatalog(c.storage_path, c.filename)}>Baixar</Button>
+                    <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Loader2 className="h-4 w-4 hidden" />×</Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           <Card className="p-5 rounded-3xl border-0 shadow-sm">
