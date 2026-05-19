@@ -66,7 +66,7 @@ export default function SupplierDetail() {
         partial_reason: hasPartial ? "Alguns produtos foram processados. Revise os itens restantes." : null,
         error_message: hasPartial ? null : "O processamento passou do tempo limite sem progresso. O PDF original continua salvo.",
         completed_at: new Date().toISOString(),
-      }).eq("id", c.id);
+      } as any).eq("id", c.id);
     });
     const t = setTimeout(load, 800);
     return () => clearTimeout(t);
