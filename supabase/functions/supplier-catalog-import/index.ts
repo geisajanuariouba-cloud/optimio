@@ -151,10 +151,21 @@ async function mapLimit<T>(items: T[], limit: number, fn: (item: T, i: number) =
 
 async function processCatalog(parentId: string, userId: string, supplierId: string, storagePath: string, mime: string) {
   const supabase = createClient(SB_URL, SVC);
-  const setStatus = (patch: any) => supabase.from("supplier_catalogs").update(patch).eq("id", parentId);
+  const started = Date.now();
+  const logs: any[] = [];
+  const log = async (step: string, message: string, extra: any = {}) => {
+    logs.push({ at: new Date().toISOString(), step, message, ...extra });
+    await supabase.from("supplier_catalogs").update({ processing_logs: logs.slice(-80), last_heartbeat_at: new Date().toISOString() }).eq("id", parentId);
+  };
+  const setStatus = (patch: any, stage?: string) => supabase.from("supplier_catalogs").update({
+    ...patch,
+    ...(stage ? { processing_stage: stage } : {}),
+    last_heartbeat_at: new Date().toISOString(),
+  }).eq("id", parentId);
 
   try {
-    await setStatus({ processing_status: "processing", error_message: null });
+    await setStatus({ processing_status: "processing", error_message: null, partial_reason: null }, "extraindo_produtos");
+    await log("upload_storage", "Catálogo original localizado. Iniciando leitura interna.");
 
     const [{ data: supplier }, { data: cats }, { data: existing }] = await Promise.all([
       supabase.from("suppliers").select("cost_fee_percent,default_margin_percent,default_markup_percent").eq("id", supplierId).maybeSingle(),
@@ -176,7 +187,8 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
       const bytes = new Uint8Array(await file.arrayBuffer());
 
       if (bytes.length > MAX_AI_BYTES) {
-        await setStatus({ processing_status: "splitting" });
+        await setStatus({ processing_status: "splitting" }, "extraindo_imagens");
+        await log("ocr", "PDF grande detectado. Dividindo em partes internas invisíveis.", { bytes: bytes.length });
         chunkInfos = await splitAndUpload(supabase, bytes, MAX_AI_BYTES, storagePath);
       } else {
         const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
@@ -188,11 +200,15 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     }
 
     const totalPages = chunkInfos.reduce((s, c) => s + c.pages, 0);
-    await setStatus({ total_pages: totalPages, processed_pages: 0, processing_status: "extracting" });
+    await supabase.from("supplier_catalog_chunks").delete().eq("catalog_id", parentId);
+    await supabase.from("supplier_catalog_chunks").insert(chunkInfos.map((c, i) => ({
+      catalog_id: parentId, user_id: userId, supplier_id: supplierId, storage_path: c.path,
+      chunk_index: i, page_start: c.pageStart, page_end: c.pageEnd, pages: c.pages, status: "enviado",
+    })));
+    await setStatus({ total_pages: totalPages, processed_pages: 0, total_chunks: chunkInfos.length, processed_chunks: 0, products_extracted: 0, processing_status: "extracting" }, "extraindo_produtos");
+    await log("ocr", "Chunks preparados para processamento paralelo.", { chunks: chunkInfos.length, totalPages });
 
-    // Dedup global + persistência incremental por chunk (não acumular tudo em memória)
-    const seen = new Set<string>();
-    let createdTotal = 0, updatedTotal = 0, done = 0;
+    let extractedTotal = 0, donePages = 0, doneChunks = 0, failedChunks = 0;
 
     const ensureCategory = async (name?: string): Promise<string | null> => {
       if (!name) return null;
