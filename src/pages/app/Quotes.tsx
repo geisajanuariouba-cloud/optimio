@@ -100,7 +100,7 @@ export default function Quotes() {
     const [{ data: q }, { data: qi }, { data: p }, { data: v }, { data: c }, { data: m }] = await Promise.all([
       supabase.from("quotes").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("quote_items").select("*"),
-      supabase.from("products").select("id,name,code,sale_price,cost,image_url,supplier_id").is("deleted_at", null),
+      supabase.from("products").select("id,name,codname,code,sale_price,cost,image_url,supplier_id").is("deleted_at", null),
       supabase.from("product_variations").select("*"),
       supabase.from("clients").select("id,full_name").is("deleted_at", null),
       supabase.from("payment_methods").select("*").eq("active", true),
@@ -111,7 +111,7 @@ export default function Quotes() {
   useEffect(() => { load(); }, [user]);
 
   const filteredProducts = products.filter(p =>
-    !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase())
+    !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase()) || p.codname?.toLowerCase().includes(search.toLowerCase())
   );
 
   const addProduct = (p: any) => {
