@@ -80,17 +80,24 @@ export default function Landing() {
             O SaaS multi-tenant que adapta cada propriedade ao seu negócio — de salões de beleza a clínicas, estúdios e consultorias. Tudo em uma plataforma só.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/auth?mode=signup">
+            <a href="#plans">
               <Button size="lg" className="bg-gradient-brand text-white border-0 hover:opacity-90 px-8 h-14 text-base animate-pulse-glow">
-                Adquirir agora <ArrowRight className="ml-2 h-5 w-5" />
+                Escolher meu plano <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-            </Link>
+            </a>
             <a href="#playground">
               <Button size="lg" variant="outline" className="px-8 h-14 text-base">
-                Testar no meu nicho
+                Ver demonstração
               </Button>
             </a>
           </div>
+
+          {videoUrl && (
+            <div className="mt-12 max-w-4xl mx-auto rounded-3xl overflow-hidden border border-border/40 glass aspect-video">
+              <iframe src={videoUrl} title="Demo Optimio" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen className="w-full h-full" />
+            </div>
+          )}
+
 
           <div className="mt-10 inline-flex items-center gap-3 px-5 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-100 text-sm">
             <AlertTriangle className="h-5 w-5 text-amber-400" />
