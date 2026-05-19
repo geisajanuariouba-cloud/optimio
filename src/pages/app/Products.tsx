@@ -121,7 +121,7 @@ export default function Products() {
 
   const save = async () => {
     if (!user || !form.name.trim()) return toast.error("Nome obrigatório");
-    const codname = form.codname?.trim() || generateCodname(form.name);
+    const codname = form.codname?.trim() || generateCodname(form.name, undefined, undefined, form.category);
     const payload: any = {
       ...form,
       user_id: user.id,
@@ -130,6 +130,7 @@ export default function Products() {
       code: form.code || null,
       description: form.description || null,
       supplier_id: form.supplier_id || null,
+      image_url: form.image_url || null,
       width: numOrNull(form.width), height: numOrNull(form.height), depth: numOrNull(form.depth),
       length_cm: numOrNull(form.length_cm), weight: numOrNull(form.weight),
       measure_unit: form.measure_unit || "cm",
@@ -154,17 +155,18 @@ export default function Products() {
       if (toDelete.length) await supabase.from("product_variations").delete().in("id", toDelete);
 
       for (const v of variations) {
-        const vCodname = v.codname?.trim() || generateCodname(form.name, v.size, v.color);
+        const vCodname = v.codname?.trim() || generateCodname(form.name, v.size, v.color, form.category);
         const row: any = {
           product_id: prodId, user_id: user.id, name: v.name || "Variação",
           codname: vCodname, sku: v.sku || null,
           color: v.color || null, fabric: v.fabric || null, material: v.material || null, size: v.size || null,
+          model: v.model || null, finish: v.finish || null,
           cost: v.cost ?? 0, sale_price: v.sale_price ?? 0, stock: v.stock ?? 0, min_stock: v.min_stock ?? 0,
           image_url: v.image_url || null,
           width: numOrNull(v.width), height: numOrNull(v.height), depth: numOrNull(v.depth),
           length_cm: numOrNull(v.length_cm), weight: numOrNull(v.weight),
           measure_unit: v.measure_unit || "cm",
-          attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size },
+          attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size, model: v.model, finish: v.finish },
         };
         if (v.id) {
           await supabase.from("product_variations").update(row).eq("id", v.id);
@@ -177,7 +179,7 @@ export default function Products() {
       await supabase.from("product_variations").delete().eq("product_id", prodId);
     }
 
-    toast.success("Salvo"); setOpen(false); load();
+    toast.success("Produto salvo"); setOpen(false); load();
   };
 
   const remove = async (id: string) => {
