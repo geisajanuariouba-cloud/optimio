@@ -18,6 +18,7 @@ import { Boxes, Pencil, Trash2, AlertTriangle, Trophy, Settings2, Search, Wand2,
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategorySelect } from "@/components/app/CategorySelect";
 import { VariationEditor, type Variation, emptyVariation } from "@/components/products/VariationEditor";
+import { ImageUploader } from "@/components/products/ImageUploader";
 import { generateCodname } from "@/lib/codname";
 
 type Supplier = { id: string; name: string };
