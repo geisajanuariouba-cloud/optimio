@@ -209,20 +209,40 @@ export default function SupplierDetail() {
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     {k === "catalog" ? "Catálogos anexados" : "Tabelas de preço de custo"}
                   </div>
-                  {list.map((c: any) => (
-                    <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
-                      {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{c.filename}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(c.created_at).toLocaleString("pt-BR")} · {c.products_created} novos · {c.products_updated} atualizados
+                  {list.map((c: any) => {
+                    const statusMap: Record<string, { label: string; cls: string }> = {
+                      pending: { label: "Enviado", cls: "bg-slate-500/15 text-slate-600" },
+                      splitting: { label: "Dividindo para processamento", cls: "bg-blue-500/15 text-blue-600" },
+                      processing: { label: "Extraindo informações", cls: "bg-blue-500/15 text-blue-600" },
+                      extracting: { label: "Extraindo informações", cls: "bg-blue-500/15 text-blue-600" },
+                      consolidating: { label: "Consolidando produtos", cls: "bg-blue-500/15 text-blue-600" },
+                      completed: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-600" },
+                      failed: { label: "Erro no processamento", cls: "bg-rose-500/15 text-rose-600" },
+                    };
+                    const st = statusMap[c.processing_status] ?? statusMap.completed;
+                    const busy = ["pending", "splitting", "processing", "extracting", "consolidating"].includes(c.processing_status);
+                    const progress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 100) : null;
+                    return (
+                      <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
+                        {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{c.filename}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                            <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                            <Badge className={st.cls + " font-normal"}>
+                              {busy && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
+                              {st.label}{progress !== null && busy ? ` ${progress}%` : ""}
+                            </Badge>
+                            {c.processing_status === "completed" && <span>· {c.products_created} novos · {c.products_updated} atualizados</span>}
+                            {c.processing_status === "failed" && c.error_message && <span className="text-rose-600">· {c.error_message}</span>}
+                          </div>
                         </div>
+                        <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
+                        <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
+                        <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
                       </div>
-                      <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
-                      <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
-                      <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })}
