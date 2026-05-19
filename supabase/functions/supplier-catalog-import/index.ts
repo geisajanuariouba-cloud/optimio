@@ -29,7 +29,8 @@ Deno.serve(async (req) => {
     if (!user) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const supabase = createClient(SB_URL, SVC);
 
-    const { supplier_id, filename, mime, storage_path, size_bytes } = await req.json();
+    const { supplier_id, filename, mime, storage_path, size_bytes, kind } = await req.json();
+    const docKind = kind === "pricing" ? "pricing" : "catalog";
     if (!supplier_id || !storage_path) {
       return new Response(JSON.stringify({ error: "Dados obrigatórios faltando" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
