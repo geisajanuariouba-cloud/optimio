@@ -22,8 +22,12 @@ export default function SupplierDetail() {
   const [catalogs, setCatalogs] = useState<any[]>([]);
   const [cmd, setCmd] = useState("");
   const [sending, setSending] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [importing, setImporting] = useState(false);
+  const catalogRef = useRef<HTMLInputElement>(null);
+  const pricingRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState<null | "catalog" | "pricing">(null);
+  const [preview, setPreview] = useState<{ url: string; mime: string; filename: string } | null>(null);
+
+
 
   const load = async () => {
     if (!id) return;
