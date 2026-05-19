@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
@@ -46,7 +47,7 @@ export default function Marketing() {
     const [{ data: posts, error }, { data: ts }, { data: ig }] = await Promise.all([
       supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("tasks").select("id, title, due_date, status").is("deleted_at", null).order("due_date", { ascending: true, nullsFirst: false }),
-      supabase.from("integrations").select("config,status").eq("provider", "instagram").maybeSingle(),
+      supabase.from("integrations").select("id,config,status").eq("provider", "instagram").maybeSingle(),
     ]);
     if (error) toast.error(error.message); else setPosts((posts ?? []) as Post[]);
     setTasks((ts ?? []) as Task[]);
@@ -178,7 +179,7 @@ export default function Marketing() {
           {[
             { icon: BarChart3, label: "Posts Instagram", value: igPosts.length },
             { icon: Clock, label: "Frequência/mês", value: igFrequency },
-            { icon: Calendar as CalIcon, label: "Agendados", value: igScheduled },
+            { icon: CalIcon, label: "Agendados", value: igScheduled },
             { icon: Sparkles, label: "Publicados", value: igPublished },
           ].map((m) => <div key={m.label} className="rounded-2xl bg-secondary/40 p-3 text-sm"><m.icon className="h-4 w-4 text-primary mb-2" /><div className="text-muted-foreground text-xs">{m.label}</div><div className="text-xl font-bold">{m.value}</div></div>)}
         </div>
