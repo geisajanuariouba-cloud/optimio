@@ -66,15 +66,20 @@ export default function Debts() {
   };
 
   const payInst = async (inst: Inst) => {
-    await supabase.from("debt_installments").update({ paid_at: new Date().toISOString(), payment_method: "pix" }).eq("id", inst.id);
-    await supabase.from("financial").insert({
+    const debt = debts.find(d => d.id === inst.debt_id);
+    const { data: fin } = await supabase.from("financial").insert({
       user_id: user!.id, type: "income", gross_amount: inst.amount, net_amount: inst.amount,
-      payment_method: "promissoria", category: "Promissória", description: `Parcela ${inst.number}`,
+      origin: "promissoria", origin_id: inst.debt_id, payment_method: "dinheiro", category: "Promissória", description: `Baixa promissória — parcela ${inst.number}`,
       transaction_date: new Date().toISOString().slice(0, 10),
+      client_id: debt?.client_id ?? null,
+    }).select("id").single();
+    await supabase.from("debt_installments").update({ paid_at: new Date().toISOString(), payment_method: "dinheiro" }).eq("id", inst.id);
+    await supabase.from("cash_drawer_transactions").insert({
+      user_id: user!.id, type: "in", amount: inst.amount, reason: "promissoria", description: `Baixa promissória — parcela ${inst.number}`, financial_id: fin?.id ?? null,
     });
     const remaining = insts.filter(i => i.debt_id === inst.debt_id && i.id !== inst.id && !i.paid_at).length;
     if (remaining === 0) await supabase.from("debts").update({ status: "paid" }).eq("id", inst.debt_id);
-    toast.success("Parcela paga");
+    toast.success("Promissória baixada em dinheiro");
     load();
   };
 
