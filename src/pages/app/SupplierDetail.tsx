@@ -49,6 +49,29 @@ export default function SupplierDetail() {
     return () => clearInterval(t);
   }, [catalogs]);
 
+  useEffect(() => {
+    const busy = ["pending", "processing", "splitting", "extracting", "consolidating"];
+    const stale = catalogs.filter((c: any) => {
+      if (!busy.includes(c.processing_status)) return false;
+      const heartbeat = new Date(c.last_heartbeat_at || c.created_at).getTime();
+      const elapsed = Date.now() - new Date(c.created_at).getTime();
+      return elapsed > 75_000 && Date.now() - heartbeat > 45_000;
+    });
+    if (!stale.length) return;
+    stale.forEach(async (c: any) => {
+      const hasPartial = Number(c.products_created || 0) + Number(c.products_updated || 0) + Number(c.products_extracted || 0) > 0;
+      await supabase.from("supplier_catalogs").update({
+        processing_status: hasPartial ? "partial" : "failed",
+        processing_stage: hasPartial ? "concluido_parcialmente" : "erro",
+        partial_reason: hasPartial ? "Alguns produtos foram processados. Revise os itens restantes." : null,
+        error_message: hasPartial ? null : "O processamento passou do tempo limite sem progresso. O PDF original continua salvo.",
+        completed_at: new Date().toISOString(),
+      }).eq("id", c.id);
+    });
+    const t = setTimeout(load, 800);
+    return () => clearTimeout(t);
+  }, [catalogs]);
+
 
   const downloadCatalog = async (path: string, filename: string) => {
     const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(path, 60);
