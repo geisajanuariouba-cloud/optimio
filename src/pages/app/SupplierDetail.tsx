@@ -65,6 +65,19 @@ export default function SupplierDetail() {
     toast.success("Catálogo removido"); load();
   };
 
+  const retryCatalog = async (c: any) => {
+    try {
+      const { error } = await supabase.functions.invoke("supplier-catalog-import", {
+        body: { retry_catalog_id: c.id },
+      });
+      if (error) throw error;
+      toast.success("Reprocessando catálogo…");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível reprocessar");
+    }
+  };
+
   const sendCommand = async () => {
     if (!cmd.trim() || !user || !id) return;
     setSending(true);
