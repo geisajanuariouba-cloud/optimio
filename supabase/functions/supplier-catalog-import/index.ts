@@ -171,6 +171,7 @@ Deno.serve(async (req) => {
     await supabase.from("supplier_catalogs").insert({
       user_id: user.id, supplier_id, filename: filename ?? "catalogo", storage_path,
       mime, size_bytes: size_bytes ?? null, products_created: created, products_updated: updated,
+      kind: docKind,
     });
 
     return new Response(JSON.stringify({ created, updated, total: incoming.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
