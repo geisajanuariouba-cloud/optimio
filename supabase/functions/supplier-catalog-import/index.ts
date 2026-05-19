@@ -255,28 +255,76 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
       return { created, updated };
     };
 
-    // Concurrency 2 para reduzir pico de memória
-    await mapLimit(chunkInfos, 2, async (info) => {
-      const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
-      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
-      const items = await callAI(signed.signedUrl, existingCatNames);
-      const { created, updated } = await persistChunk(items);
-      createdTotal += created;
-      updatedTotal += updated;
-      done += info.pages;
-      await setStatus({ processed_pages: done, products_created: createdTotal, products_updated: updatedTotal });
+    await mapLimit(chunkInfos, CHUNK_CONCURRENCY, async (info, index) => {
+      if (Date.now() - started > JOB_TIMEOUT_MS) throw new Error("Tempo limite atingido. Salvando o que já foi encontrado.");
+      await supabase.from("supplier_catalog_chunks").update({ status: "extraindo_produtos", started_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString() }).eq("catalog_id", parentId).eq("chunk_index", index);
+      try {
+        const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
+        if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
+        const items = await withTimeout(callAI(signed.signedUrl, existingCatNames), CHUNK_TIMEOUT_MS, `Chunk ${index + 1}`);
+        extractedTotal += items.length;
+        donePages += info.pages;
+        doneChunks++;
+        await supabase.from("supplier_catalog_chunks").update({
+          status: "concluido", extracted_products: items, products_extracted: items.length,
+          completed_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString(),
+        }).eq("catalog_id", parentId).eq("chunk_index", index);
+        await setStatus({ processed_pages: donePages, processed_chunks: doneChunks, products_extracted: extractedTotal }, "extraindo_produtos");
+      } catch (err: any) {
+        failedChunks++;
+        donePages += info.pages;
+        doneChunks++;
+        await supabase.from("supplier_catalog_chunks").update({
+          status: "erro", error_message: err?.message ?? "Erro ao extrair este trecho.", completed_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString(),
+        }).eq("catalog_id", parentId).eq("chunk_index", index);
+        await log("ia_parsing", "Falha em um chunk; o restante continuará.", { chunk: index + 1, error: err?.message });
+        await setStatus({ processed_pages: donePages, processed_chunks: doneChunks, products_extracted: extractedTotal }, "extraindo_produtos");
+      }
     });
 
+    await setStatus({ processing_status: "consolidating" }, "organizando_categorias");
+    await log("merge_final", "Consolidando produtos extraídos e removendo duplicados.");
+    const { data: chunks } = await supabase.from("supplier_catalog_chunks")
+      .select("extracted_products,status,error_message")
+      .eq("catalog_id", parentId)
+      .order("chunk_index");
+    const extractedItems = (chunks ?? []).flatMap((c: any) => Array.isArray(c.extracted_products) ? c.extracted_products : []);
+
+    const seen = new Set<string>();
+    let createdTotal = 0, updatedTotal = 0;
+    await setStatus({}, "cruzando_precos");
+    const batch = extractedItems.filter((p: any) => {
+      const key = p.code ? `c:${String(p.code).toLowerCase()}` : `n:${String(p.name).toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
+      if (!p.name || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    await setStatus({ products_extracted: batch.length }, "criando_produtos");
+    const persisted = await persistChunk(batch);
+    createdTotal = persisted.created;
+    updatedTotal = persisted.updated;
+
     await setStatus({
-      processing_status: "completed",
+      processing_status: failedChunks ? "partial" : "completed",
+      processing_stage: failedChunks ? "concluido_parcialmente" : "concluido",
       products_created: createdTotal,
       products_updated: updatedTotal,
       processed_pages: totalPages,
+      processed_chunks: chunkInfos.length,
+      products_extracted: batch.length,
+      completed_at: new Date().toISOString(),
+      partial_reason: failedChunks ? "Alguns produtos foram processados. Revise os itens restantes." : null,
     });
   } catch (e: any) {
+    const { data: doneChunksData } = await supabase.from("supplier_catalog_chunks").select("extracted_products").eq("catalog_id", parentId).eq("status", "concluido");
+    const recovered = (doneChunksData ?? []).flatMap((c: any) => Array.isArray(c.extracted_products) ? c.extracted_products : []);
     await supabase.from("supplier_catalogs").update({
-      processing_status: "failed",
-      error_message: e?.message ?? "Erro inesperado ao processar catálogo.",
+      processing_status: recovered.length ? "partial" : "failed",
+      processing_stage: recovered.length ? "concluido_parcialmente" : "erro",
+      partial_reason: recovered.length ? "Alguns produtos foram processados. Revise os itens restantes." : null,
+      error_message: recovered.length ? null : (e?.message ?? "Erro inesperado ao processar catálogo."),
+      completed_at: new Date().toISOString(),
+      last_heartbeat_at: new Date().toISOString(),
     }).eq("id", parentId);
   }
 }
