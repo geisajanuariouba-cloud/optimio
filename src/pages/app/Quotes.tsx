@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { FileText, Plus, X, Search, Trash2, Mic, Square, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRef } from "react";
+import { PromissoriaFields, type PromissoriaData } from "@/components/app/PromissoriaFields";
 
 export default function Quotes() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function Quotes() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<any>({ client_id: "", payment_method: "pix", items: [] as any[] });
+  const [promissoria, setPromissoria] = useState<PromissoriaData>({ total_amount: 0, installments_count: 2, first_due: new Date().toISOString().slice(0, 10) });
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -131,16 +133,20 @@ export default function Quotes() {
   const rmItem = (i: number) => setForm((f: any) => ({ ...f, items: f.items.filter((_: any, idx: number) => idx !== i) }));
 
   const total = form.items.reduce((a: number, x: any) => a + (x.unit_price * x.quantity), 0);
+  const isPromissoria = form.payment_method === "promissoria";
+  const finalTotal = isPromissoria ? Number(promissoria.total_amount || total) : total;
 
   const save = async () => {
     if (!user) return;
     if (!form.items.length) return toast.error("Adicione ao menos um item");
+    if (isPromissoria && !form.client_id) return toast.error("Promissória requer cliente cadastrado.");
     for (const it of form.items) {
       if (it.has_variations && !it.variation_id) return toast.error("Selecione a variação de todos os itens");
     }
     const { data: quote, error } = await supabase.from("quotes").insert({
       user_id: user.id, client_id: form.client_id || null,
-      payment_method: form.payment_method, total, status: "open",
+      payment_method: form.payment_method, total: finalTotal, status: "open",
+      notes: isPromissoria ? `Promissória: ${promissoria.installments_count}x, 1º vencimento ${promissoria.first_due}, valor final R$ ${finalTotal.toFixed(2)}` : null,
     }).select().single();
     if (error || !quote) return toast.error(error?.message ?? "Erro");
     const rows = form.items.map((x: any) => ({
@@ -150,7 +156,7 @@ export default function Quotes() {
     }));
     await supabase.from("quote_items").insert(rows);
     toast.success("Orçamento salvo");
-    setOpen(false); setForm({ client_id: "", payment_method: "pix", items: [] }); load();
+    setOpen(false); setForm({ client_id: "", payment_method: "pix", items: [] }); setPromissoria({ total_amount: 0, installments_count: 2, first_due: new Date().toISOString().slice(0, 10) }); load();
   };
 
   const remove = async (id: string) => {
