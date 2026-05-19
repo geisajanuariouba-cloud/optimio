@@ -7,10 +7,20 @@ const corsHeaders = {
 };
 
 const MAX_AI_BYTES = 18 * 1024 * 1024; // 18MB — margem extra sob o limite de 30MB do gateway
+const CHUNK_CONCURRENCY = 3;
+const CHUNK_TIMEOUT_MS = 45_000;
+const JOB_TIMEOUT_MS = 105_000;
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SVC = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const KEY = Deno.env.get("LOVABLE_API_KEY")!;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} demorou demais e foi interrompido.`)), ms)),
+  ]);
+}
 
 function applyPricingMotor(rawCost: number, rules: any) {
   const cf = Number(rules.cost_fee_percent ?? 0);
@@ -122,10 +132,21 @@ async function mapLimit<T>(items: T[], limit: number, fn: (item: T, i: number) =
 
 async function processCatalog(parentId: string, userId: string, supplierId: string, storagePath: string, mime: string) {
   const supabase = createClient(SB_URL, SVC);
-  const setStatus = (patch: any) => supabase.from("supplier_catalogs").update(patch).eq("id", parentId);
+  const started = Date.now();
+  const logs: any[] = [];
+  const log = async (step: string, message: string, extra: any = {}) => {
+    logs.push({ at: new Date().toISOString(), step, message, ...extra });
+    await supabase.from("supplier_catalogs").update({ processing_logs: logs.slice(-80), last_heartbeat_at: new Date().toISOString() }).eq("id", parentId);
+  };
+  const setStatus = (patch: any, stage?: string) => supabase.from("supplier_catalogs").update({
+    ...patch,
+    ...(stage ? { processing_stage: stage } : {}),
+    last_heartbeat_at: new Date().toISOString(),
+  }).eq("id", parentId);
 
   try {
-    await setStatus({ processing_status: "processing", error_message: null });
+    await setStatus({ processing_status: "processing", error_message: null, partial_reason: null }, "extraindo_produtos");
+    await log("upload_storage", "Catálogo original localizado. Iniciando leitura interna.");
 
     const [{ data: supplier }, { data: cats }, { data: existing }] = await Promise.all([
       supabase.from("suppliers").select("cost_fee_percent,default_margin_percent,default_markup_percent").eq("id", supplierId).maybeSingle(),
@@ -147,7 +168,8 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
       const bytes = new Uint8Array(await file.arrayBuffer());
 
       if (bytes.length > MAX_AI_BYTES) {
-        await setStatus({ processing_status: "splitting" });
+        await setStatus({ processing_status: "splitting" }, "extraindo_imagens");
+        await log("ocr", "PDF grande detectado. Dividindo em partes internas invisíveis.", { bytes: bytes.length });
         chunkInfos = await splitAndUpload(supabase, bytes, MAX_AI_BYTES, storagePath);
       } else {
         const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
@@ -159,11 +181,15 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     }
 
     const totalPages = chunkInfos.reduce((s, c) => s + c.pages, 0);
-    await setStatus({ total_pages: totalPages, processed_pages: 0, processing_status: "extracting" });
+    await supabase.from("supplier_catalog_chunks").delete().eq("catalog_id", parentId);
+    await supabase.from("supplier_catalog_chunks").insert(chunkInfos.map((c, i) => ({
+      catalog_id: parentId, user_id: userId, supplier_id: supplierId, storage_path: c.path,
+      chunk_index: i, page_start: c.pageStart, page_end: c.pageEnd, pages: c.pages, status: "enviado",
+    })));
+    await setStatus({ total_pages: totalPages, processed_pages: 0, total_chunks: chunkInfos.length, processed_chunks: 0, products_extracted: 0, processing_status: "extracting" }, "extraindo_produtos");
+    await log("ocr", "Chunks preparados para processamento paralelo.", { chunks: chunkInfos.length, totalPages });
 
-    // Dedup global + persistência incremental por chunk (não acumular tudo em memória)
-    const seen = new Set<string>();
-    let createdTotal = 0, updatedTotal = 0, done = 0;
+    let extractedTotal = 0, donePages = 0, doneChunks = 0, failedChunks = 0;
 
     const ensureCategory = async (name?: string): Promise<string | null> => {
       if (!name) return null;
@@ -179,10 +205,6 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     const persistChunk = async (items: any[]) => {
       let created = 0, updated = 0;
       for (const p of items) {
-        const key = p.code ? `c:${String(p.code).toLowerCase()}` : `n:${String(p.name).toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
         const rawCost = Number(p.cost ?? 0);
         const { cost, sale } = applyPricingMotor(rawCost, rules);
         const category_id = await ensureCategory(p.category);
@@ -210,28 +232,87 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
       return { created, updated };
     };
 
-    // Concurrency 2 para reduzir pico de memória
-    await mapLimit(chunkInfos, 2, async (info) => {
-      const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
-      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
-      const items = await callAI(signed.signedUrl, existingCatNames);
-      const { created, updated } = await persistChunk(items);
-      createdTotal += created;
-      updatedTotal += updated;
-      done += info.pages;
-      await setStatus({ processed_pages: done, products_created: createdTotal, products_updated: updatedTotal });
+    await mapLimit(chunkInfos, CHUNK_CONCURRENCY, async (info, index) => {
+      await supabase.from("supplier_catalog_chunks").update({ status: "extraindo_produtos", started_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString() }).eq("catalog_id", parentId).eq("chunk_index", index);
+      if (Date.now() - started > JOB_TIMEOUT_MS) {
+        failedChunks++;
+        donePages += info.pages;
+        doneChunks++;
+        await supabase.from("supplier_catalog_chunks").update({
+          status: "erro", error_message: "Tempo limite atingido. Este trecho ficou para revisão.", completed_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString(),
+        }).eq("catalog_id", parentId).eq("chunk_index", index);
+        await setStatus({ processed_pages: donePages, processed_chunks: doneChunks, products_extracted: extractedTotal }, "extraindo_produtos");
+        return;
+      }
+      try {
+        const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
+        if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
+        const items = await withTimeout(callAI(signed.signedUrl, existingCatNames), CHUNK_TIMEOUT_MS, `Chunk ${index + 1}`);
+        extractedTotal += items.length;
+        donePages += info.pages;
+        doneChunks++;
+        await supabase.from("supplier_catalog_chunks").update({
+          status: "concluido", extracted_products: items, products_extracted: items.length,
+          completed_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString(),
+        }).eq("catalog_id", parentId).eq("chunk_index", index);
+        await setStatus({ processed_pages: donePages, processed_chunks: doneChunks, products_extracted: extractedTotal }, "extraindo_produtos");
+      } catch (err: any) {
+        failedChunks++;
+        donePages += info.pages;
+        doneChunks++;
+        await supabase.from("supplier_catalog_chunks").update({
+          status: "erro", error_message: err?.message ?? "Erro ao extrair este trecho.", completed_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString(),
+        }).eq("catalog_id", parentId).eq("chunk_index", index);
+        await log("ia_parsing", "Falha em um chunk; o restante continuará.", { chunk: index + 1, error: err?.message });
+        await setStatus({ processed_pages: donePages, processed_chunks: doneChunks, products_extracted: extractedTotal }, "extraindo_produtos");
+      }
     });
 
+    await setStatus({ processing_status: "consolidating" }, "organizando_categorias");
+    await log("merge_final", "Consolidando produtos extraídos e removendo duplicados.");
+    const { data: chunks } = await supabase.from("supplier_catalog_chunks")
+      .select("extracted_products,status,error_message")
+      .eq("catalog_id", parentId)
+      .order("chunk_index");
+    const extractedItems = (chunks ?? []).flatMap((c: any) => Array.isArray(c.extracted_products) ? c.extracted_products : []);
+
+    const seen = new Set<string>();
+    let createdTotal = 0, updatedTotal = 0;
+    await setStatus({}, "cruzando_precos");
+    const batch = extractedItems.filter((p: any) => {
+      const key = p.code ? `c:${String(p.code).toLowerCase()}` : `n:${String(p.name).toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
+      if (!p.name || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    await setStatus({ products_extracted: batch.length }, "criando_produtos");
+    const persisted = await persistChunk(batch);
+    createdTotal = persisted.created;
+    updatedTotal = persisted.updated;
+
+    const finalStatus = failedChunks && batch.length === 0 ? "failed" : failedChunks ? "partial" : "completed";
     await setStatus({
-      processing_status: "completed",
+      processing_status: finalStatus,
+      processing_stage: finalStatus === "completed" ? "concluido" : finalStatus === "partial" ? "concluido_parcialmente" : "erro",
       products_created: createdTotal,
       products_updated: updatedTotal,
       processed_pages: totalPages,
+      processed_chunks: chunkInfos.length,
+      products_extracted: batch.length,
+      completed_at: new Date().toISOString(),
+      partial_reason: finalStatus === "partial" ? "Alguns produtos foram processados. Revise os itens restantes." : null,
+      error_message: finalStatus === "failed" ? "Não foi possível extrair produtos automaticamente. O PDF original continua salvo para visualização." : null,
     });
   } catch (e: any) {
+    const { data: doneChunksData } = await supabase.from("supplier_catalog_chunks").select("extracted_products").eq("catalog_id", parentId).eq("status", "concluido");
+    const recovered = (doneChunksData ?? []).flatMap((c: any) => Array.isArray(c.extracted_products) ? c.extracted_products : []);
     await supabase.from("supplier_catalogs").update({
-      processing_status: "failed",
-      error_message: e?.message ?? "Erro inesperado ao processar catálogo.",
+      processing_status: recovered.length ? "partial" : "failed",
+      processing_stage: recovered.length ? "concluido_parcialmente" : "erro",
+      partial_reason: recovered.length ? "Alguns produtos foram processados. Revise os itens restantes." : null,
+      error_message: recovered.length ? null : (e?.message ?? "Erro inesperado ao processar catálogo."),
+      completed_at: new Date().toISOString(),
+      last_heartbeat_at: new Date().toISOString(),
     }).eq("id", parentId);
   }
 }
@@ -259,7 +340,9 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Catálogo não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       await supabase.from("supplier_catalogs").update({
-        processing_status: "pending", error_message: null, processed_pages: 0, products_created: 0, products_updated: 0,
+        processing_status: "pending", processing_stage: "enviado", error_message: null, partial_reason: null,
+        processed_pages: 0, processed_chunks: 0, total_chunks: 0, products_extracted: 0,
+        products_created: 0, products_updated: 0, processing_logs: [], completed_at: null,
       }).eq("id", cat.id);
       // @ts-ignore
       EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime));
@@ -275,7 +358,7 @@ Deno.serve(async (req) => {
     const { data: parent, error: insErr } = await supabase.from("supplier_catalogs").insert({
       user_id: user.id, supplier_id, filename: filename ?? "catalogo", storage_path,
       mime, size_bytes: size_bytes ?? null, kind: docKind,
-      processing_status: "pending", internal_only: false,
+      processing_status: "pending", processing_stage: "enviado", internal_only: false,
     }).select("id").single();
     if (insErr || !parent) {
       return new Response(JSON.stringify({ error: "Erro ao registrar catálogo." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

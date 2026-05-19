@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon, Sparkles, Loader2 } from "lucide-react";
+import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon, Sparkles, Loader2, Instagram, BarChart3, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTenant } from "@/hooks/useTenant";
 
@@ -38,15 +39,20 @@ export default function Marketing() {
   const [taskDate, setTaskDate] = useState("");
 
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<{ analysis?: string; ideas?: any[] } | null>(null);
+  const [aiResult, setAiResult] = useState<{ analysis?: string; instagram_insights?: string[]; ideas?: any[] } | null>(null);
+  const [instagramHandle, setInstagramHandle] = useState("");
+  const [instagramId, setInstagramId] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data: posts, error }, { data: ts }] = await Promise.all([
+    const [{ data: posts, error }, { data: ts }, { data: ig }] = await Promise.all([
       supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("tasks").select("id, title, due_date, status").is("deleted_at", null).order("due_date", { ascending: true, nullsFirst: false }),
+      supabase.from("integrations").select("id,config,status").eq("provider", "instagram").maybeSingle(),
     ]);
     if (error) toast.error(error.message); else setPosts((posts ?? []) as Post[]);
     setTasks((ts ?? []) as Task[]);
+    setInstagramHandle(((ig?.config as any)?.handle ?? "") as string);
+    setInstagramId((ig as any)?.id ?? null);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -86,6 +92,17 @@ export default function Marketing() {
     load();
   };
 
+  const saveInstagram = async () => {
+    if (!user || !instagramHandle.trim()) return toast.error("Informe o @ do Instagram");
+    const payload = { user_id: user.id, provider: "instagram", status: "connected", config: { handle: instagramHandle.trim().replace(/^@/, "") } };
+    const { error } = instagramId
+      ? await supabase.from("integrations").update(payload).eq("id", instagramId)
+      : await supabase.from("integrations").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("Instagram conectado para análise");
+    load();
+  };
+
   // Build calendar grid (current month)
   const runAI = async () => {
     setAiLoading(true);
@@ -97,6 +114,7 @@ export default function Marketing() {
           niche: (profile as any)?.niche ?? "geral",
           recent_posts: posts.slice(0, 10).map(p => ({ title: p.title, channel: p.channel, status: p.status })),
           top_products: prods ?? [],
+          instagram: { handle: instagramHandle, local_posts: posts.filter(p => p.channel === "instagram").slice(0, 20) },
           goal: "engajamento e conversão de vendas",
         },
       });
@@ -133,6 +151,12 @@ export default function Marketing() {
     ];
   };
 
+  const igPosts = posts.filter(p => p.channel === "instagram");
+  const igScheduled = igPosts.filter(p => p.status === "scheduled").length;
+  const igPublished = igPosts.filter(p => p.status === "published").length;
+  const igFrequency = igPosts.length ? Math.max(1, Math.round(igPosts.length / 4)) : 0;
+  const bestFormats = ["Antes/depois", "Bastidores", "Prova social", "Catálogo em vídeo"];
+
   return (
     <div>
       <PageHeader title="Marketing Hub" description="Kanban de ideias, agendados e publicados — multi-canal." actionLabel="Post" onAction={() => setOpen(true)} />
@@ -142,6 +166,28 @@ export default function Marketing() {
         { label: "Publicados", value: String(posts.filter(p => p.status === "published").length) },
         { label: "Esta semana", value: String(posts.filter(p => p.scheduled_for && new Date(p.scheduled_for).getTime() < Date.now() + 7 * 86400000 && new Date(p.scheduled_for).getTime() > Date.now()).length) },
       ]} />
+
+      <Card className="rounded-3xl border-0 shadow-sm p-5 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2 font-semibold"><Instagram className="h-5 w-5 text-primary" />Dashboard Instagram</div>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Input value={instagramHandle} onChange={(e) => setInstagramHandle(e.target.value)} placeholder="@seuperfil" className="md:w-48" />
+            <Button onClick={saveInstagram} variant="secondary">Conectar</Button>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-4 gap-3 mb-4">
+          {[
+            { icon: BarChart3, label: "Posts Instagram", value: igPosts.length },
+            { icon: Clock, label: "Frequência/mês", value: igFrequency },
+            { icon: CalIcon, label: "Agendados", value: igScheduled },
+            { icon: Sparkles, label: "Publicados", value: igPublished },
+          ].map((m) => <div key={m.label} className="rounded-2xl bg-secondary/40 p-3 text-sm"><m.icon className="h-4 w-4 text-primary mb-2" /><div className="text-muted-foreground text-xs">{m.label}</div><div className="text-xl font-bold">{m.value}</div></div>)}
+        </div>
+        <div className="grid md:grid-cols-2 gap-3 text-sm">
+          <div className="rounded-2xl bg-primary/5 p-3"><div className="font-medium mb-2">Formatos prioritários</div><div className="flex flex-wrap gap-1.5">{bestFormats.map(f => <Badge key={f} variant="secondary">{f}</Badge>)}</div></div>
+          <div className="rounded-2xl bg-secondary/40 p-3"><div className="font-medium mb-1">Próxima análise da IA</div><p className="text-muted-foreground text-xs">A IA usa o nicho, posts do Kanban e o perfil conectado para sugerir bio, destaques, frequência, stories, horários e ideias específicas.</p></div>
+        </div>
+      </Card>
 
       {/* Calendar + To-Do */}
       <div className="grid lg:grid-cols-[1fr_340px] gap-4 mb-6">

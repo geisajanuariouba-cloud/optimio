@@ -3,19 +3,21 @@ import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { niche, recent_posts, top_products, goal } = await req.json();
+    const { niche, recent_posts, top_products, goal, instagram } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY ausente");
 
     const system = `Você é estrategista de marketing digital para PMEs brasileiras.
 Analise o histórico do cliente e sugira 5 ideias de conteúdo acionáveis (Instagram/TikTok/WhatsApp).
 Cada ideia deve conter: título curto, canal recomendado, hook, legenda pronta (português, tom natural).
-Retorne JSON estrito: {"analysis":"breve diagnóstico","ideas":[{"title":"","channel":"instagram|tiktok|whatsapp|facebook|email","hook":"","caption":""}]}`;
+Quando houver Instagram, avalie bio, frequência, formatos, pontos fracos, oportunidades, horários, stories, destaques e hashtags.
+Retorne JSON estrito: {"analysis":"breve diagnóstico","instagram_insights":["..."],"ideas":[{"title":"","channel":"instagram|tiktok|whatsapp|facebook|email","hook":"","caption":""}]}`;
 
     const user = `Nicho: ${niche ?? "geral"}
 Meta: ${goal ?? "engajamento e vendas"}
 Últimos posts: ${JSON.stringify((recent_posts ?? []).slice(0, 10))}
-Top produtos: ${JSON.stringify((top_products ?? []).slice(0, 10))}`;
+Top produtos: ${JSON.stringify((top_products ?? []).slice(0, 10))}
+Instagram: ${JSON.stringify(instagram ?? {})}`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
