@@ -152,12 +152,6 @@ export default function Anamnesis() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} className="rounded-2xl">Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
