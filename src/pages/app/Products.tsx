@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Boxes, Pencil, Trash2, AlertTriangle, Trophy } from "lucide-react";
+import { Boxes, Pencil, Trash2, AlertTriangle, Trophy, Settings2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CategorySelect } from "@/components/app/CategorySelect";
 
 type Supplier = { id: string; name: string };
@@ -38,6 +39,9 @@ export default function Products() {
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [period, setPeriod] = useState<string>("30");
   const [bestSeller, setBestSeller] = useState<{ name: string; count: number } | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulk, setBulk] = useState<any>({ category: "__keep__", supplier_id: "__keep__", status: "__keep__", adjust_stock: "", adjust_price_pct: "", min_stock: "" });
 
   const load = async () => {
     const [a, b] = await Promise.all([
@@ -94,6 +98,60 @@ export default function Products() {
   }, [list, filter, statusFilter]);
   const lowStock = filtered.filter(isLowStock).length;
   const allCats = Array.from(new Set(list.map(p => p.category).filter(Boolean) as string[]));
+
+  const toggleOne = (id: string) => {
+    const s = new Set(selected);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setSelected(s);
+  };
+  const toggleAll = () => {
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map(p => p.id)));
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    if (!confirm(`Mover ${ids.length} produto(s) para a lixeira?`)) return;
+    const { error } = await supabase.from("products").update({ deleted_at: new Date().toISOString() }).in("id", ids);
+    if (error) return toast.error(error.message);
+    toast.success(`${ids.length} produto(s) removido(s)`);
+    clearSelection(); load();
+  };
+
+  const applyBulkEdit = async () => {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    const updates: any = {};
+    if (bulk.category !== "__keep__") updates.category = bulk.category || null;
+    if (bulk.supplier_id !== "__keep__") updates.supplier_id = bulk.supplier_id || null;
+    if (bulk.status !== "__keep__") updates.status = bulk.status;
+    if (bulk.min_stock !== "") updates.min_stock = Number(bulk.min_stock);
+
+    if (Object.keys(updates).length) {
+      const { error } = await supabase.from("products").update(updates).in("id", ids);
+      if (error) return toast.error(error.message);
+    }
+
+    // Ajustes proporcionais por produto
+    const adjustStock = bulk.adjust_stock !== "" ? Number(bulk.adjust_stock) : null;
+    const adjustPct = bulk.adjust_price_pct !== "" ? Number(bulk.adjust_price_pct) : null;
+    if (adjustStock !== null || adjustPct !== null) {
+      const targets = list.filter(p => selected.has(p.id));
+      await Promise.all(targets.map(p => {
+        const patch: any = {};
+        if (adjustStock !== null) patch.stock = Math.max(0, p.stock + adjustStock);
+        if (adjustPct !== null) patch.sale_price = +(Number(p.sale_price) * (1 + adjustPct / 100)).toFixed(2);
+        return supabase.from("products").update(patch).eq("id", p.id);
+      }));
+    }
+
+    toast.success(`${ids.length} produto(s) atualizado(s)`);
+    setBulkOpen(false);
+    setBulk({ category: "__keep__", supplier_id: "__keep__", status: "__keep__", adjust_stock: "", adjust_price_pct: "", min_stock: "" });
+    clearSelection(); load();
+  };
 
   return (
     <div>
