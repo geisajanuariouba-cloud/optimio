@@ -166,6 +166,28 @@ export default function Marketing() {
         { label: "Esta semana", value: String(posts.filter(p => p.scheduled_for && new Date(p.scheduled_for).getTime() < Date.now() + 7 * 86400000 && new Date(p.scheduled_for).getTime() > Date.now()).length) },
       ]} />
 
+      <Card className="rounded-3xl border-0 shadow-sm p-5 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2 font-semibold"><Instagram className="h-5 w-5 text-primary" />Dashboard Instagram</div>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Input value={instagramHandle} onChange={(e) => setInstagramHandle(e.target.value)} placeholder="@seuperfil" className="md:w-48" />
+            <Button onClick={saveInstagram} variant="secondary">Conectar</Button>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-4 gap-3 mb-4">
+          {[
+            { icon: BarChart3, label: "Posts Instagram", value: igPosts.length },
+            { icon: Clock, label: "Frequência/mês", value: igFrequency },
+            { icon: Calendar as CalIcon, label: "Agendados", value: igScheduled },
+            { icon: Sparkles, label: "Publicados", value: igPublished },
+          ].map((m) => <div key={m.label} className="rounded-2xl bg-secondary/40 p-3 text-sm"><m.icon className="h-4 w-4 text-primary mb-2" /><div className="text-muted-foreground text-xs">{m.label}</div><div className="text-xl font-bold">{m.value}</div></div>)}
+        </div>
+        <div className="grid md:grid-cols-2 gap-3 text-sm">
+          <div className="rounded-2xl bg-primary/5 p-3"><div className="font-medium mb-2">Formatos prioritários</div><div className="flex flex-wrap gap-1.5">{bestFormats.map(f => <Badge key={f} variant="secondary">{f}</Badge>)}</div></div>
+          <div className="rounded-2xl bg-secondary/40 p-3"><div className="font-medium mb-1">Próxima análise da IA</div><p className="text-muted-foreground text-xs">A IA usa o nicho, posts do Kanban e o perfil conectado para sugerir bio, destaques, frequência, stories, horários e ideias específicas.</p></div>
+        </div>
+      </Card>
+
       {/* Calendar + To-Do */}
       <div className="grid lg:grid-cols-[1fr_340px] gap-4 mb-6">
         <Card className="rounded-3xl border-0 shadow-sm p-5">
