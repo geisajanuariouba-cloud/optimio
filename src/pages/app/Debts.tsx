@@ -195,7 +195,7 @@ export default function Debts() {
                               <span className="font-semibold">R$ {Number(i.amount).toFixed(2)}</span>
                               {i.paid_at
                                 ? <Badge className="bg-emerald-500/15 text-emerald-600 gap-1"><Check className="h-3 w-3" />pago</Badge>
-                                : <Button size="sm" variant="outline" onClick={() => payInst(i)} className="rounded-full h-8">Marcar pago</Button>}
+                                : <Button size="sm" variant="outline" onClick={() => payInst(i)} className="rounded-full h-8">Dar baixa com dinheiro</Button>}
                             </div>
                           </div>
                         );
