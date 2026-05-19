@@ -60,8 +60,9 @@ export default function Landing() {
         </div>
         <div className="flex items-center gap-3">
           <Link to="/auth"><Button variant="ghost">Entrar</Button></Link>
-          <Link to="/auth?mode=signup"><Button className="bg-gradient-brand text-white border-0 hover:opacity-90">Adquirir</Button></Link>
+          <a href="#plans"><Button className="bg-gradient-brand text-white border-0 hover:opacity-90">Ver planos</Button></a>
         </div>
+
       </nav>
 
       {/* Hero */}
