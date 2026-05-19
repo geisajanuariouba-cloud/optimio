@@ -7,10 +7,39 @@ const corsHeaders = {
 };
 
 const MAX_AI_BYTES = 18 * 1024 * 1024; // 18MB — margem extra sob o limite de 30MB do gateway
+const CHUNK_CONCURRENCY = 3;
+const CHUNK_TIMEOUT_MS = 45_000;
+const JOB_TIMEOUT_MS = 105_000;
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SVC = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const KEY = Deno.env.get("LOVABLE_API_KEY")!;
+
+const statusPt: Record<string, string> = {
+  enviado: "enviado",
+  extraindo_produtos: "extraindo produtos",
+  extraindo_imagens: "extraindo imagens",
+  organizando_categorias: "organizando categorias",
+  cruzando_precos: "cruzando preços",
+  criando_produtos: "criando produtos",
+  concluido: "concluído",
+  concluido_parcialmente: "concluído parcialmente",
+  erro: "erro",
+};
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} demorou demais e foi interrompido.`)), ms)),
+  ]);
+}
+
+function normalizeStatus(status: string) {
+  if (status === "completed") return "concluido";
+  if (status === "failed") return "erro";
+  if (["pending", "processing", "splitting", "extracting", "consolidating"].includes(status)) return "extraindo_produtos";
+  return status;
+}
 
 function applyPricingMotor(rawCost: number, rules: any) {
   const cf = Number(rules.cost_fee_percent ?? 0);
