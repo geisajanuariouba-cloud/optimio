@@ -368,7 +368,7 @@ export default function Products() {
               <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Codnome (apelido curto)</Label>
+                  <Label>Apelido curto</Label>
                   <div className="flex gap-1">
                     <Input value={form.codname} onChange={(e) => setForm({ ...form, codname: e.target.value })} placeholder="Ex: SOFA230CZ" />
                     <Button type="button" size="icon" variant="outline" onClick={autoGenCodname} title="Gerar a partir do nome"><Wand2 className="h-4 w-4" /></Button>
