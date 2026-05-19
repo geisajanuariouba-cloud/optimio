@@ -204,14 +204,17 @@ export default function Financial() {
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={form.gross_amount} onChange={(e) => setForm({ ...form, gross_amount: +e.target.value })} /></div>
               <div><Label>Método de pagamento</Label>
-                <Select value={form.payment_method_id} onValueChange={(v) => setForm({ ...form, payment_method_id: v, cash_received: 0 })}>
+                <Select value={form.payment_method_id} onValueChange={(v) => { setForm({ ...form, payment_method_id: v, cash_received: 0 }); if (v === "promissoria") setPromo(p => ({ ...p, total_amount: form.gross_amount })); }}>
                   <SelectTrigger><SelectValue placeholder={pms.length === 0 ? "Cadastre em Métodos" : "Selecione…"} /></SelectTrigger>
                   <SelectContent>
                     {pms.map(p => <SelectItem key={p.id} value={p.id}>{p.label} {p.fee_percent > 0 ? `(${p.fee_percent}%)` : ""}</SelectItem>)}
+                    {isIncome && <SelectItem value="promissoria">Promissória</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {isPromissoria && isIncome && <PromissoriaFields value={promo} onChange={setPromo} originalAmount={form.gross_amount} />}
 
             <div>
               <Label>Categoria</Label>
@@ -258,9 +261,9 @@ export default function Financial() {
               </div>
             )}
 
-            {selectedPM && isIncome && (
+            {(selectedPM || isPromissoria) && isIncome && (
               <div className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-2">
-                Líquido: <strong className="text-primary text-sm">R$ {calcNet().toFixed(2)}</strong> · Taxa {selectedPM.fee_percent}% {selectedPM.installments > 1 && `· ${selectedPM.installments}×`}
+                Líquido: <strong className="text-primary text-sm">R$ {calcNet().toFixed(2)}</strong>{isPromissoria ? ` · Promissória ${promo.installments_count}×` : ` · Taxa ${selectedPM?.fee_percent}% ${selectedPM && selectedPM.installments > 1 ? `· ${selectedPM.installments}×` : ""}`}
               </div>
             )}
 
