@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon } from "lucide-react";
+import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon, Sparkles, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTenant } from "@/hooks/useTenant";
 
@@ -28,6 +28,7 @@ const CHANNELS = ["instagram", "tiktok", "facebook", "whatsapp", "email"];
 
 export default function Marketing() {
   const { user } = useAuth();
+  const { profile } = useTenant();
   const [posts, setPosts] = useState<Post[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", channel: "instagram", scheduled_for: "", status: "idea" });
@@ -35,6 +36,9 @@ export default function Marketing() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDate, setTaskDate] = useState("");
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<{ analysis?: string; ideas?: any[] } | null>(null);
 
   const load = async () => {
     const [{ data: posts, error }, { data: ts }] = await Promise.all([
@@ -79,6 +83,39 @@ export default function Marketing() {
     });
     await supabase.from("tasks").update({ status: "scheduled" }).eq("id", t.id);
     toast.success("Tarefa virou post agendado");
+    load();
+  };
+
+  // Build calendar grid (current month)
+  const runAI = async () => {
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const { data: prods } = await supabase.from("products").select("name,sale_price").is("deleted_at", null).limit(20);
+      const { data, error } = await supabase.functions.invoke("marketing-ai", {
+        body: {
+          niche: (profile as any)?.niche ?? "geral",
+          recent_posts: posts.slice(0, 10).map(p => ({ title: p.title, channel: p.channel, status: p.status })),
+          top_products: prods ?? [],
+          goal: "engajamento e conversão de vendas",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiResult(data);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao gerar sugestões");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const useIdea = async (idea: any) => {
+    if (!user) return;
+    await supabase.from("marketing_posts").insert({
+      user_id: user.id, title: idea.title, content: idea.caption || idea.hook,
+      channel: idea.channel || "instagram", status: "idea",
+    });
+    toast.success("Ideia adicionada ao Kanban");
     load();
   };
 
