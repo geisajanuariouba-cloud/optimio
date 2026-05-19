@@ -1258,45 +1258,90 @@ export type Database = {
       product_variations: {
         Row: {
           attributes: Json
+          codname: string | null
+          color: string | null
           cost: number
           created_at: string
+          depth: number | null
+          fabric: string | null
+          height: number | null
           id: string
           image_url: string | null
+          length_cm: number | null
+          material: string | null
+          measure_unit: string | null
+          min_stock: number
           name: string
           product_id: string
           sale_price: number
+          size: string | null
+          sku: string | null
           status: string
           stock: number
+          supplier_id: string | null
           updated_at: string
           user_id: string
+          variation_type: string | null
+          weight: number | null
+          width: number | null
         }
         Insert: {
           attributes?: Json
+          codname?: string | null
+          color?: string | null
           cost?: number
           created_at?: string
+          depth?: number | null
+          fabric?: string | null
+          height?: number | null
           id?: string
           image_url?: string | null
+          length_cm?: number | null
+          material?: string | null
+          measure_unit?: string | null
+          min_stock?: number
           name: string
           product_id: string
           sale_price?: number
+          size?: string | null
+          sku?: string | null
           status?: string
           stock?: number
+          supplier_id?: string | null
           updated_at?: string
           user_id: string
+          variation_type?: string | null
+          weight?: number | null
+          width?: number | null
         }
         Update: {
           attributes?: Json
+          codname?: string | null
+          color?: string | null
           cost?: number
           created_at?: string
+          depth?: number | null
+          fabric?: string | null
+          height?: number | null
           id?: string
           image_url?: string | null
+          length_cm?: number | null
+          material?: string | null
+          measure_unit?: string | null
+          min_stock?: number
           name?: string
           product_id?: string
           sale_price?: number
+          size?: string | null
+          sku?: string | null
           status?: string
           stock?: number
+          supplier_id?: string | null
           updated_at?: string
           user_id?: string
+          variation_type?: string | null
+          weight?: number | null
+          width?: number | null
         }
         Relationships: []
       }
@@ -1305,14 +1350,20 @@ export type Database = {
           category: string | null
           category_id: string | null
           code: string | null
+          codname: string | null
           cost: number | null
           created_at: string
           deleted_at: string | null
+          depth: number | null
+          has_variations: boolean
+          height: number | null
           id: string
           image_url: string | null
           is_ingredient_residue: boolean
+          length_cm: number | null
           margin_percent: number | null
           markup_percent: number | null
+          measure_unit: string | null
           measurements: Json | null
           min_stock: number
           name: string
@@ -1323,19 +1374,27 @@ export type Database = {
           supplier_id: string | null
           updated_at: string
           user_id: string
+          weight: number | null
+          width: number | null
         }
         Insert: {
           category?: string | null
           category_id?: string | null
           code?: string | null
+          codname?: string | null
           cost?: number | null
           created_at?: string
           deleted_at?: string | null
+          depth?: number | null
+          has_variations?: boolean
+          height?: number | null
           id?: string
           image_url?: string | null
           is_ingredient_residue?: boolean
+          length_cm?: number | null
           margin_percent?: number | null
           markup_percent?: number | null
+          measure_unit?: string | null
           measurements?: Json | null
           min_stock?: number
           name: string
@@ -1346,19 +1405,27 @@ export type Database = {
           supplier_id?: string | null
           updated_at?: string
           user_id: string
+          weight?: number | null
+          width?: number | null
         }
         Update: {
           category?: string | null
           category_id?: string | null
           code?: string | null
+          codname?: string | null
           cost?: number | null
           created_at?: string
           deleted_at?: string | null
+          depth?: number | null
+          has_variations?: boolean
+          height?: number | null
           id?: string
           image_url?: string | null
           is_ingredient_residue?: boolean
+          length_cm?: number | null
           margin_percent?: number | null
           markup_percent?: number | null
+          measure_unit?: string | null
           measurements?: Json | null
           min_stock?: number
           name?: string
@@ -1369,6 +1436,8 @@ export type Database = {
           supplier_id?: string | null
           updated_at?: string
           user_id?: string
+          weight?: number | null
+          width?: number | null
         }
         Relationships: []
       }
@@ -2207,6 +2276,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_codname: {
+        Args: { _color?: string; _name: string; _size?: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
