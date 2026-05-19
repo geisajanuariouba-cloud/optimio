@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_AI_BYTES = 22 * 1024 * 1024; // 22MB — margem de segurança sob o limite de 30MB do gateway
+const MAX_AI_BYTES = 18 * 1024 * 1024; // 18MB — margem extra sob o limite de 30MB do gateway
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SVC = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -52,11 +52,7 @@ const productTools = (existingCatNames: string[]) => [{
   },
 }];
 
-async function callAI(signedUrl: string, mime: string, existingCatNames: string[]): Promise<any[]> {
-  const userMessage = [
-    { type: "text", text: "Extraia TODOS os produtos desta tabela de preços. O valor é o CUSTO (não venda). Inclua código, categoria e medidas quando aparecerem." },
-    { type: "image_url", image_url: { url: signedUrl } },
-  ];
+async function callAI(signedUrl: string, existingCatNames: string[]): Promise<any[]> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
@@ -64,7 +60,10 @@ async function callAI(signedUrl: string, mime: string, existingCatNames: string[
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: "Você é um extrator de catálogos. O preço é SEMPRE custo. Sempre chame extract_products." },
-        { role: "user", content: userMessage },
+        { role: "user", content: [
+          { type: "text", text: "Extraia TODOS os produtos desta tabela/catálogo. O valor é o CUSTO (não venda). Inclua código, categoria e medidas quando aparecerem." },
+          { type: "image_url", image_url: { url: signedUrl } },
+        ] },
       ],
       tools: productTools(existingCatNames),
       tool_choice: { type: "function", function: { name: "extract_products" } },
@@ -73,7 +72,7 @@ async function callAI(signedUrl: string, mime: string, existingCatNames: string[
   if (!res.ok) {
     const t = await res.text();
     let msg = "Erro ao processar com a IA.";
-    if (res.status === 413 || /30MB|too large|exceed/i.test(t)) msg = "Parte do catálogo ainda está pesada demais. Reduza a qualidade do PDF.";
+    if (res.status === 413 || /30MB|too large|exceed/i.test(t)) msg = "Parte do catálogo está pesada demais para a IA. Reduza a qualidade do PDF.";
     else if (res.status === 429) msg = "Limite de uso da IA atingido. Tente novamente em alguns minutos.";
     else if (res.status === 402) msg = "Créditos de IA esgotados.";
     throw new Error(msg);
@@ -109,26 +108,24 @@ async function splitAndUpload(
   return result;
 }
 
-async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array(items.length);
+async function mapLimit<T>(items: T[], limit: number, fn: (item: T, i: number) => Promise<void>): Promise<void> {
   let cursor = 0;
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
     while (true) {
       const i = cursor++;
       if (i >= items.length) return;
-      results[i] = await fn(items[i], i);
+      await fn(items[i], i);
     }
   });
   await Promise.all(workers);
-  return results;
 }
 
-async function processCatalog(parentId: string, userId: string, supplierId: string, storagePath: string, mime: string, kind: string) {
+async function processCatalog(parentId: string, userId: string, supplierId: string, storagePath: string, mime: string) {
   const supabase = createClient(SB_URL, SVC);
   const setStatus = (patch: any) => supabase.from("supplier_catalogs").update(patch).eq("id", parentId);
 
   try {
-    await setStatus({ processing_status: "processing" });
+    await setStatus({ processing_status: "processing", error_message: null });
 
     const [{ data: supplier }, { data: cats }, { data: existing }] = await Promise.all([
       supabase.from("suppliers").select("cost_fee_percent,default_margin_percent,default_markup_percent").eq("id", supplierId).maybeSingle(),
@@ -141,15 +138,14 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     const byCode = new Map((existing ?? []).filter((p) => p.code).map((p) => [p.code!.toLowerCase(), p.id]));
     const byName = new Map((existing ?? []).map((p) => [p.name.toLowerCase(), p.id]));
 
-    const allProducts: any[] = [];
     const isPdf = mime === "application/pdf" || /\.pdf$/i.test(storagePath);
+    let chunkInfos: { path: string; pageStart: number; pageEnd: number; pages: number }[];
 
     if (isPdf) {
       const { data: file, error: dlErr } = await supabase.storage.from("supplier-catalogs").download(storagePath);
       if (dlErr || !file) throw new Error("Erro ao ler o catálogo do armazenamento.");
       const bytes = new Uint8Array(await file.arrayBuffer());
 
-      let chunkInfos: { path: string; pageStart: number; pageEnd: number; pages: number }[];
       if (bytes.length > MAX_AI_BYTES) {
         await setStatus({ processing_status: "splitting" });
         chunkInfos = await splitAndUpload(supabase, bytes, MAX_AI_BYTES, storagePath);
@@ -158,36 +154,16 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
         const tp = src.getPageCount();
         chunkInfos = [{ path: storagePath, pageStart: 1, pageEnd: tp, pages: tp }];
       }
-
-      const totalPages = chunkInfos.reduce((s, c) => s + c.pages, 0);
-      await setStatus({ total_pages: totalPages, processed_pages: 0, processing_status: "extracting" });
-
-      let done = 0;
-      const CONCURRENCY = 4;
-      await mapLimit(chunkInfos, CONCURRENCY, async (info) => {
-        const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
-        if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
-        const items = await callAI(signed.signedUrl, "application/pdf", existingCatNames);
-        allProducts.push(...items.map((p) => ({ ...p, source_page: info.pageStart })));
-        done += info.pages;
-        await setStatus({ processed_pages: done });
-      });
     } else {
-      const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(storagePath, 60 * 30);
-      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL do arquivo.");
-      await setStatus({ processing_status: "extracting", total_pages: 1, processed_pages: 0 });
-      const items = await callAI(signed.signedUrl, mime, existingCatNames);
-      allProducts.push(...items);
-      await setStatus({ processed_pages: 1 });
+      chunkInfos = [{ path: storagePath, pageStart: 1, pageEnd: 1, pages: 1 }];
     }
 
-    // Consolidar / deduplicar (por código; fallback nome+medidas)
-    await setStatus({ processing_status: "consolidating" });
-    const dedup = new Map<string, any>();
-    for (const p of allProducts) {
-      const key = (p.code ? `c:${String(p.code).toLowerCase()}` : `n:${String(p.name).toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`);
-      if (!dedup.has(key)) dedup.set(key, p);
-    }
+    const totalPages = chunkInfos.reduce((s, c) => s + c.pages, 0);
+    await setStatus({ total_pages: totalPages, processed_pages: 0, processing_status: "extracting" });
+
+    // Dedup global + persistência incremental por chunk (não acumular tudo em memória)
+    const seen = new Set<string>();
+    let createdTotal = 0, updatedTotal = 0, done = 0;
 
     const ensureCategory = async (name?: string): Promise<string | null> => {
       if (!name) return null;
@@ -200,28 +176,58 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
       return null;
     };
 
-    let created = 0, updated = 0;
-    for (const p of dedup.values()) {
-      const rawCost = Number(p.cost ?? 0);
-      const { cost, sale } = applyPricingMotor(rawCost, rules);
-      const category_id = await ensureCategory(p.category);
-      const pid = (p.code && byCode.get(String(p.code).toLowerCase())) || byName.get(String(p.name).toLowerCase());
-      const payload: any = {
-        cost, sale_price: sale, supplier_id: supplierId, status: "active",
-        ...(p.code ? { code: p.code } : {}),
-        ...(category_id ? { category_id, category: p.category } : (p.category ? { category: p.category } : {})),
-        ...(p.measurements ? { measurements: { raw: p.measurements } } : {}),
-      };
-      if (pid) {
-        await supabase.from("products").update(payload).eq("id", pid);
-        updated++;
-      } else {
-        await supabase.from("products").insert({ user_id: userId, name: p.name, stock: 0, min_stock: 0, ...payload });
-        created++;
-      }
-    }
+    const persistChunk = async (items: any[]) => {
+      let created = 0, updated = 0;
+      for (const p of items) {
+        const key = p.code ? `c:${String(p.code).toLowerCase()}` : `n:${String(p.name).toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
 
-    await setStatus({ processing_status: "completed", products_created: created, products_updated: updated });
+        const rawCost = Number(p.cost ?? 0);
+        const { cost, sale } = applyPricingMotor(rawCost, rules);
+        const category_id = await ensureCategory(p.category);
+        const pid = (p.code && byCode.get(String(p.code).toLowerCase())) || byName.get(String(p.name).toLowerCase());
+        const payload: any = {
+          cost, sale_price: sale, supplier_id: supplierId, status: "active",
+          ...(p.code ? { code: p.code } : {}),
+          ...(category_id ? { category_id, category: p.category } : (p.category ? { category: p.category } : {})),
+          ...(p.measurements ? { measurements: { raw: p.measurements } } : {}),
+        };
+        if (pid) {
+          await supabase.from("products").update(payload).eq("id", pid);
+          updated++;
+        } else {
+          const { data: ins } = await supabase.from("products")
+            .insert({ user_id: userId, name: p.name, stock: 0, min_stock: 0, ...payload })
+            .select("id").single();
+          if (ins?.id) {
+            if (p.code) byCode.set(String(p.code).toLowerCase(), ins.id);
+            byName.set(String(p.name).toLowerCase(), ins.id);
+          }
+          created++;
+        }
+      }
+      return { created, updated };
+    };
+
+    // Concurrency 2 para reduzir pico de memória
+    await mapLimit(chunkInfos, 2, async (info) => {
+      const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
+      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
+      const items = await callAI(signed.signedUrl, existingCatNames);
+      const { created, updated } = await persistChunk(items);
+      createdTotal += created;
+      updatedTotal += updated;
+      done += info.pages;
+      await setStatus({ processed_pages: done, products_created: createdTotal, products_updated: updatedTotal });
+    });
+
+    await setStatus({
+      processing_status: "completed",
+      products_created: createdTotal,
+      products_updated: updatedTotal,
+      processed_pages: totalPages,
+    });
   } catch (e: any) {
     await supabase.from("supplier_catalogs").update({
       processing_status: "failed",
@@ -241,15 +247,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { supplier_id, filename, mime, storage_path, size_bytes, kind } = await req.json();
+    const body = await req.json();
+    const supabase = createClient(SB_URL, SVC);
+
+    // RETRY: reprocessa catálogo existente
+    if (body.retry_catalog_id) {
+      const { data: cat } = await supabase.from("supplier_catalogs")
+        .select("id,user_id,supplier_id,storage_path,mime")
+        .eq("id", body.retry_catalog_id).maybeSingle();
+      if (!cat || cat.user_id !== user.id) {
+        return new Response(JSON.stringify({ error: "Catálogo não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      await supabase.from("supplier_catalogs").update({
+        processing_status: "pending", error_message: null, processed_pages: 0, products_created: 0, products_updated: 0,
+      }).eq("id", cat.id);
+      // @ts-ignore
+      EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime));
+      return new Response(JSON.stringify({ catalog_id: cat.id, status: "processing" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { supplier_id, filename, mime, storage_path, size_bytes, kind } = body;
     const docKind = kind === "pricing" ? "pricing" : "catalog";
     if (!supplier_id || !storage_path) {
       return new Response(JSON.stringify({ error: "Dados obrigatórios faltando" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const supabase = createClient(SB_URL, SVC);
-
-    // Cria registro pai imediatamente
     const { data: parent, error: insErr } = await supabase.from("supplier_catalogs").insert({
       user_id: user.id, supplier_id, filename: filename ?? "catalogo", storage_path,
       mime, size_bytes: size_bytes ?? null, kind: docKind,
@@ -259,9 +281,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Erro ao registrar catálogo." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Processa em background (não bloqueia a resposta)
-    // @ts-ignore — EdgeRuntime existe no runtime Supabase
-    EdgeRuntime.waitUntil(processCatalog(parent.id, user.id, supplier_id, storage_path, mime, docKind));
+    // @ts-ignore
+    EdgeRuntime.waitUntil(processCatalog(parent.id, user.id, supplier_id, storage_path, mime));
 
     return new Response(JSON.stringify({ catalog_id: parent.id, status: "processing" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
