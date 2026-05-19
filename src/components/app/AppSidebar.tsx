@@ -90,7 +90,13 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {[{ title: "Suporte", url: "/app/support", icon: LifeBuoy }, { title: "Lixeira", url: "/app/trash", icon: Trash2 }, { title: "Configurações", url: "/app/settings", icon: Settings }].map(item => (
+              {[
+                { title: "Comece aqui", url: "/app/start", icon: Sparkles },
+                { title: "Equipe", url: "/app/team", icon: UserCog },
+                { title: "Suporte", url: "/app/support", icon: LifeBuoy },
+                { title: "Lixeira", url: "/app/trash", icon: Trash2 },
+                { title: "Configurações", url: "/app/settings", icon: Settings },
+              ].map(item => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
                     <NavLink to={item.url} className="flex items-center gap-3">
