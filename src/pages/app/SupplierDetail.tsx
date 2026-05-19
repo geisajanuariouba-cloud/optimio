@@ -245,23 +245,37 @@ export default function SupplierDetail() {
                     {k === "catalog" ? "Catálogos anexados" : "Tabelas de preço de custo"}
                   </div>
                   {list.map((c: any) => {
+                    const stageLabel: Record<string, string> = {
+                      enviado: "Enviado",
+                      extraindo_produtos: "Extraindo produtos",
+                      extraindo_imagens: "Extraindo imagens",
+                      organizando_categorias: "Organizando categorias",
+                      cruzando_precos: "Cruzando preços",
+                      criando_produtos: "Criando produtos",
+                      concluido: "Concluído",
+                      concluido_parcialmente: "Concluído parcialmente",
+                      erro: "Erro no processamento",
+                    };
                     const statusMap: Record<string, { label: string; cls: string }> = {
                       pending: { label: "Enviado", cls: "bg-slate-500/15 text-slate-600" },
-                      splitting: { label: "Preparando arquivo", cls: "bg-blue-500/15 text-blue-600" },
-                      processing: { label: "Extraindo informações", cls: "bg-blue-500/15 text-blue-600" },
+                      splitting: { label: "Extraindo imagens", cls: "bg-blue-500/15 text-blue-600" },
+                      processing: { label: "Extraindo produtos", cls: "bg-blue-500/15 text-blue-600" },
                       extracting: { label: "Extraindo produtos", cls: "bg-blue-500/15 text-blue-600" },
-                      consolidating: { label: "Consolidando produtos", cls: "bg-blue-500/15 text-blue-600" },
+                      consolidating: { label: "Organizando categorias", cls: "bg-blue-500/15 text-blue-600" },
                       completed: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-600" },
+                      partial: { label: "Concluído parcialmente", cls: "bg-amber-500/15 text-amber-700" },
                       failed: { label: "Erro no processamento", cls: "bg-rose-500/15 text-rose-600" },
                     };
                     const st = statusMap[c.processing_status] ?? statusMap.completed;
                     const busy = ["pending", "splitting", "processing", "extracting", "consolidating"].includes(c.processing_status);
                     const elapsed = (Date.now() - new Date(c.created_at).getTime()) / 1000;
-                    const inBackground = busy && elapsed > 60;
-                    const rawProgress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 100) : null;
+                    const heartbeatAge = (Date.now() - new Date(c.last_heartbeat_at || c.created_at).getTime()) / 1000;
+                    const inBackground = busy && elapsed > 45;
+                    const rawProgress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 92) : null;
                     // progresso estimado mínimo quando ainda não tem total
                     const progress = rawProgress ?? Math.min(95, Math.round(elapsed * 1.5));
                     const noProducts = c.processing_status === "completed" && !c.products_created && !c.products_updated;
+                    const shownLabel = stageLabel[c.processing_stage] || st.label;
                     return (
                       <div key={c.id} className="rounded-2xl bg-secondary/40 p-3 text-sm space-y-2">
                         <div className="flex items-center gap-2">
