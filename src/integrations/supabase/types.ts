@@ -646,15 +646,25 @@ export type Database = {
           financial_id: string | null
           id: string
           is_pickup: boolean
+          items: Json
           max_delivery_date: string | null
+          mounted_at: string | null
           needs_assembly: boolean
           needs_pickup: boolean
           notes: string | null
           pickup_address: string | null
           route_order: number | null
           scheduled_for: string | null
+          sent_to_assembler_at: string | null
           status: string
+          stock_available_at_sale: boolean | null
+          supplier_delivery_days: number | null
+          supplier_expected_date: string | null
           supplier_id: string | null
+          supplier_manufacturing_days: number | null
+          supplier_notes: string | null
+          supplier_order_date: string | null
+          supplier_received_date: string | null
           updated_at: string
           user_id: string
         }
@@ -671,15 +681,25 @@ export type Database = {
           financial_id?: string | null
           id?: string
           is_pickup?: boolean
+          items?: Json
           max_delivery_date?: string | null
+          mounted_at?: string | null
           needs_assembly?: boolean
           needs_pickup?: boolean
           notes?: string | null
           pickup_address?: string | null
           route_order?: number | null
           scheduled_for?: string | null
+          sent_to_assembler_at?: string | null
           status?: string
+          stock_available_at_sale?: boolean | null
+          supplier_delivery_days?: number | null
+          supplier_expected_date?: string | null
           supplier_id?: string | null
+          supplier_manufacturing_days?: number | null
+          supplier_notes?: string | null
+          supplier_order_date?: string | null
+          supplier_received_date?: string | null
           updated_at?: string
           user_id: string
         }
@@ -696,15 +716,25 @@ export type Database = {
           financial_id?: string | null
           id?: string
           is_pickup?: boolean
+          items?: Json
           max_delivery_date?: string | null
+          mounted_at?: string | null
           needs_assembly?: boolean
           needs_pickup?: boolean
           notes?: string | null
           pickup_address?: string | null
           route_order?: number | null
           scheduled_for?: string | null
+          sent_to_assembler_at?: string | null
           status?: string
+          stock_available_at_sale?: boolean | null
+          supplier_delivery_days?: number | null
+          supplier_expected_date?: string | null
           supplier_id?: string | null
+          supplier_manufacturing_days?: number | null
+          supplier_notes?: string | null
+          supplier_order_date?: string | null
+          supplier_received_date?: string | null
           updated_at?: string
           user_id?: string
         }
