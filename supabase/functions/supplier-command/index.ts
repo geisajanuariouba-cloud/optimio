@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
         parameters: {
           type: "object",
           properties: {
-            action: { type: "string", enum: ["discontinue", "rename", "update_price", "bulk_price_change", "noop"] },
+            action: { type: "string", enum: ["discontinue", "reactivate", "rename", "update_price", "bulk_price_change", "noop"] },
             product_name: { type: "string" },
             new_name: { type: "string" },
             new_price: { type: "number" },
@@ -70,7 +70,13 @@ Deno.serve(async (req) => {
     if (args.action === "discontinue" && args.product_name) {
       const target = products?.find(p => p.name.toLowerCase().includes(args.product_name.toLowerCase()));
       if (target) {
-        await supabase.from("products").update({ status: "discontinued" }).eq("id", target.id);
+        await supabase.from("products").update({ status: "discontinued", out_of_line: true }).eq("id", target.id);
+        affected = 1;
+      }
+    } else if (args.action === "reactivate" && args.product_name) {
+      const target = products?.find(p => p.name.toLowerCase().includes(args.product_name.toLowerCase()));
+      if (target) {
+        await supabase.from("products").update({ status: "active", out_of_line: false }).eq("id", target.id);
         affected = 1;
       }
     } else if (args.action === "rename" && args.product_name && args.new_name) {
