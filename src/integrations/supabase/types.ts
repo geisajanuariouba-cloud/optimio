@@ -1768,70 +1768,151 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_catalog_chunks: {
+        Row: {
+          catalog_id: string
+          chunk_index: number
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          last_heartbeat_at: string
+          page_end: number | null
+          page_start: number | null
+          pages: number
+          products_extracted: number
+          started_at: string | null
+          status: string
+          storage_path: string
+          supplier_id: string
+          user_id: string
+        }
+        Insert: {
+          catalog_id: string
+          chunk_index: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_heartbeat_at?: string
+          page_end?: number | null
+          page_start?: number | null
+          pages?: number
+          products_extracted?: number
+          started_at?: string | null
+          status?: string
+          storage_path: string
+          supplier_id: string
+          user_id: string
+        }
+        Update: {
+          catalog_id?: string
+          chunk_index?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_heartbeat_at?: string
+          page_end?: number | null
+          page_start?: number | null
+          pages?: number
+          products_extracted?: number
+          started_at?: string | null
+          status?: string
+          storage_path?: string
+          supplier_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       supplier_catalogs: {
         Row: {
           chunk_index: number | null
+          completed_at: string | null
           created_at: string
           error_message: string | null
           filename: string
           id: string
           internal_only: boolean
           kind: string
+          last_heartbeat_at: string
           mime: string | null
           page_end: number | null
           page_start: number | null
           parent_id: string | null
+          partial_reason: string | null
+          processed_chunks: number
           processed_pages: number
+          processing_logs: Json
+          processing_stage: string
           processing_status: string
           products_created: number
+          products_extracted: number
           products_updated: number
           size_bytes: number | null
           storage_path: string
           supplier_id: string
+          total_chunks: number
           total_pages: number | null
           user_id: string
         }
         Insert: {
           chunk_index?: number | null
+          completed_at?: string | null
           created_at?: string
           error_message?: string | null
           filename: string
           id?: string
           internal_only?: boolean
           kind?: string
+          last_heartbeat_at?: string
           mime?: string | null
           page_end?: number | null
           page_start?: number | null
           parent_id?: string | null
+          partial_reason?: string | null
+          processed_chunks?: number
           processed_pages?: number
+          processing_logs?: Json
+          processing_stage?: string
           processing_status?: string
           products_created?: number
+          products_extracted?: number
           products_updated?: number
           size_bytes?: number | null
           storage_path: string
           supplier_id: string
+          total_chunks?: number
           total_pages?: number | null
           user_id: string
         }
         Update: {
           chunk_index?: number | null
+          completed_at?: string | null
           created_at?: string
           error_message?: string | null
           filename?: string
           id?: string
           internal_only?: boolean
           kind?: string
+          last_heartbeat_at?: string
           mime?: string | null
           page_end?: number | null
           page_start?: number | null
           parent_id?: string | null
+          partial_reason?: string | null
+          processed_chunks?: number
           processed_pages?: number
+          processing_logs?: Json
+          processing_stage?: string
           processing_status?: string
           products_created?: number
+          products_extracted?: number
           products_updated?: number
           size_bytes?: number | null
           storage_path?: string
           supplier_id?: string
+          total_chunks?: number
           total_pages?: number | null
           user_id?: string
         }
