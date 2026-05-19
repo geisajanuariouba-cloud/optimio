@@ -17,25 +17,37 @@ const features = [
 ];
 
 const DEFAULT_PLANS = [
-  { slug: "basic", name: "Basic", price: 159, tagline: "Para começar com o pé direito",
-    features: ["30 transações/mês", "Agenda Inteligente", "Cadastro de Clientes", "Anamnese Básica", "Suporte por e-mail"], cta: "Começar agora", highlight: false },
-  { slug: "standard", name: "Standard", price: 199, tagline: "O mais escolhido — automação sólida",
-    features: ["100 transações/mês", "Tudo do Basic", "Pacotes com IA de Anamnese", "Estoque & Produção unificados", "Marketing Hub", "Suporte prioritário"], cta: "Escolher plano", highlight: true },
-  { slug: "unlimited", name: "Unlimited", price: 399, tagline: "Gestão total, sem limites",
-    features: ["Transações ilimitadas", "Tudo do Standard", "BI Avançado", "Chat de promoções em tempo real", "Whitelabel completo", "Gerente de conta dedicado"], cta: "Escalar agora", highlight: false },
+  { slug: "basic", name: "Básico", price: 159, tagline: "Para começar com o pé direito",
+    features: ["1 usuário", "Agenda Inteligente", "Cadastro de Clientes", "Anamnese Básica", "Suporte por e-mail"], cta: "Assinar Básico", highlight: false, settingKey: "checkout_basic_url" },
+  { slug: "pro", name: "Pro", price: 199, tagline: "O mais escolhido — automação sólida",
+    features: ["Até 3 usuários", "Tudo do Básico", "Pacotes com IA de Anamnese", "Estoque & Produção", "Marketing Hub", "Suporte prioritário"], cta: "Assinar Pro", highlight: true, settingKey: "checkout_pro_url" },
+  { slug: "advanced", name: "Avançado", price: 399, tagline: "Gestão total, sem limites",
+    features: ["Usuários ilimitados", "Tudo do Pro", "Permissões avançadas", "BI Avançado", "Multiusuário com cargos", "Gerente de conta"], cta: "Assinar Avançado", highlight: false, settingKey: "checkout_advanced_url" },
 ];
 
 export default function Landing() {
   const [plans, setPlans] = useState(DEFAULT_PLANS);
+  const [checkoutUrls, setCheckoutUrls] = useState<Record<string,string>>({});
+  const [videoUrl, setVideoUrl] = useState<string>("");
+
   useEffect(() => {
     supabase.from("plans").select("slug, name, price, description").eq("active", true).order("sort_order").then(({ data }) => {
       if (!data?.length) return;
       setPlans(DEFAULT_PLANS.map(d => {
         const found = data.find((p: any) => p.slug === d.slug);
-        return found ? { ...d, name: found.name, price: Number(found.price), tagline: found.description ?? d.tagline } : d;
+        return found ? { ...d, name: found.name, price: Number(found.price) || d.price, tagline: found.description ?? d.tagline } : d;
       }));
     });
+    supabase.from("system_settings").select("key,value").eq("scope","global").in("key",["checkout_basic_url","checkout_pro_url","checkout_advanced_url","demo_video_url"]).then(({ data }) => {
+      const map: Record<string,string> = {};
+      (data ?? []).forEach((r: any) => { map[r.key] = typeof r.value === "string" ? r.value : (r.value ?? ""); });
+      setCheckoutUrls(map);
+      if (map.demo_video_url) setVideoUrl(map.demo_video_url);
+    });
   }, []);
+
+  const checkoutFor = (key: string) => checkoutUrls[key] || "";
+
   return (
     <div className="min-h-screen bg-background bg-mesh overflow-hidden">
       {/* Nav */}
