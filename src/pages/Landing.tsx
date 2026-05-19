@@ -178,11 +178,18 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/auth?mode=signup" className="block">
-                  <Button className={`w-full h-12 ${p.highlight ? "bg-gradient-brand text-white border-0 hover:opacity-90" : ""}`} variant={p.highlight ? "default" : "outline"}>
-                    {p.cta}
-                  </Button>
-                </Link>
+                {(() => {
+                  const href = checkoutFor((p as any).settingKey);
+                  const cls = `w-full h-12 ${p.highlight ? "bg-gradient-brand text-white border-0 hover:opacity-90" : ""}`;
+                  return href ? (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="block">
+                      <Button className={cls} variant={p.highlight ? "default" : "outline"}>{p.cta}</Button>
+                    </a>
+                  ) : (
+                    <Button className={cls} variant={p.highlight ? "default" : "outline"} disabled title="Checkout em configuração">{p.cta}</Button>
+                  );
+                })()}
+
               </div>
             ))}
           </div>
