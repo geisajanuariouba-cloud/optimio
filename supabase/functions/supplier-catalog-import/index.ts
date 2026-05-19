@@ -205,10 +205,6 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     const persistChunk = async (items: any[]) => {
       let created = 0, updated = 0;
       for (const p of items) {
-        const key = p.code ? `c:${String(p.code).toLowerCase()}` : `n:${String(p.name).toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
         const rawCost = Number(p.cost ?? 0);
         const { cost, sale } = applyPricingMotor(rawCost, rules);
         const category_id = await ensureCategory(p.category);
