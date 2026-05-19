@@ -183,6 +183,43 @@ export default function Marketing() {
         </Card>
       </div>
 
+      <Card className="rounded-3xl border-0 shadow-sm p-5 mb-6 bg-gradient-to-br from-primary/5 to-transparent">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Análise + IA de Marketing
+          </div>
+          <Button size="sm" onClick={runAI} disabled={aiLoading}>
+            {aiLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            {aiLoading ? "Analisando…" : "Gerar sugestões"}
+          </Button>
+        </div>
+        {!aiResult && !aiLoading && (
+          <p className="text-sm text-muted-foreground">Clique em "Gerar sugestões" para que a IA analise seu nicho, posts recentes e top produtos, e proponha 5 ideias prontas para publicar.</p>
+        )}
+        {aiResult?.analysis && (
+          <div className="text-sm text-muted-foreground mb-3 p-3 rounded-2xl bg-secondary/40">{aiResult.analysis}</div>
+        )}
+        {aiResult?.ideas && aiResult.ideas.length > 0 && (
+          <div className="grid md:grid-cols-2 gap-3">
+            {aiResult.ideas.map((idea: any, i: number) => (
+              <div key={i} className="p-3 rounded-2xl bg-background border">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="font-medium text-sm">{idea.title}</div>
+                  <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">{idea.channel}</span>
+                </div>
+                {idea.hook && <div className="text-xs text-muted-foreground italic mb-1">"{idea.hook}"</div>}
+                {idea.caption && <div className="text-xs text-muted-foreground line-clamp-3 mb-2">{idea.caption}</div>}
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => useIdea(idea)}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar ao Kanban
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+
       {posts.length === 0 ? (
         <Card className="rounded-3xl border-0 shadow-sm">
           <EmptyState icon={Megaphone} title="Sem posts ainda" description="Crie ideias, agende publicações e organize seu calendário editorial." actionLabel="Post" onAction={() => setOpen(true)} />
