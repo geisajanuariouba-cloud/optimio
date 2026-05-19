@@ -1775,6 +1775,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           error_message: string | null
+          extracted_products: Json
           id: string
           last_heartbeat_at: string
           page_end: number | null
@@ -1793,6 +1794,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           error_message?: string | null
+          extracted_products?: Json
           id?: string
           last_heartbeat_at?: string
           page_end?: number | null
@@ -1811,6 +1813,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           error_message?: string | null
+          extracted_products?: Json
           id?: string
           last_heartbeat_at?: string
           page_end?: number | null
