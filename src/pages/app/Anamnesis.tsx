@@ -13,7 +13,8 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { ClipboardList, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-const QUESTIONS = [
+type Question = { key: string; label: string };
+const DEFAULT_QUESTIONS: Question[] = [
   { key: "objetivo", label: "Qual o objetivo principal do tratamento?" },
   { key: "alergias", label: "Possui alergias ou sensibilidades?" },
   { key: "medicacoes", label: "Faz uso de medicações contínuas?" },
