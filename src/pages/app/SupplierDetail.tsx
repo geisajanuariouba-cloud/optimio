@@ -271,18 +271,26 @@ export default function SupplierDetail() {
       </Tabs>
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
-          <DialogHeader className="px-5 py-3 border-b">
-            <DialogTitle className="text-sm font-semibold truncate">{preview?.filename}</DialogTitle>
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-5 py-3 border-b flex-row items-center justify-between gap-3 space-y-0">
+            <DialogTitle className="text-sm font-semibold truncate flex-1">{preview?.filename}</DialogTitle>
+            {preview && (
+              <a href={preview.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline shrink-0">Abrir em nova aba</a>
+            )}
           </DialogHeader>
-          <div className="flex-1 h-full bg-secondary/30">
-            {preview?.mime.startsWith("image/")
+          <div className="flex-1 min-h-0 bg-secondary/30">
+            {preview && (preview.mime.startsWith("image/")
               ? <img src={preview.url} alt={preview.filename} className="w-full h-full object-contain" />
-              : <iframe src={preview?.url} title={preview?.filename} className="w-full h-full" />}
+              : <object data={preview.url} type={preview.mime || "application/pdf"} className="w-full h-full">
+                  <div className="p-6 text-sm text-muted-foreground">
+                    Não foi possível exibir o arquivo aqui. <a className="text-primary underline" href={preview.url} target="_blank" rel="noreferrer">Abrir em nova aba</a>.
+                  </div>
+                </object>)}
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
 
