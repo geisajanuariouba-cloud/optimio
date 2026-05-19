@@ -83,22 +83,44 @@ async function callAI(signedUrl: string, mime: string, existingCatNames: string[
   return args.products ?? [];
 }
 
-async function splitPdf(bytes: Uint8Array, targetBytes: number): Promise<Uint8Array[]> {
+async function splitAndUpload(
+  supabase: any,
+  bytes: Uint8Array,
+  targetBytes: number,
+  storagePath: string,
+): Promise<{ path: string; pageStart: number; pageEnd: number; pages: number }[]> {
   const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const total = src.getPageCount();
-  // Estimativa: páginas por chunk baseada em tamanho médio
   const avgPerPage = bytes.length / total;
   const pagesPerChunk = Math.max(1, Math.floor(targetBytes / Math.max(avgPerPage, 1)));
-  const chunks: Uint8Array[] = [];
+  const result: { path: string; pageStart: number; pageEnd: number; pages: number }[] = [];
+  let idx = 0;
   for (let i = 0; i < total; i += pagesPerChunk) {
     const end = Math.min(i + pagesPerChunk, total);
     const out = await PDFDocument.create();
     const pages = await out.copyPages(src, Array.from({ length: end - i }, (_, k) => i + k));
     pages.forEach((p) => out.addPage(p));
     const buf = await out.save();
-    chunks.push(buf);
+    const path = `${storagePath}.chunks/${idx}.pdf`;
+    await supabase.storage.from("supplier-catalogs").upload(path, buf, { contentType: "application/pdf", upsert: true });
+    result.push({ path, pageStart: i + 1, pageEnd: end, pages: end - i });
+    idx++;
   }
-  return chunks;
+  return result;
+}
+
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 async function processCatalog(parentId: string, userId: string, supplierId: string, storagePath: string, mime: string, kind: string) {
@@ -108,7 +130,6 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
   try {
     await setStatus({ processing_status: "processing" });
 
-    // Carrega fornecedor + categorias + produtos existentes
     const [{ data: supplier }, { data: cats }, { data: existing }] = await Promise.all([
       supabase.from("suppliers").select("cost_fee_percent,default_margin_percent,default_markup_percent").eq("id", supplierId).maybeSingle(),
       supabase.from("product_categories").select("id,name").eq("user_id", userId),
@@ -124,49 +145,37 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     const isPdf = mime === "application/pdf" || /\.pdf$/i.test(storagePath);
 
     if (isPdf) {
-      // Baixa o PDF original
       const { data: file, error: dlErr } = await supabase.storage.from("supplier-catalogs").download(storagePath);
       if (dlErr || !file) throw new Error("Erro ao ler o catálogo do armazenamento.");
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      const totalPages = src.getPageCount();
-      await setStatus({ total_pages: totalPages, processing_status: "splitting" });
 
-      const chunks = bytes.length > MAX_AI_BYTES ? await splitPdf(bytes, MAX_AI_BYTES) : [bytes];
-      await setStatus({ processing_status: "extracting" });
+      let chunkInfos: { path: string; pageStart: number; pageEnd: number; pages: number }[];
+      if (bytes.length > MAX_AI_BYTES) {
+        await setStatus({ processing_status: "splitting" });
+        chunkInfos = await splitAndUpload(supabase, bytes, MAX_AI_BYTES, storagePath);
+      } else {
+        const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+        const tp = src.getPageCount();
+        chunkInfos = [{ path: storagePath, pageStart: 1, pageEnd: tp, pages: tp }];
+      }
 
-      let pageCursor = 0;
-      for (let i = 0; i < chunks.length; i++) {
-        const chunkBytes = chunks[i];
-        const chunkPath = `${storagePath}.chunks/${i}.pdf`;
-        await supabase.storage.from("supplier-catalogs").upload(chunkPath, chunkBytes, {
-          contentType: "application/pdf", upsert: true,
-        });
-        // Calcula páginas desse chunk
-        const chunkDoc = await PDFDocument.load(chunkBytes, { ignoreEncryption: true });
-        const chunkPages = chunkDoc.getPageCount();
-        const pageStart = pageCursor + 1;
-        const pageEnd = pageCursor + chunkPages;
-        pageCursor = pageEnd;
+      const totalPages = chunkInfos.reduce((s, c) => s + c.pages, 0);
+      await setStatus({ total_pages: totalPages, processed_pages: 0, processing_status: "extracting" });
 
-        await supabase.from("supplier_catalogs").insert({
-          user_id: userId, supplier_id: supplierId, filename: `${i + 1}.pdf`, storage_path: chunkPath,
-          mime: "application/pdf", size_bytes: chunkBytes.length, products_created: 0, products_updated: 0,
-          kind, parent_id: parentId, internal_only: true, chunk_index: i,
-          page_start: pageStart, page_end: pageEnd, processing_status: "processing",
-        });
-
-        const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(chunkPath, 60 * 30);
+      let done = 0;
+      const CONCURRENCY = 4;
+      await mapLimit(chunkInfos, CONCURRENCY, async (info) => {
+        const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
         if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
         const items = await callAI(signed.signedUrl, "application/pdf", existingCatNames);
-        allProducts.push(...items.map((p) => ({ ...p, source_page: pageStart })));
-        await setStatus({ processed_pages: pageEnd });
-      }
+        allProducts.push(...items.map((p) => ({ ...p, source_page: info.pageStart })));
+        done += info.pages;
+        await setStatus({ processed_pages: done });
+      });
     } else {
-      // Imagem ou outro: envia direto
       const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(storagePath, 60 * 30);
       if (!signed?.signedUrl) throw new Error("Falha ao gerar URL do arquivo.");
-      await setStatus({ processing_status: "extracting", total_pages: 1 });
+      await setStatus({ processing_status: "extracting", total_pages: 1, processed_pages: 0 });
       const items = await callAI(signed.signedUrl, mime, existingCatNames);
       allProducts.push(...items);
       await setStatus({ processed_pages: 1 });

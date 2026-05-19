@@ -235,12 +235,18 @@ export default function SupplierDetail() {
                             {c.processing_status === "completed" && <span>· {c.products_created} novos · {c.products_updated} atualizados</span>}
                             {c.processing_status === "failed" && c.error_message && <span className="text-rose-600">· {c.error_message}</span>}
                           </div>
+                          {busy && (
+                            <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress ?? 5}%` }} />
+                            </div>
+                          )}
                         </div>
                         <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
                         <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
                         <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     );
+
                   })}
                 </div>
               );
