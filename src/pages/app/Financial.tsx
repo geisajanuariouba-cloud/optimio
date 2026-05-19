@@ -52,11 +52,12 @@ export default function Financial() {
   const selectedPM = pms.find(p => p.id === form.payment_method_id);
   const isIncome = form.type === "income";
   const isVendaServico = isIncome && (form.category === "Venda" || form.category === "Serviço");
-  const isPromissoria = false;
+  const isPromissoria = form.payment_method_id === "promissoria";
   const isCash = selectedPM?.code === "dinheiro";
   const change = isCash && form.cash_received ? Math.max(0, Number(form.cash_received) - Number(form.gross_amount)) : 0;
 
   const calcNet = () => {
+    if (isPromissoria) return form.gross_amount;
     if (!isIncome || !selectedPM) return form.gross_amount;
     const fee = (form.gross_amount * Number(selectedPM.fee_percent)) / 100 + Number(selectedPM.fee_fixed);
     return Math.max(0, form.gross_amount - fee);
@@ -67,9 +68,10 @@ export default function Financial() {
   const save = async () => {
     if (!user || !form.gross_amount) return toast.error("Valor obrigatório");
     if (isVendaServico && !form.client_id) return toast.error("Selecione um cliente para Venda/Serviço");
+    if (isPromissoria && !form.client_id) return toast.error("Promissória requer cliente cadastrado.");
     if (isCash && form.cash_received < form.gross_amount) return toast.error("Valor recebido menor que o total");
 
-    const fee_percent = selectedPM ? Number(selectedPM.fee_percent) : 0;
+    const fee_percent = isPromissoria ? 0 : (selectedPM ? Number(selectedPM.fee_percent) : 0);
     const fee_amount = isIncome ? (form.gross_amount * fee_percent) / 100 + (selectedPM ? Number(selectedPM.fee_fixed) : 0) : 0;
     const net_amount = isIncome ? Math.max(0, form.gross_amount - fee_amount) : form.gross_amount;
 
@@ -80,8 +82,8 @@ export default function Financial() {
 
     const { data: tx, error } = await supabase.from("financial").insert({
       user_id: user.id, type: form.type, gross_amount: form.gross_amount, net_amount, fee_percent, fee_amount,
-      payment_method: selectedPM?.code ?? null, payment_method_id: form.payment_method_id || null,
-      installments: selectedPM?.installments ?? 1,
+      payment_method: isPromissoria ? "promissoria" : (selectedPM?.code ?? null), payment_method_id: isPromissoria ? null : (form.payment_method_id || null),
+      installments: isPromissoria ? promo.installments_count : (selectedPM?.installments ?? 1),
       cash_received: isCash ? form.cash_received : null,
       change_amount: isCash ? change : 0,
       category: form.category || null, description: form.description || null,
@@ -90,6 +92,12 @@ export default function Financial() {
       needs_delivery: !!form.needs_delivery,
     }).select().single();
     if (error) return toast.error(error.message);
+
+    if (isPromissoria && tx) {
+      try {
+        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: form.gross_amount, data: promo, appointment_id: null, notes: form.description });
+      } catch (e: any) { return toast.error("Falha ao criar promissória: " + e.message); }
+    }
 
     // Cash drawer for cash sales (and subtract change)
     if (isIncome && isCash && tx) {
