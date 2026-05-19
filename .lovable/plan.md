@@ -1,98 +1,62 @@
-# Etapa 1 — Estabilização do Core Operacional
+# Etapa 2 — Kiwify, Landing, Conta Automática, Multiusuário e Onboarding
 
-Esta etapa foca em consertar e estruturar o que já existe. Sem OCR avançado, sem redesign, sem IA pesada.
+Escopo grande e créditos limitados. Vou priorizar **infraestrutura sólida + fluxos críticos** primeiro, deixando refinamentos visuais para iterações curtas depois.
 
-## 1. Produtos — Reestruturação
+## Ordem de execução (uma resposta por bloco para economizar créditos)
 
-### Renomear "Codnome" → "Apelido Curto"
-- Trocar todos os rótulos visíveis em `Products.tsx`, `VariationEditor.tsx` e telas relacionadas (Quotes, Sales, Detail).
-- Coluna `codname` no banco permanece (sem migration de rename) — só a UI muda.
+### Bloco 1 — Banco de dados (1 migration única)
+- `subscriptions` (ajustar): adicionar `provider`, `provider_customer_id`, `provider_subscription_id`, `provider_product_id`, `provider_plan_name`, `internal_plan`, `current_period_start`.
+- `billing_events` (nova): id, user_id, provider, event_type, event_id (UNIQUE p/ idempotência), raw_payload jsonb, status, error_message.
+- `team_members` (nova): id, owner_user_id (tenant=dono), member_user_id, name, email, role, status, permissions jsonb, invited_by.
+- `team_invites` (nova): id, owner_user_id, email, role, permissions, token (UNIQUE), status, expires_at, created_by.
+- `audit_logs` (nova): id, owner_user_id, actor_user_id, action, module, metadata jsonb.
+- `onboarding_status` (nova): id, user_id UNIQUE, completed bool, current_step, niche, checklist jsonb.
+- `system_settings` (nova): id, scope ('global'|'tenant'), owner_user_id null se global, key, value jsonb, UNIQUE(scope,owner_user_id,key). Serve para guardar `checkout_basic_url`, `checkout_pro_url`, `checkout_advanced_url`, `kiwify_webhook_secret` (admin).
+- RLS em todas: somente dono (owner_user_id) ou membro vinculado (via team_members ativo) acessa.
+- Função SECURITY DEFINER `public.current_tenant_owner()` que retorna o `owner_user_id` para o usuário logado (próprio ou via team_members.status='active'). Usar em policies de tabelas existentes nos próximos passos (não tocar agora para não quebrar).
+- Função `has_permission(_user_id uuid, _key text)` consultando role+permissions.
+- Plans seed: basic/pro/advanced com limites de usuários (1/3/9999).
 
-### Botão "Gerar Apelido Curto"
-- Corrigir `generateCodname` em `src/lib/codname.ts` para considerar **nome + medida + cor + categoria**.
-- Botão funcional no form do produto e em cada variação.
-- Campo continua editável manualmente.
+### Bloco 2 — Webhook Kiwify (Edge Function pública)
+- `supabase/functions/kiwify-webhook/index.ts` — `verify_jwt = false`.
+- Valida `x-kiwify-signature` ou query `?token=` contra `kiwify_webhook_secret` salvo em `system_settings` (global).
+- Idempotência via `billing_events.event_id` (UNIQUE).
+- Eventos:
+  - `order_approved` / `subscription_approved` → cria/reaproveita user via `auth.admin.createUser` (service role) + envia magic link de definição de senha; cria/atualiza `subscriptions` ativa; `onboarding_status.completed=false`.
+  - `subscription_renewed` → atualiza period_end e status=active.
+  - `subscription_canceled` → status=canceled.
+  - `order_refunded` / `chargeback` → status=suspended.
+  - `order_rejected` → log only.
+- Mapeia produto/plano Kiwify → `internal_plan` via `system_settings` (`kiwify_product_map`).
+- Loga tudo em `billing_events` (mesmo erros).
+- CORS + responses em JSON.
 
-### Busca
-- Filtro de produtos suporta: nome, apelido curto, código, descrição, fornecedor.
+### Bloco 3 — Landing page nova (`src/pages/Landing.tsx`)
+- Hero, vídeo placeholder (`<iframe>` configurável via settings), benefícios por nicho (tabs Beauty/Retail), "Como funciona" 5 passos, 3 planos com CTA → links Kiwify lidos de `system_settings` (fallback hardcoded vazio). WhatsApp vira link de suporte no rodapé.
+- Mantém design system existente (tokens HSL).
 
-### Variações reais
-- Editor já existe — garantir que salvam corretamente em `product_variations` com: cor, tecido, tamanho, material, modelo, acabamento, imagem própria, custo, preço, estoque, medidas, código.
-- Adicionar campos `model` e `finish` (acabamento) à tabela.
+### Bloco 4 — Onboarding + "Comece Aqui"
+- `Onboarding.tsx` já existe — adicionar gravação em `onboarding_status` (nicho, checklist inicial por nicho).
+- Novo `src/pages/app/StartHere.tsx` com checklist por nicho (beauty/retail), progresso (lê tabelas reais: clients/services/products/financial/deliveries), atalhos.
+- Botão fixo "Comece Aqui" na sidebar enquanto `onboarding_status.completed=false`.
 
-### Medidas
-- Já existem colunas (`width`, `height`, `depth`, `length_cm`, `weight`, `measure_unit`) no produto e na variação. Garantir UI funcional em ambos.
+### Bloco 5 — Equipe / Multiusuário
+- Nova página `src/pages/app/Team.tsx`: lista membros + convites; botão "Convidar usuário" (email, role, permissions). Cria registro em `team_invites` e gera link `/invite/:token`.
+- Página pública `src/pages/InviteAccept.tsx`: aceita token, força login/cadastro, insere em `team_members` com `owner_user_id` do convite, marca convite usado.
+- `useTenant` passa a expor `tenantOwnerId` (próprio user.id ou owner via team_members) + `role` + `permissions`. Todas queries existentes continuam funcionando para admin master (owner = self).
+- `<RequirePermission perm="...">` wrapper e helper `can(perm)` para esconder botões.
+- Limite de usuários por plano: ao convidar, checa subscriptions.internal_plan vs `plans.limits.max_users`.
 
-### Upload real de imagens (CRÍTICO)
-- Remover input de URL manual.
-- Usar bucket `product-images` (já existe, público).
-- Componente reutilizável `ImageUploader` com drag-and-drop, preview, remover, trocar.
-- Funciona para produto E cada variação.
-- Caminho: `{user_id}/products/{product_id}/...` e `{user_id}/variations/{variation_id}/...`.
+### Bloco 6 — Admin: logs de billing + config checkout
+- `SuperAdmin.tsx`: nova aba "Billing" lista `billing_events` (todos, admin) + form para editar `checkout_*_url`, `kiwify_webhook_secret`, `kiwify_product_map` em `system_settings` (scope=global).
 
-### Buckets
-- `product-images` (existe, público) — produtos e variações.
-- `supplier-catalogs` (existe) — catálogos.
-- Não criar bucket novo para fornecedores agora (sem necessidade imediata).
+### Fora do escopo (confirmado)
+OCR, catálogo, produtos, logística, montagem, redesign profundo de módulos internos.
 
-### UI / Filtros
-- Aumentar contraste em filtros (remover transparência baixa, estados apagados).
-- Melhorar grid/cards de produtos.
-
-### Categorias
-- Manter categorias de produto e de saída inalteradas.
-- Não tocar nas categorias de entrada.
-
-## 2. Vendas — Módulo separado
-
-- Rota já existe (`/app/sales`). Reforçar como dashboard próprio:
-  - Vendas por período, ticket médio, lucro, margem, formas de pagamento (incluindo promissória), produtos mais vendidos, promissórias em aberto, entregas pendentes.
-- Sem migrations novas — usar `financial` + `deliveries` + `debts`.
-
-## 3. Promissórias
-- Já integradas em Quotes/Financial/Sales. Garantir filtro "Promissória" em Sales e Financial.
-- Baixa de promissória (em `Debts.tsx`) já cria movimentação em caixa em dinheiro — verificar e ajustar se necessário.
-
-## 4. Logística — Fluxo
-Status padronizados em `deliveries`:
-1. `pedido_fornecedor`
-2. `aguardando_fornecedor`
-3. `pronto_entrega`
-4. `com_montador`
-5. `entregue`
-
-- Ao criar venda sem estoque suficiente → criar entrega automaticamente em `pedido_fornecedor`.
-- Seleção obrigatória de montador quando `needs_assembly = true`.
-- Comissão padrão 5% sobre custo, editável.
-
-## 5. Dashboard contextual
-- `Dashboard.tsx` filtra widgets por `niche`:
-  - **beauty**: agenda, recorrência, sessões, clientes (ocultar logística/montagem/fornecedores).
-  - **retail/furniture**: vendas, estoque, logística, orçamento, montagem.
-
-## 6. Erros / Mensagens
-- Auditar toasts e garantir português em todo o app.
-
-## Arquivos a tocar
-
-**Migrations:**
-- Adicionar `model` e `finish` a `product_variations`.
-
-**Novos:**
-- `src/components/products/ImageUploader.tsx` — upload com drag/drop/preview.
-
-**Editados:**
-- `src/lib/codname.ts` — incluir categoria.
-- `src/components/products/VariationEditor.tsx` — "Apelido Curto", upload real, modelo/acabamento.
-- `src/pages/app/Products.tsx` — rótulo, upload, filtros, contraste.
-- `src/pages/app/Sales.tsx` — dashboard de vendas + filtro promissória.
-- `src/pages/app/Financial.tsx` — filtro promissória.
-- `src/pages/app/Deliveries.tsx` — status novos + criação auto a partir de venda sem estoque.
-- `src/pages/app/Dashboard.tsx` — widgets por nicho.
-- `src/pages/app/Quotes.tsx` — usar mesmo `ImageUploader` se necessário e ajustar criação de delivery.
-
-## Fora do escopo (próxima etapa)
-- OCR avançado, IA pesada, redesign, analytics complexos, automações.
+## Riscos / decisões
+- **Tenant model:** não existe coluna `tenant_id` hoje — tudo usa `user_id` como dono. Para não quebrar, **tenant = user_id do admin master**. Membros acessam via função `current_tenant_owner()` que injeta o owner correto. Migração futura para `tenant_id` real fica como dívida.
+- **Senha do novo usuário:** criar via service role + enviar `generateLink({type:'recovery'})` por email Supabase. Sem custo extra.
+- **RLS tabelas existentes:** não vou ampliar agora para incluir membros — fica como TODO marcado. Admin master segue funcionando 100%. Multiusuário real de dados compartilhados precisa de uma 2ª passada nas policies (avisarei explicitamente).
 
 ## Confirmação
-Aprovar para eu iniciar a migration e depois os arquivos de UI.
+Posso começar pelo **Bloco 1 (migration)**? Cada bloco vai numa resposta separada para você acompanhar e cortar onde quiser.

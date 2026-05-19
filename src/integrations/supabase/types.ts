@@ -302,6 +302,72 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          module: string | null
+          owner_user_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          module?: string | null
+          owner_user_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          module?: string | null
+          owner_user_id?: string
+        }
+        Relationships: []
+      }
+      billing_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_id: string
+          event_type: string
+          id: string
+          provider: string
+          raw_payload: Json
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          provider: string
+          raw_payload?: Json
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          provider?: string
+          raw_payload?: Json
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cash_drawer_transactions: {
         Row: {
           amount: number
@@ -939,6 +1005,39 @@ export type Database = {
           scheduled_for?: string | null
           status?: string
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      onboarding_status: {
+        Row: {
+          checklist: Json
+          completed: boolean
+          created_at: string
+          current_step: string | null
+          id: string
+          niche: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checklist?: Json
+          completed?: boolean
+          created_at?: string
+          current_step?: string | null
+          id?: string
+          niche?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checklist?: Json
+          completed?: boolean
+          created_at?: string
+          current_step?: string | null
+          id?: string
+          niche?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1811,9 +1910,16 @@ export type Database = {
         Row: {
           created_at: string
           current_period_end: string
+          current_period_start: string | null
           id: string
+          internal_plan: string | null
           last_paid_at: string | null
           plan_slug: string
+          provider: string | null
+          provider_customer_id: string | null
+          provider_plan_name: string | null
+          provider_product_id: string | null
+          provider_subscription_id: string | null
           started_at: string
           status: string
           updated_at: string
@@ -1822,9 +1928,16 @@ export type Database = {
         Insert: {
           created_at?: string
           current_period_end?: string
+          current_period_start?: string | null
           id?: string
+          internal_plan?: string | null
           last_paid_at?: string | null
           plan_slug: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_plan_name?: string | null
+          provider_product_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -1833,9 +1946,16 @@ export type Database = {
         Update: {
           created_at?: string
           current_period_end?: string
+          current_period_start?: string | null
           id?: string
+          internal_plan?: string | null
           last_paid_at?: string | null
           plan_slug?: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_plan_name?: string | null
+          provider_product_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -2181,6 +2301,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          owner_user_id: string | null
+          scope: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          owner_user_id?: string | null
+          scope?: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          owner_user_id?: string | null
+          scope?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           created_at: string
@@ -2217,6 +2367,87 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      team_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          owner_user_id: string
+          permissions: Json
+          role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          owner_user_id: string
+          permissions?: Json
+          role?: string
+          status?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          owner_user_id?: string
+          permissions?: Json
+          role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          invited_by: string | null
+          member_user_id: string
+          name: string | null
+          owner_user_id: string
+          permissions: Json
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          invited_by?: string | null
+          member_user_id: string
+          name?: string | null
+          owner_user_id: string
+          permissions?: Json
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          invited_by?: string | null
+          member_user_id?: string
+          name?: string | null
+          owner_user_id?: string
+          permissions?: Json
+          role?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2282,9 +2513,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_tenant_owner: { Args: never; Returns: string }
       generate_codname: {
         Args: { _color?: string; _name: string; _size?: string }
         Returns: string
+      }
+      has_permission: {
+        Args: { _key: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {

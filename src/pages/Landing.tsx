@@ -17,25 +17,37 @@ const features = [
 ];
 
 const DEFAULT_PLANS = [
-  { slug: "basic", name: "Basic", price: 159, tagline: "Para começar com o pé direito",
-    features: ["30 transações/mês", "Agenda Inteligente", "Cadastro de Clientes", "Anamnese Básica", "Suporte por e-mail"], cta: "Começar agora", highlight: false },
-  { slug: "standard", name: "Standard", price: 199, tagline: "O mais escolhido — automação sólida",
-    features: ["100 transações/mês", "Tudo do Basic", "Pacotes com IA de Anamnese", "Estoque & Produção unificados", "Marketing Hub", "Suporte prioritário"], cta: "Escolher plano", highlight: true },
-  { slug: "unlimited", name: "Unlimited", price: 399, tagline: "Gestão total, sem limites",
-    features: ["Transações ilimitadas", "Tudo do Standard", "BI Avançado", "Chat de promoções em tempo real", "Whitelabel completo", "Gerente de conta dedicado"], cta: "Escalar agora", highlight: false },
+  { slug: "basic", name: "Básico", price: 159, tagline: "Para começar com o pé direito",
+    features: ["1 usuário", "Agenda Inteligente", "Cadastro de Clientes", "Anamnese Básica", "Suporte por e-mail"], cta: "Assinar Básico", highlight: false, settingKey: "checkout_basic_url" },
+  { slug: "pro", name: "Pro", price: 199, tagline: "O mais escolhido — automação sólida",
+    features: ["Até 3 usuários", "Tudo do Básico", "Pacotes com IA de Anamnese", "Estoque & Produção", "Marketing Hub", "Suporte prioritário"], cta: "Assinar Pro", highlight: true, settingKey: "checkout_pro_url" },
+  { slug: "advanced", name: "Avançado", price: 399, tagline: "Gestão total, sem limites",
+    features: ["Usuários ilimitados", "Tudo do Pro", "Permissões avançadas", "BI Avançado", "Multiusuário com cargos", "Gerente de conta"], cta: "Assinar Avançado", highlight: false, settingKey: "checkout_advanced_url" },
 ];
 
 export default function Landing() {
   const [plans, setPlans] = useState(DEFAULT_PLANS);
+  const [checkoutUrls, setCheckoutUrls] = useState<Record<string,string>>({});
+  const [videoUrl, setVideoUrl] = useState<string>("");
+
   useEffect(() => {
     supabase.from("plans").select("slug, name, price, description").eq("active", true).order("sort_order").then(({ data }) => {
       if (!data?.length) return;
       setPlans(DEFAULT_PLANS.map(d => {
         const found = data.find((p: any) => p.slug === d.slug);
-        return found ? { ...d, name: found.name, price: Number(found.price), tagline: found.description ?? d.tagline } : d;
+        return found ? { ...d, name: found.name, price: Number(found.price) || d.price, tagline: found.description ?? d.tagline } : d;
       }));
     });
+    supabase.from("system_settings").select("key,value").eq("scope","global").in("key",["checkout_basic_url","checkout_pro_url","checkout_advanced_url","demo_video_url"]).then(({ data }) => {
+      const map: Record<string,string> = {};
+      (data ?? []).forEach((r: any) => { map[r.key] = typeof r.value === "string" ? r.value : (r.value ?? ""); });
+      setCheckoutUrls(map);
+      if (map.demo_video_url) setVideoUrl(map.demo_video_url);
+    });
   }, []);
+
+  const checkoutFor = (key: string) => checkoutUrls[key] || "";
+
   return (
     <div className="min-h-screen bg-background bg-mesh overflow-hidden">
       {/* Nav */}
@@ -48,8 +60,9 @@ export default function Landing() {
         </div>
         <div className="flex items-center gap-3">
           <Link to="/auth"><Button variant="ghost">Entrar</Button></Link>
-          <Link to="/auth?mode=signup"><Button className="bg-gradient-brand text-white border-0 hover:opacity-90">Adquirir</Button></Link>
+          <a href="#plans"><Button className="bg-gradient-brand text-white border-0 hover:opacity-90">Ver planos</Button></a>
         </div>
+
       </nav>
 
       {/* Hero */}
@@ -67,17 +80,24 @@ export default function Landing() {
             O SaaS multi-tenant que adapta cada propriedade ao seu negócio — de salões de beleza a clínicas, estúdios e consultorias. Tudo em uma plataforma só.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/auth?mode=signup">
+            <a href="#plans">
               <Button size="lg" className="bg-gradient-brand text-white border-0 hover:opacity-90 px-8 h-14 text-base animate-pulse-glow">
-                Adquirir agora <ArrowRight className="ml-2 h-5 w-5" />
+                Escolher meu plano <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-            </Link>
+            </a>
             <a href="#playground">
               <Button size="lg" variant="outline" className="px-8 h-14 text-base">
-                Testar no meu nicho
+                Ver demonstração
               </Button>
             </a>
           </div>
+
+          {videoUrl && (
+            <div className="mt-12 max-w-4xl mx-auto rounded-3xl overflow-hidden border border-border/40 glass aspect-video">
+              <iframe src={videoUrl} title="Demo Optimio" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen className="w-full h-full" />
+            </div>
+          )}
+
 
           <div className="mt-10 inline-flex items-center gap-3 px-5 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-100 text-sm">
             <AlertTriangle className="h-5 w-5 text-amber-400" />
@@ -158,11 +178,18 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/auth?mode=signup" className="block">
-                  <Button className={`w-full h-12 ${p.highlight ? "bg-gradient-brand text-white border-0 hover:opacity-90" : ""}`} variant={p.highlight ? "default" : "outline"}>
-                    {p.cta}
-                  </Button>
-                </Link>
+                {(() => {
+                  const href = checkoutFor((p as any).settingKey);
+                  const cls = `w-full h-12 ${p.highlight ? "bg-gradient-brand text-white border-0 hover:opacity-90" : ""}`;
+                  return href ? (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="block">
+                      <Button className={cls} variant={p.highlight ? "default" : "outline"}>{p.cta}</Button>
+                    </a>
+                  ) : (
+                    <Button className={cls} variant={p.highlight ? "default" : "outline"} disabled title="Checkout em configuração">{p.cta}</Button>
+                  );
+                })()}
+
               </div>
             ))}
           </div>
@@ -183,11 +210,12 @@ export default function Landing() {
           <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
             Junte-se a centenas de gestores que estão escalando seus negócios com o Optimio. Setup em minutos, resultados imediatos.
           </p>
-          <Link to="/auth?mode=signup">
+          <a href="#plans">
             <Button size="lg" className="bg-gradient-brand text-white border-0 hover:opacity-90 px-10 h-14 text-base">
-              Criar minha conta <ArrowRight className="ml-2 h-5 w-5" />
+              Ver planos <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-          </Link>
+          </a>
+
         </div>
       </section>
 

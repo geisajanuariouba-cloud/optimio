@@ -48,10 +48,14 @@ export default function Onboarding() {
       return toast.error("WhatsApp é obrigatório.");
     }
     const niche = NICHES[data.niche];
-    const suggested = data.estimated_volume === "high" ? "unlimited" : data.estimated_volume === "mid" ? "standard" : "basic";
     let modules = [...niche.modules];
     if (!data.has_appointments) modules = modules.filter(m => m !== "appointments" && m !== "packages");
     if (data.produces_own === "none") modules = modules.filter(m => m !== "products");
+
+    // Se já pagou via Kiwify (account_status active), mantém ativo. Senão, fica em waiting_approval.
+    const alreadyActive = profile?.account_status === "active";
+    const accountStatus = alreadyActive ? "active" : "waiting_approval";
+
     const { error } = await supabase.from("profiles").update({
       company_name: data.company_name || "Studio",
       phone_number: data.phone_number,
@@ -61,18 +65,28 @@ export default function Onboarding() {
       primary_color: data.primary_color,
       border_style: data.border_style,
       estimated_volume: data.estimated_volume,
-      plan: suggested,
-      account_status: "waiting_approval",
+      account_status: accountStatus,
       onboarding_completed: true,
     }).eq("id", user.id);
     if (error) return toast.error(error.message);
-    // Cria assinatura pending de 30 dias
-    await supabase.from("subscriptions").insert({
-      user_id: user.id, plan_slug: suggested, status: "pending",
-    });
-    // Seed de categorias padrão por nicho
+
+    // Cria assinatura pending apenas se ainda não tem nenhuma (sem Kiwify)
+    if (!alreadyActive) {
+      const { data: subs } = await supabase.from("subscriptions").select("id").eq("user_id", user.id).limit(1);
+      if (!subs?.length) {
+        await supabase.from("subscriptions").insert({
+          user_id: user.id, plan_slug: "basic", status: "pending",
+        });
+      }
+    }
+
+    // Marca onboarding_status como concluído
+    await supabase.from("onboarding_status").upsert({
+      user_id: user.id, completed: true, current_step: "done", niche: data.niche,
+      checklist: {},
+    }, { onConflict: "user_id" });
+
     await supabase.rpc("seed_default_categories", { _user_id: user.id, _niche: data.niche });
-    // Seed de template de anamnese padrão (apenas para nichos com anamnese)
     if (modules.includes("anamnesis")) {
       await supabase.from("anamnesis_templates").upsert({
         user_id: user.id,
@@ -86,9 +100,10 @@ export default function Onboarding() {
       });
     }
     await refresh();
-    toast.success("Tudo pronto! Aguarde aprovação do pagamento.");
+    toast.success(alreadyActive ? "Tudo pronto! Bem-vindo ao Optimio." : "Tudo pronto! Aguarde aprovação do pagamento.");
     nav("/app");
   };
+
 
   const next = () => setStep(s => Math.min(5, s + 1));
   const back = () => setStep(s => Math.max(0, s - 1));

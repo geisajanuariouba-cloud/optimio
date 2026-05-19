@@ -39,6 +39,9 @@ import Quotes from "./pages/app/Quotes";
 import Automations from "./pages/app/Automations";
 import Assemblers from "./pages/app/Assemblers";
 import Sales from "./pages/app/Sales";
+import StartHere from "./pages/app/StartHere";
+import Team from "./pages/app/Team";
+import InviteAccept from "./pages/InviteAccept";
 
 const queryClient = new QueryClient();
 
@@ -58,8 +61,11 @@ const App = () => (
               <Route path="/termos" element={<LegalPublic />} />
               <Route path="/privacidade" element={<LegalPublic />} />
               <Route path="/reembolso" element={<LegalPublic />} />
+              <Route path="/invite/:token" element={<InviteAccept />} />
               <Route path="/app" element={<AppLayout />}>
                 <Route index element={<Dashboard />} />
+                <Route path="start" element={<StartHere />} />
+                <Route path="team" element={<Team />} />
                 <Route path="appointments" element={<Appointments />} />
                 <Route path="clients" element={<Clients />} />
                 <Route path="clients/:id" element={<ClientDetail />} />
