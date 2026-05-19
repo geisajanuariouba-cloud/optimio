@@ -40,6 +40,7 @@ export default function Marketing() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<{ analysis?: string; instagram_insights?: string[]; ideas?: any[] } | null>(null);
   const [instagramHandle, setInstagramHandle] = useState("");
+  const [instagramId, setInstagramId] = useState<string | null>(null);
 
   const load = async () => {
     const [{ data: posts, error }, { data: ts }, { data: ig }] = await Promise.all([
@@ -50,6 +51,7 @@ export default function Marketing() {
     if (error) toast.error(error.message); else setPosts((posts ?? []) as Post[]);
     setTasks((ts ?? []) as Task[]);
     setInstagramHandle(((ig?.config as any)?.handle ?? "") as string);
+    setInstagramId((ig as any)?.id ?? null);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -91,7 +93,11 @@ export default function Marketing() {
 
   const saveInstagram = async () => {
     if (!user || !instagramHandle.trim()) return toast.error("Informe o @ do Instagram");
-    await supabase.from("integrations").upsert({ user_id: user.id, provider: "instagram", status: "connected", config: { handle: instagramHandle.trim().replace(/^@/, "") } });
+    const payload = { user_id: user.id, provider: "instagram", status: "connected", config: { handle: instagramHandle.trim().replace(/^@/, "") } };
+    const { error } = instagramId
+      ? await supabase.from("integrations").update(payload).eq("id", instagramId)
+      : await supabase.from("integrations").insert(payload);
+    if (error) return toast.error(error.message);
     toast.success("Instagram conectado para análise");
     load();
   };
