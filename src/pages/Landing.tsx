@@ -210,11 +210,12 @@ export default function Landing() {
           <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
             Junte-se a centenas de gestores que estão escalando seus negócios com o Optimio. Setup em minutos, resultados imediatos.
           </p>
-          <Link to="/auth?mode=signup">
+          <a href="#plans">
             <Button size="lg" className="bg-gradient-brand text-white border-0 hover:opacity-90 px-10 h-14 text-base">
-              Criar minha conta <ArrowRight className="ml-2 h-5 w-5" />
+              Ver planos <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-          </Link>
+          </a>
+
         </div>
       </section>
 
