@@ -18,6 +18,7 @@ import { Boxes, Pencil, Trash2, AlertTriangle, Trophy, Settings2, Search, Wand2,
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategorySelect } from "@/components/app/CategorySelect";
 import { VariationEditor, type Variation, emptyVariation } from "@/components/products/VariationEditor";
+import { ImageUploader } from "@/components/products/ImageUploader";
 import { generateCodname } from "@/lib/codname";
 
 type Supplier = { id: string; name: string };
@@ -25,7 +26,7 @@ type Product = {
   id: string; name: string; codname: string | null; code: string | null; category: string | null;
   stock: number; min_stock: number; sale_price: number; cost: number | null;
   is_ingredient_residue: boolean; supplier_id: string | null; status: string;
-  has_variations: boolean; description?: string | null;
+  has_variations: boolean; description?: string | null; image_url?: string | null;
   width?: number | null; height?: number | null; depth?: number | null; length_cm?: number | null; weight?: number | null; measure_unit?: string | null;
 };
 
@@ -39,6 +40,7 @@ const emptyForm = {
   stock: 0, min_stock: 5, sale_price: 0, cost: 0,
   is_ingredient_residue: false, supplier_id: "", status: "active",
   has_variations: false,
+  image_url: null as string | null,
   width: "", height: "", depth: "", length_cm: "", weight: "", measure_unit: "cm",
 };
 
@@ -97,6 +99,7 @@ export default function Products() {
       stock: p.stock, min_stock: p.min_stock, sale_price: p.sale_price, cost: p.cost ?? 0,
       is_ingredient_residue: p.is_ingredient_residue, supplier_id: p.supplier_id ?? "", status: p.status ?? "active",
       has_variations: p.has_variations ?? false,
+      image_url: p.image_url ?? null,
       width: p.width ?? "", height: p.height ?? "", depth: p.depth ?? "", length_cm: p.length_cm ?? "", weight: p.weight ?? "", measure_unit: p.measure_unit ?? "cm",
     });
     if (p.has_variations) {
@@ -110,7 +113,7 @@ export default function Products() {
   };
 
   const autoGenCodname = () => {
-    const cn = generateCodname(form.name);
+    const cn = generateCodname(form.name, undefined, undefined, form.category);
     setForm({ ...form, codname: cn });
   };
 
@@ -118,7 +121,7 @@ export default function Products() {
 
   const save = async () => {
     if (!user || !form.name.trim()) return toast.error("Nome obrigatório");
-    const codname = form.codname?.trim() || generateCodname(form.name);
+    const codname = form.codname?.trim() || generateCodname(form.name, undefined, undefined, form.category);
     const payload: any = {
       ...form,
       user_id: user.id,
@@ -127,6 +130,7 @@ export default function Products() {
       code: form.code || null,
       description: form.description || null,
       supplier_id: form.supplier_id || null,
+      image_url: form.image_url || null,
       width: numOrNull(form.width), height: numOrNull(form.height), depth: numOrNull(form.depth),
       length_cm: numOrNull(form.length_cm), weight: numOrNull(form.weight),
       measure_unit: form.measure_unit || "cm",
@@ -151,17 +155,18 @@ export default function Products() {
       if (toDelete.length) await supabase.from("product_variations").delete().in("id", toDelete);
 
       for (const v of variations) {
-        const vCodname = v.codname?.trim() || generateCodname(form.name, v.size, v.color);
+        const vCodname = v.codname?.trim() || generateCodname(form.name, v.size, v.color, form.category);
         const row: any = {
           product_id: prodId, user_id: user.id, name: v.name || "Variação",
           codname: vCodname, sku: v.sku || null,
           color: v.color || null, fabric: v.fabric || null, material: v.material || null, size: v.size || null,
+          model: v.model || null, finish: v.finish || null,
           cost: v.cost ?? 0, sale_price: v.sale_price ?? 0, stock: v.stock ?? 0, min_stock: v.min_stock ?? 0,
           image_url: v.image_url || null,
           width: numOrNull(v.width), height: numOrNull(v.height), depth: numOrNull(v.depth),
           length_cm: numOrNull(v.length_cm), weight: numOrNull(v.weight),
           measure_unit: v.measure_unit || "cm",
-          attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size },
+          attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size, model: v.model, finish: v.finish },
         };
         if (v.id) {
           await supabase.from("product_variations").update(row).eq("id", v.id);
@@ -174,7 +179,7 @@ export default function Products() {
       await supabase.from("product_variations").delete().eq("product_id", prodId);
     }
 
-    toast.success("Salvo"); setOpen(false); load();
+    toast.success("Produto salvo"); setOpen(false); load();
   };
 
   const remove = async (id: string) => {
@@ -253,7 +258,7 @@ export default function Products() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, codnome, código, fornecedor..." className="pl-9 h-9" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, apelido curto, código, fornecedor..." className="pl-9 h-9" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="h-9 w-40 bg-primary/10 border-primary/30 hover:bg-primary/15"><SelectValue /></SelectTrigger>
@@ -300,7 +305,7 @@ export default function Products() {
                   <Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} aria-label="Selecionar tudo" />
                 </TableHead>
                 <TableHead>Produto</TableHead>
-                <TableHead className="hidden md:table-cell">Codnome</TableHead>
+                <TableHead className="hidden md:table-cell">Apelido curto</TableHead>
                 <TableHead className="hidden lg:table-cell">Categoria</TableHead>
                 <TableHead className="hidden lg:table-cell">Fornecedor</TableHead>
                 <TableHead>Estoque</TableHead><TableHead>Preço</TableHead>
@@ -360,10 +365,11 @@ export default function Products() {
             </TabsList>
 
             <TabsContent value="geral" className="space-y-4 pt-4">
+              <ImageUploader value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} folder="products" label="Foto do produto" />
               <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Codnome (apelido curto)</Label>
+                  <Label>Apelido curto</Label>
                   <div className="flex gap-1">
                     <Input value={form.codname} onChange={(e) => setForm({ ...form, codname: e.target.value })} placeholder="Ex: SOFA230CZ" />
                     <Button type="button" size="icon" variant="outline" onClick={autoGenCodname} title="Gerar a partir do nome"><Wand2 className="h-4 w-4" /></Button>
@@ -449,7 +455,7 @@ export default function Products() {
                 <Switch checked={form.has_variations} onCheckedChange={(v) => { setForm({ ...form, has_variations: v }); if (v && variations.length === 0) setVariations([emptyVariation()]); }} />
               </div>
               {form.has_variations && (
-                <VariationEditor value={variations} onChange={setVariations} parentName={form.name} />
+                <VariationEditor value={variations} onChange={setVariations} parentName={form.name} parentCategory={form.category} />
               )}
             </TabsContent>
           </Tabs>

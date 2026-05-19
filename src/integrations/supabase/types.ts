@@ -1264,6 +1264,7 @@ export type Database = {
           created_at: string
           depth: number | null
           fabric: string | null
+          finish: string | null
           height: number | null
           id: string
           image_url: string | null
@@ -1271,6 +1272,7 @@ export type Database = {
           material: string | null
           measure_unit: string | null
           min_stock: number
+          model: string | null
           name: string
           product_id: string
           sale_price: number
@@ -1293,6 +1295,7 @@ export type Database = {
           created_at?: string
           depth?: number | null
           fabric?: string | null
+          finish?: string | null
           height?: number | null
           id?: string
           image_url?: string | null
@@ -1300,6 +1303,7 @@ export type Database = {
           material?: string | null
           measure_unit?: string | null
           min_stock?: number
+          model?: string | null
           name: string
           product_id: string
           sale_price?: number
@@ -1322,6 +1326,7 @@ export type Database = {
           created_at?: string
           depth?: number | null
           fabric?: string | null
+          finish?: string | null
           height?: number | null
           id?: string
           image_url?: string | null
@@ -1329,6 +1334,7 @@ export type Database = {
           material?: string | null
           measure_unit?: string | null
           min_stock?: number
+          model?: string | null
           name?: string
           product_id?: string
           sale_price?: number
