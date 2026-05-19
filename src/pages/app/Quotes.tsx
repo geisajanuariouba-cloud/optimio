@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { FileText, Plus, X, Search, Trash2 } from "lucide-react";
+import { FileText, Plus, X, Search, Trash2, Mic, Square, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useRef } from "react";
 
 export default function Quotes() {
   const { user } = useAuth();
@@ -26,6 +27,71 @@ export default function Quotes() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<any>({ client_id: "", payment_method: "pix", items: [] as any[] });
+  const [recording, setRecording] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType });
+        await processAudio(blob, mr.mimeType);
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setRecording(true);
+    } catch {
+      toast.error("Não foi possível acessar o microfone");
+    }
+  };
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  };
+  const processAudio = async (blob: Blob, mime: string) => {
+    setProcessing(true);
+    try {
+      const buf = await blob.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = ""; for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const audio_base64 = btoa(binary);
+      const { data, error } = await supabase.functions.invoke("quote-from-audio", {
+        body: { audio_base64, mime_type: mime, products },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const newItems: any[] = [];
+      for (const it of (data.items ?? [])) {
+        const p = products.find(x => x.id === it.product_id);
+        if (!p) continue;
+        const vars = variations.filter(v => v.product_id === p.id);
+        const variation_id = vars[0]?.id ?? null;
+        const cost = Number(variation_id ? vars[0].cost : (p.cost ?? 0));
+        const unit_price = Number(variation_id ? vars[0].sale_price : p.sale_price);
+        const margin_percent = cost > 0 ? +(((unit_price / cost) - 1) * 100).toFixed(1) : 100;
+        newItems.push({
+          product_id: p.id, variation_id, quantity: it.quantity || 1,
+          unit_cost: cost, margin_percent, unit_price,
+          name: p.name, image_url: p.image_url, has_variations: vars.length > 0,
+        });
+      }
+      if (!newItems.length) toast.error("Nenhum produto identificado no áudio");
+      else {
+        setForm((f: any) => ({ ...f, items: [...f.items, ...newItems] }));
+        toast.success(`${newItems.length} item(s) adicionado(s) por voz`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao processar áudio");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const load = async () => {
     if (!user) return;
@@ -152,8 +218,21 @@ export default function Quotes() {
             </div>
 
             <div>
-              <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Buscar produto (nome ou código)</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Buscar produto (nome ou código)</Label>
+                {!recording ? (
+                  <Button type="button" size="sm" variant="outline" onClick={startRecording} disabled={processing}>
+                    {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Mic className="h-4 w-4 mr-1" />}
+                    {processing ? "Processando…" : "Ditar orçamento"}
+                  </Button>
+                ) : (
+                  <Button type="button" size="sm" variant="destructive" onClick={stopRecording}>
+                    <Square className="h-4 w-4 mr-1" /> Parar gravação
+                  </Button>
+                )}
+              </div>
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Digite para buscar" />
+              {recording && <p className="text-xs text-destructive mt-1 animate-pulse">🎙️ Gravando… fale os produtos e quantidades.</p>}
               {search && (
                 <div className="mt-2 max-h-40 overflow-y-auto border rounded-2xl divide-y">
                   {filteredProducts.slice(0, 8).map(p => (
