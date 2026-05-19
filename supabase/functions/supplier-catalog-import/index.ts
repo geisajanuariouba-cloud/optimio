@@ -344,7 +344,9 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Catálogo não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       await supabase.from("supplier_catalogs").update({
-        processing_status: "pending", error_message: null, processed_pages: 0, products_created: 0, products_updated: 0,
+        processing_status: "pending", processing_stage: "enviado", error_message: null, partial_reason: null,
+        processed_pages: 0, processed_chunks: 0, total_chunks: 0, products_extracted: 0,
+        products_created: 0, products_updated: 0, processing_logs: [], completed_at: null,
       }).eq("id", cat.id);
       // @ts-ignore
       EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime));
@@ -360,7 +362,7 @@ Deno.serve(async (req) => {
     const { data: parent, error: insErr } = await supabase.from("supplier_catalogs").insert({
       user_id: user.id, supplier_id, filename: filename ?? "catalogo", storage_path,
       mime, size_bytes: size_bytes ?? null, kind: docKind,
-      processing_status: "pending", internal_only: false,
+      processing_status: "pending", processing_stage: "enviado", internal_only: false,
     }).select("id").single();
     if (insErr || !parent) {
       return new Response(JSON.stringify({ error: "Erro ao registrar catálogo." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
