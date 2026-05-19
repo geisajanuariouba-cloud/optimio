@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Upload, Phone, MapPin, MessageSquare, Boxes, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Send, Upload, Phone, MapPin, MessageSquare, Boxes, Loader2, FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
 import { MetricsRow } from "@/components/app/PageHeader";
 
 export default function SupplierDetail() {
@@ -21,8 +22,12 @@ export default function SupplierDetail() {
   const [catalogs, setCatalogs] = useState<any[]>([]);
   const [cmd, setCmd] = useState("");
   const [sending, setSending] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [importing, setImporting] = useState(false);
+  const catalogRef = useRef<HTMLInputElement>(null);
+  const pricingRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState<null | "catalog" | "pricing">(null);
+  const [preview, setPreview] = useState<{ url: string; mime: string; filename: string } | null>(null);
+
+
 
   const load = async () => {
     if (!id) return;
@@ -92,10 +97,10 @@ export default function SupplierDetail() {
       img.src = url;
     });
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>, kind: "catalog" | "pricing") => {
     const f = e.target.files?.[0];
     if (!f || !id || !user) return;
-    setImporting(true);
+    setImporting(kind);
     try {
       let upload: Blob = f;
       let mime = f.type;
@@ -108,23 +113,32 @@ export default function SupplierDetail() {
         throw new Error("Arquivo muito grande (máx 25MB). Divida o PDF em partes menores.");
       }
       const safeName = outName.replace(/[^\w.\-]+/g, "_");
-      const storagePath = `${user.id}/${id}/${Date.now()}_${safeName}`;
+      const storagePath = `${user.id}/${id}/${kind}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("supplier-catalogs")
         .upload(storagePath, upload, { contentType: mime || "application/octet-stream", upsert: false });
-      if (upErr) throw upErr;
+      if (upErr) throw new Error("Falha ao enviar o arquivo. Tente novamente.");
       const { data, error } = await supabase.functions.invoke("supplier-catalog-import", {
-        body: { supplier_id: id, filename: outName, mime, storage_path: storagePath, size_bytes: upload.size },
+        body: { supplier_id: id, filename: outName, mime, storage_path: storagePath, size_bytes: upload.size, kind },
       });
-      if (error) throw error;
-      toast.success(`${data?.created ?? 0} criados, ${data?.updated ?? 0} atualizados`);
+      if (error) {
+        const msg = (data as any)?.error || "Erro ao processar o arquivo com a IA.";
+        throw new Error(msg);
+      }
+      toast.success(`${data?.created ?? 0} novos · ${data?.updated ?? 0} atualizados`);
       load();
     } catch (err: any) {
-      toast.error(err.message ?? "Erro na importação");
+      toast.error(err?.message ?? "Erro na importação");
     } finally {
-      setImporting(false);
+      setImporting(null);
       e.target.value = "";
     }
+  };
+
+  const openPreview = async (c: any) => {
+    const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(c.storage_path, 60 * 30);
+    if (error || !data?.signedUrl) { toast.error("Não foi possível abrir o arquivo"); return; }
+    setPreview({ url: data.signedUrl, mime: c.mime || "", filename: c.filename });
   };
 
   if (!supplier) return <div className="p-6 text-muted-foreground">Carregando…</div>;
@@ -160,32 +174,46 @@ export default function SupplierDetail() {
 
         <TabsContent value="chat" className="space-y-4">
           <Card className="p-5 rounded-3xl border-0 shadow-sm">
-            <div className="text-sm font-semibold mb-2">Importar catálogo / tabela de preços</div>
-            <p className="text-xs text-muted-foreground mb-3">A IA lê PDF, Excel ou CSV e cadastra produtos com <strong>preço de custo</strong> (não venda). O preço de venda é calculado pelo motor de precificação do fornecedor (custo + margem + taxa extra). O arquivo fica salvo aqui para reabrir ou baixar quando quiser.</p>
-            <input ref={fileRef} type="file" accept=".pdf,.csv,.xlsx,.xls" hidden onChange={onFile} />
-            <Button onClick={() => fileRef.current?.click()} disabled={importing} className="rounded-2xl gap-2">
-              {importing ? <><Loader2 className="h-4 w-4 animate-spin" />Importando…</> : <><Upload className="h-4 w-4" />Anexar catálogo</>}
-            </Button>
+            <div className="text-sm font-semibold mb-2">Anexar arquivos do fornecedor</div>
+            <p className="text-xs text-muted-foreground mb-3">A IA lê PDF ou imagem e cadastra os produtos com <strong>preço de custo</strong>. O preço de venda é calculado pelo motor (custo + margem + taxa). Você pode visualizar, baixar ou remover os arquivos a qualquer momento.</p>
+            <input ref={catalogRef} type="file" accept=".pdf,image/*" hidden onChange={(e) => onFile(e, "catalog")} />
+            <input ref={pricingRef} type="file" accept=".pdf,image/*" hidden onChange={(e) => onFile(e, "pricing")} />
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => catalogRef.current?.click()} disabled={!!importing} className="rounded-2xl gap-2">
+                {importing === "catalog" ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando catálogo…</> : <><FileText className="h-4 w-4" />Anexar catálogo</>}
+              </Button>
+              <Button onClick={() => pricingRef.current?.click()} disabled={!!importing} variant="secondary" className="rounded-2xl gap-2">
+                {importing === "pricing" ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando tabela…</> : <><DollarSign className="h-4 w-4" />Anexar tabela de preços de custo</>}
+              </Button>
+            </div>
 
-            {catalogs.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Catálogos anexados</div>
-                {catalogs.map((c: any) => (
-                  <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
-                    <Upload className="h-4 w-4 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{c.filename}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(c.created_at).toLocaleString("pt-BR")} · {c.products_created} novos · {c.products_updated} atualizados
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" className="rounded-xl" onClick={() => downloadCatalog(c.storage_path, c.filename)}>Baixar</Button>
-                    <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Loader2 className="h-4 w-4 hidden" />×</Button>
+            {(["catalog", "pricing"] as const).map((k) => {
+              const list = catalogs.filter((c: any) => (c.kind ?? "catalog") === k);
+              if (list.length === 0) return null;
+              return (
+                <div key={k} className="mt-4 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {k === "catalog" ? "Catálogos anexados" : "Tabelas de preço de custo"}
                   </div>
-                ))}
-              </div>
-            )}
+                  {list.map((c: any) => (
+                    <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
+                      {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{c.filename}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(c.created_at).toLocaleString("pt-BR")} · {c.products_created} novos · {c.products_updated} atualizados
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
+                      <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
+                      <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </Card>
+
 
           <Card className="p-5 rounded-3xl border-0 shadow-sm">
             <div className="text-sm font-semibold mb-1">Chat de comandos</div>
@@ -227,6 +255,20 @@ export default function SupplierDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="px-5 py-3 border-b">
+            <DialogTitle className="text-sm font-semibold truncate">{preview?.filename}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 h-full bg-secondary/30">
+            {preview?.mime.startsWith("image/")
+              ? <img src={preview.url} alt={preview.filename} className="w-full h-full object-contain" />
+              : <iframe src={preview?.url} title={preview?.filename} className="w-full h-full" />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

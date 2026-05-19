@@ -1,0 +1,1 @@
+ALTER TABLE public.supplier_catalogs ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'catalog';
