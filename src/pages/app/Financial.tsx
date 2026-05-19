@@ -108,7 +108,7 @@ export default function Financial() {
       if (dest) {
         await supabase.from("deliveries").insert({
           user_id: user.id, financial_id: tx.id, client_id: form.client_id,
-          destination_address: dest, status: "pending",
+          destination_address: dest, status: "ready", stock_available_at_sale: true,
         });
       }
     }
