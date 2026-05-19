@@ -242,25 +242,54 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
         const rawCost = Number(p.cost ?? 0);
         const { cost, sale } = applyPricingMotor(rawCost, rules);
         const category_id = await ensureCategory(p.category);
+        const codname = (p.codname && String(p.codname).trim()) || generateCodname(p.name, p.size, p.color);
+        const hasVariations = Array.isArray(p.variations) && p.variations.length > 0;
         const pid = (p.code && byCode.get(String(p.code).toLowerCase())) || byName.get(String(p.name).toLowerCase());
+        const num = (v: any) => (v === undefined || v === null || v === "" ? null : Number(v));
         const payload: any = {
           cost, sale_price: sale, supplier_id: supplierId, status: "active",
+          codname, has_variations: hasVariations,
           ...(p.code ? { code: p.code } : {}),
+          ...(p.description ? { description: p.description } : {}),
           ...(category_id ? { category_id, category: p.category } : (p.category ? { category: p.category } : {})),
           ...(p.measurements ? { measurements: { raw: p.measurements } } : {}),
+          width: num(p.width), height: num(p.height), depth: num(p.depth),
+          length_cm: num(p.length_cm), weight: num(p.weight),
         };
+        let prodId: string | null = null;
         if (pid) {
           await supabase.from("products").update(payload).eq("id", pid);
+          prodId = pid as string;
           updated++;
         } else {
           const { data: ins } = await supabase.from("products")
             .insert({ user_id: userId, name: p.name, stock: 0, min_stock: 0, ...payload })
             .select("id").single();
           if (ins?.id) {
+            prodId = ins.id;
             if (p.code) byCode.set(String(p.code).toLowerCase(), ins.id);
             byName.set(String(p.name).toLowerCase(), ins.id);
           }
           created++;
+        }
+        if (hasVariations && prodId) {
+          // limpa variações antigas dessa importação para não duplicar
+          await supabase.from("product_variations").delete().eq("product_id", prodId);
+          const rows = p.variations.map((v: any) => {
+            const vCost = applyPricingMotor(Number(v.cost ?? rawCost), rules);
+            return {
+              product_id: prodId, user_id: userId, supplier_id: supplierId,
+              name: v.name || [v.size, v.color, v.fabric].filter(Boolean).join(" ") || "Variação",
+              codname: generateCodname(p.name, v.size, v.color),
+              sku: v.sku || null,
+              color: v.color || null, fabric: v.fabric || null, material: v.material || null, size: v.size || null,
+              cost: vCost.cost, sale_price: vCost.sale, stock: 0, min_stock: 0,
+              width: num(v.width), height: num(v.height), depth: num(v.depth),
+              length_cm: num(v.length_cm), weight: num(v.weight),
+              attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size },
+            };
+          });
+          if (rows.length) await supabase.from("product_variations").insert(rows);
         }
       }
       return { created, updated };
