@@ -113,7 +113,17 @@ Deno.serve(async (req) => {
     });
     if (!aiRes.ok) {
       const t = await aiRes.text();
-      return new Response(JSON.stringify({ error: "Falha na IA", details: t }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      let userMsg = "Não foi possível ler o arquivo com a IA. Tente novamente.";
+      if (aiRes.status === 413 || /30MB|too large|exceed/i.test(t)) {
+        userMsg = "Arquivo muito pesado para a IA processar (limite ~30MB). Reduza a qualidade do PDF ou divida em partes menores.";
+      } else if (aiRes.status === 429) {
+        userMsg = "Limite de uso da IA atingido. Aguarde alguns minutos e tente novamente.";
+      } else if (aiRes.status === 402) {
+        userMsg = "Créditos de IA esgotados. Recarregue para continuar.";
+      } else if (aiRes.status === 415 || /unsupported|format/i.test(t)) {
+        userMsg = "Formato de arquivo não suportado. Use PDF ou imagem (JPG/PNG).";
+      }
+      return new Response(JSON.stringify({ error: userMsg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const ai = await aiRes.json();
     const args = JSON.parse(ai.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ?? "{}");
