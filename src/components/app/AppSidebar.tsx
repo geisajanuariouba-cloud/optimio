@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote, ShoppingBag } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -20,6 +20,7 @@ const ALL = [
   { mod: "products", title: "Fornecedores", url: "/app/suppliers", icon: Factory },
   { mod: "products", title: "Categorias", url: "/app/categories", icon: Tags },
   { mod: "products", title: "Orçamentos", url: "/app/quotes", icon: FileText },
+  { mod: "financial", title: "Vendas", url: "/app/sales", icon: ShoppingBag },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
   { mod: "financial", title: "Caixa em Dinheiro", url: "/app/cash-drawer", icon: Banknote },
   { mod: "financial", title: "Métodos de Pagamento", url: "/app/payment-methods", icon: CreditCard },
