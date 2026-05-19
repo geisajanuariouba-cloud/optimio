@@ -455,7 +455,7 @@ export default function Products() {
                 <Switch checked={form.has_variations} onCheckedChange={(v) => { setForm({ ...form, has_variations: v }); if (v && variations.length === 0) setVariations([emptyVariation()]); }} />
               </div>
               {form.has_variations && (
-                <VariationEditor value={variations} onChange={setVariations} parentName={form.name} />
+                <VariationEditor value={variations} onChange={setVariations} parentName={form.name} parentCategory={form.category} />
               )}
             </TabsContent>
           </Tabs>
