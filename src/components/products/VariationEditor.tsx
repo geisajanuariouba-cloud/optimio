@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Plus, Trash2, Copy, Wand2 } from "lucide-react";
 import { generateCodname } from "@/lib/codname";
+import { ImageUploader } from "./ImageUploader";
 
 export type Variation = {
   id?: string;
@@ -15,11 +16,13 @@ export type Variation = {
   fabric?: string;
   material?: string;
   size?: string;
+  model?: string;
+  finish?: string;
   cost?: number;
   sale_price?: number;
   stock?: number;
   min_stock?: number;
-  image_url?: string;
+  image_url?: string | null;
   width?: number;
   height?: number;
   depth?: number;
@@ -29,12 +32,12 @@ export type Variation = {
 };
 
 export function emptyVariation(): Variation {
-  return { name: "", color: "", fabric: "", size: "", cost: 0, sale_price: 0, stock: 0, min_stock: 0, measure_unit: "cm" };
+  return { name: "", color: "", fabric: "", size: "", model: "", finish: "", cost: 0, sale_price: 0, stock: 0, min_stock: 0, measure_unit: "cm", image_url: null };
 }
 
 export function VariationEditor({
-  value, onChange, parentName,
-}: { value: Variation[]; onChange: (v: Variation[]) => void; parentName: string }) {
+  value, onChange, parentName, parentCategory,
+}: { value: Variation[]; onChange: (v: Variation[]) => void; parentName: string; parentCategory?: string }) {
   const update = (i: number, patch: Partial<Variation>) => {
     const next = value.slice();
     next[i] = { ...next[i], ...patch };
@@ -49,7 +52,7 @@ export function VariationEditor({
   };
   const autoCodname = (i: number) => {
     const v = value[i];
-    const cn = generateCodname(parentName || v.name, v.size, v.color);
+    const cn = generateCodname(parentName || v.name, v.size, v.color, parentCategory);
     update(i, { codname: cn });
   };
 
@@ -80,13 +83,14 @@ export function VariationEditor({
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Nome da variação</Label><Input value={v.name} onChange={(e) => update(i, { name: e.target.value })} placeholder="Ex: 2.30m Linho Cinza" /></div>
                 <div>
-                  <Label>Codnome</Label>
+                  <Label>Apelido curto</Label>
                   <div className="flex gap-1">
                     <Input value={v.codname ?? ""} onChange={(e) => update(i, { codname: e.target.value })} placeholder="SOFA230CZ" />
                     <Button type="button" size="icon" variant="outline" onClick={() => autoCodname(i)} title="Gerar"><Wand2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
               </div>
+              <ImageUploader value={v.image_url ?? null} onChange={(url) => update(i, { image_url: url })} folder="variations" label="Foto desta variação" />
               <div className="grid grid-cols-3 gap-3">
                 <div><Label>Cor</Label><Input value={v.color ?? ""} onChange={(e) => update(i, { color: e.target.value })} /></div>
                 <div><Label>Tecido</Label><Input value={v.fabric ?? ""} onChange={(e) => update(i, { fabric: e.target.value })} /></div>
@@ -94,9 +98,10 @@ export function VariationEditor({
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div><Label>Tamanho</Label><Input value={v.size ?? ""} onChange={(e) => update(i, { size: e.target.value })} placeholder="2.30m" /></div>
-                <div><Label>SKU</Label><Input value={v.sku ?? ""} onChange={(e) => update(i, { sku: e.target.value })} /></div>
-                <div><Label>Imagem URL</Label><Input value={v.image_url ?? ""} onChange={(e) => update(i, { image_url: e.target.value })} /></div>
+                <div><Label>Modelo</Label><Input value={v.model ?? ""} onChange={(e) => update(i, { model: e.target.value })} placeholder="Ex: Retrátil" /></div>
+                <div><Label>Acabamento</Label><Input value={v.finish ?? ""} onChange={(e) => update(i, { finish: e.target.value })} placeholder="Ex: Fosco" /></div>
               </div>
+              <div><Label>SKU</Label><Input value={v.sku ?? ""} onChange={(e) => update(i, { sku: e.target.value })} /></div>
               <div className="grid grid-cols-4 gap-3">
                 <div><Label>Custo (R$)</Label><Input type="number" step="0.01" value={v.cost ?? 0} onChange={(e) => update(i, { cost: +e.target.value })} /></div>
                 <div><Label>Preço (R$)</Label><Input type="number" step="0.01" value={v.sale_price ?? 0} onChange={(e) => update(i, { sale_price: +e.target.value })} /></div>
