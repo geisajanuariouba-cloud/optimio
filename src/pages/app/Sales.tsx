@@ -152,6 +152,7 @@ export default function Sales() {
             <SelectContent>
               <SelectItem value="all">Todas formas</SelectItem>
               {pms.map(p => <SelectItem key={p.id} value={p.code}>{p.label}</SelectItem>)}
+              <SelectItem value="promissoria">Promissória</SelectItem>
             </SelectContent>
           </Select>
         </div>
