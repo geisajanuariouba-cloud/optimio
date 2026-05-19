@@ -255,6 +255,20 @@ export default function SupplierDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="px-5 py-3 border-b">
+            <DialogTitle className="text-sm font-semibold truncate">{preview?.filename}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 h-full bg-secondary/30">
+            {preview?.mime.startsWith("image/")
+              ? <img src={preview.url} alt={preview.filename} className="w-full h-full object-contain" />
+              : <iframe src={preview?.url} title={preview?.filename} className="w-full h-full" />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
