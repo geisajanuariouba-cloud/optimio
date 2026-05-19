@@ -305,7 +305,7 @@ export default function Products() {
                   <Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} aria-label="Selecionar tudo" />
                 </TableHead>
                 <TableHead>Produto</TableHead>
-                <TableHead className="hidden md:table-cell">Codnome</TableHead>
+                <TableHead className="hidden md:table-cell">Apelido curto</TableHead>
                 <TableHead className="hidden lg:table-cell">Categoria</TableHead>
                 <TableHead className="hidden lg:table-cell">Fornecedor</TableHead>
                 <TableHead>Estoque</TableHead><TableHead>Preço</TableHead>
