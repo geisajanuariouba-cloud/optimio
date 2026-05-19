@@ -1738,6 +1738,45 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_catalogs: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          mime: string | null
+          products_created: number
+          products_updated: number
+          size_bytes: number | null
+          storage_path: string
+          supplier_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          mime?: string | null
+          products_created?: number
+          products_updated?: number
+          size_bytes?: number | null
+          storage_path: string
+          supplier_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          mime?: string | null
+          products_created?: number
+          products_updated?: number
+          size_bytes?: number | null
+          storage_path?: string
+          supplier_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       supplier_commands: {
         Row: {
           affected_count: number

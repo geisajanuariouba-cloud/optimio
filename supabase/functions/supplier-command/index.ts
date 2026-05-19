@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
         parameters: {
           type: "object",
           properties: {
-            action: { type: "string", enum: ["discontinue", "rename", "update_price", "bulk_price_change", "noop"] },
+            action: { type: "string", enum: ["discontinue", "reactivate", "rename", "update_price", "bulk_price_change", "noop"] },
             product_name: { type: "string" },
             new_name: { type: "string" },
             new_price: { type: "number" },
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: `You are an inventory assistant. Available products (JSON): ${JSON.stringify(products?.map(p => ({ name: p.name, price: p.sale_price, status: p.status })) ?? [])}. Interpret user command in Portuguese and call the execute tool. Use product name fuzzy match.` },
+          { role: "system", content: `Você é assistente de estoque. Produtos disponíveis (JSON): ${JSON.stringify(products?.map(p => ({ name: p.name, price: p.sale_price, status: p.status })) ?? [])}. Interprete comandos em português e chame a tool execute. Use match fuzzy por nome. Mapeamento: "saiu de linha"/"fora de linha" → discontinue; "voltou de linha"/"voltou a ativa"/"reativar" → reactivate; "renomear" → rename; "preço X de Y" → update_price; "aumentar/diminuir N%" em todos → bulk_price_change.` },
           { role: "user", content: command },
         ],
         tools,
@@ -70,7 +70,13 @@ Deno.serve(async (req) => {
     if (args.action === "discontinue" && args.product_name) {
       const target = products?.find(p => p.name.toLowerCase().includes(args.product_name.toLowerCase()));
       if (target) {
-        await supabase.from("products").update({ status: "discontinued" }).eq("id", target.id);
+        await supabase.from("products").update({ status: "discontinued", out_of_line: true }).eq("id", target.id);
+        affected = 1;
+      }
+    } else if (args.action === "reactivate" && args.product_name) {
+      const target = products?.find(p => p.name.toLowerCase().includes(args.product_name.toLowerCase()));
+      if (target) {
+        await supabase.from("products").update({ status: "active", out_of_line: false }).eq("id", target.id);
         affected = 1;
       }
     } else if (args.action === "rename" && args.product_name && args.new_name) {

@@ -38,6 +38,7 @@ import Projects from "./pages/app/Projects";
 import Quotes from "./pages/app/Quotes";
 import Automations from "./pages/app/Automations";
 import Assemblers from "./pages/app/Assemblers";
+import Sales from "./pages/app/Sales";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="services" element={<Services />} />
                 <Route path="products" element={<Products />} />
                 <Route path="quotes" element={<Quotes />} />
+                <Route path="sales" element={<Sales />} />
                 <Route path="financial" element={<Financial />} />
                 <Route path="debts" element={<Debts />} />
                 <Route path="marketing" element={<Marketing />} />
