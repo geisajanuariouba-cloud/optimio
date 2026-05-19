@@ -35,11 +35,20 @@ export default function SupplierDetail() {
       supabase.from("suppliers").select("*").eq("id", id).maybeSingle(),
       supabase.from("products").select("*").eq("supplier_id", id).is("deleted_at", null).order("name"),
       supabase.from("supplier_commands").select("*").eq("supplier_id", id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("supplier_catalogs").select("*").eq("supplier_id", id).order("created_at", { ascending: false }),
+      supabase.from("supplier_catalogs").select("*").eq("supplier_id", id).eq("internal_only", false).order("created_at", { ascending: false }),
     ]);
     setSupplier(s.data); setProducts(p.data ?? []); setHistory(h.data ?? []); setCatalogs(c.data ?? []);
   };
   useEffect(() => { if (user) load(); }, [user, id]);
+
+  // Polling de status enquanto houver catálogos em processamento
+  useEffect(() => {
+    const processing = catalogs.some((c: any) => ["pending", "processing", "splitting", "extracting", "consolidating"].includes(c.processing_status));
+    if (!processing) return;
+    const t = setInterval(load, 4000);
+    return () => clearInterval(t);
+  }, [catalogs]);
+
 
   const downloadCatalog = async (path: string, filename: string) => {
     const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(path, 60);
