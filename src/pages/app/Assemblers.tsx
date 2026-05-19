@@ -17,7 +17,7 @@ import { Wrench, Plus, Check, Pencil, Trash2, Calculator } from "lucide-react";
 type Assembler = { id: string; name: string; phone: string | null; email: string | null; default_commission_percent: number; notes: string | null; status: string };
 type Commission = { id: string; assembler_id: string; delivery_id: string | null; financial_id: string | null; cost_base: number; percent: number | null; amount: number; status: string; paid_at: string | null; created_at: string };
 
-const emptyForm = { name: "", phone: "", email: "", default_commission_percent: 10, notes: "" };
+const emptyForm = { name: "", phone: "", email: "", default_commission_percent: 5, notes: "" };
 
 export default function Assemblers() {
   const { user } = useAuth();
@@ -28,7 +28,7 @@ export default function Assemblers() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Assembler | null>(null);
   const [form, setForm] = useState<any>(emptyForm);
-  const [batchPercent, setBatchPercent] = useState(10);
+  const [batchPercent, setBatchPercent] = useState(5);
   const [selectedPending, setSelectedPending] = useState<Set<string>>(new Set());
 
   const load = async () => {
@@ -234,7 +234,7 @@ export default function Assemblers() {
               <div><Label>Telefone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             </div>
-            <div><Label>% comissão padrão</Label><Input type="number" step="0.1" value={form.default_commission_percent} onChange={(e) => setForm({ ...form, default_commission_percent: +e.target.value })} /></div>
+            <div><Label>% comissão padrão (sugerido 5%)</Label><Input type="number" step="0.1" value={form.default_commission_percent} onChange={(e) => setForm({ ...form, default_commission_percent: +e.target.value })} /></div>
             <div><Label>Notas</Label><Input value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
           <DialogFooter>
