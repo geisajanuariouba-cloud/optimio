@@ -31,11 +31,37 @@ function applyPricingMotor(rawCost: number, rules: any) {
   return { cost: +cost.toFixed(2), sale: +sale.toFixed(2) };
 }
 
+function generateCodname(name: string, size?: string | null, color?: string | null): string {
+  if (!name) return "";
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const firstToken = norm(name).trim().split(/\s+/)[0] || "";
+  const base = firstToken.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();
+  const sizePart = size ? (size.match(/[0-9]+/g)?.join("") ?? "").slice(0, 4) : "";
+  const colorPart = color ? norm(color).replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() : "";
+  return `${base}${sizePart}${colorPart}`;
+}
+
+const variationSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "Ex: '2.30m Linho Cinza'" },
+    color: { type: "string" },
+    fabric: { type: "string" },
+    material: { type: "string" },
+    size: { type: "string" },
+    sku: { type: "string" },
+    cost: { type: "number" },
+    width: { type: "number" }, height: { type: "number" }, depth: { type: "number" },
+    length_cm: { type: "number" }, weight: { type: "number" },
+  },
+  additionalProperties: false,
+};
+
 const productTools = (existingCatNames: string[]) => [{
   type: "function",
   function: {
     name: "extract_products",
-    description: "Extrai produtos de uma tabela de preços de fornecedor",
+    description: "Extrai produtos de catálogo/tabela de fornecedor com variações e medidas quando houver",
     parameters: {
       type: "object",
       properties: {
@@ -45,11 +71,19 @@ const productTools = (existingCatNames: string[]) => [{
             type: "object",
             properties: {
               name: { type: "string" },
+              codname: { type: "string", description: "Apelido curto se aparecer (ex: SOFA230CZ)" },
               code: { type: "string" },
-              cost: { type: "number", description: "Preço da tabela (CUSTO, não venda)" },
+              cost: { type: "number", description: "Preço da tabela (CUSTO, nunca venda)" },
               category: { type: "string", description: `Categorias existentes: ${existingCatNames.join(", ") || "(nenhuma)"}` },
               description: { type: "string" },
-              measurements: { type: "string" },
+              color: { type: "string" }, fabric: { type: "string" }, material: { type: "string" }, size: { type: "string" },
+              width: { type: "number", description: "em cm" },
+              height: { type: "number", description: "em cm" },
+              depth: { type: "number", description: "em cm" },
+              length_cm: { type: "number", description: "em cm" },
+              weight: { type: "number", description: "em kg" },
+              measurements: { type: "string", description: "Texto bruto das medidas se não conseguir separar" },
+              variations: { type: "array", items: variationSchema, description: "Variações (cor/tecido/tamanho) quando o item tem múltiplas opções" },
             },
             required: ["name", "cost"],
             additionalProperties: false,
@@ -69,9 +103,9 @@ async function callAI(signedUrl: string, existingCatNames: string[]): Promise<an
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "Você é um extrator de catálogos. O preço é SEMPRE custo. Sempre chame extract_products." },
+        { role: "system", content: "Você é um extrator de catálogos de móveis/varejo. O preço da tabela é SEMPRE CUSTO. Identifique variações (cor, tecido, tamanho) e medidas (largura, altura, profundidade, comprimento, peso) quando aparecerem. Se um produto tem várias opções de cor/tecido/tamanho com preços diferentes, retorne como variations[]. Se o codname/apelido aparecer no catálogo, capture; caso contrário deixe vazio. Sempre chame extract_products." },
         { role: "user", content: [
-          { type: "text", text: "Extraia TODOS os produtos desta tabela/catálogo. O valor é o CUSTO (não venda). Inclua código, categoria e medidas quando aparecerem." },
+          { type: "text", text: "Extraia TODOS os produtos. Valor = CUSTO. Capture código, categoria, codnome, cor, tecido, material, tamanho, medidas (LxAxP, comprimento, peso) e variações." },
           { type: "image_url", image_url: { url: signedUrl } },
         ] },
       ],
