@@ -1773,6 +1773,7 @@ export type Database = {
           created_at: string
           filename: string
           id: string
+          kind: string
           mime: string | null
           products_created: number
           products_updated: number
@@ -1785,6 +1786,7 @@ export type Database = {
           created_at?: string
           filename: string
           id?: string
+          kind?: string
           mime?: string | null
           products_created?: number
           products_updated?: number
@@ -1797,6 +1799,7 @@ export type Database = {
           created_at?: string
           filename?: string
           id?: string
+          kind?: string
           mime?: string | null
           products_created?: number
           products_updated?: number
