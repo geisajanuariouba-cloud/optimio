@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon, Sparkles, Loader2 } from "lucide-react";
+import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon, Sparkles, Loader2, Instagram, BarChart3, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTenant } from "@/hooks/useTenant";
 
@@ -39,14 +39,17 @@ export default function Marketing() {
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<{ analysis?: string; ideas?: any[] } | null>(null);
+  const [instagramHandle, setInstagramHandle] = useState("");
 
   const load = async () => {
-    const [{ data: posts, error }, { data: ts }] = await Promise.all([
+    const [{ data: posts, error }, { data: ts }, { data: ig }] = await Promise.all([
       supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("tasks").select("id, title, due_date, status").is("deleted_at", null).order("due_date", { ascending: true, nullsFirst: false }),
+      supabase.from("integrations").select("config,status").eq("provider", "instagram").maybeSingle(),
     ]);
     if (error) toast.error(error.message); else setPosts((posts ?? []) as Post[]);
     setTasks((ts ?? []) as Task[]);
+    setInstagramHandle(((ig?.config as any)?.handle ?? "") as string);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -86,6 +89,13 @@ export default function Marketing() {
     load();
   };
 
+  const saveInstagram = async () => {
+    if (!user || !instagramHandle.trim()) return toast.error("Informe o @ do Instagram");
+    await supabase.from("integrations").upsert({ user_id: user.id, provider: "instagram", status: "connected", config: { handle: instagramHandle.trim().replace(/^@/, "") } });
+    toast.success("Instagram conectado para análise");
+    load();
+  };
+
   // Build calendar grid (current month)
   const runAI = async () => {
     setAiLoading(true);
@@ -97,6 +107,7 @@ export default function Marketing() {
           niche: (profile as any)?.niche ?? "geral",
           recent_posts: posts.slice(0, 10).map(p => ({ title: p.title, channel: p.channel, status: p.status })),
           top_products: prods ?? [],
+          instagram: { handle: instagramHandle, local_posts: posts.filter(p => p.channel === "instagram").slice(0, 20) },
           goal: "engajamento e conversão de vendas",
         },
       });
