@@ -97,10 +97,10 @@ export default function SupplierDetail() {
       img.src = url;
     });
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>, kind: "catalog" | "pricing") => {
     const f = e.target.files?.[0];
     if (!f || !id || !user) return;
-    setImporting(true);
+    setImporting(kind);
     try {
       let upload: Blob = f;
       let mime = f.type;
@@ -113,23 +113,32 @@ export default function SupplierDetail() {
         throw new Error("Arquivo muito grande (máx 25MB). Divida o PDF em partes menores.");
       }
       const safeName = outName.replace(/[^\w.\-]+/g, "_");
-      const storagePath = `${user.id}/${id}/${Date.now()}_${safeName}`;
+      const storagePath = `${user.id}/${id}/${kind}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("supplier-catalogs")
         .upload(storagePath, upload, { contentType: mime || "application/octet-stream", upsert: false });
-      if (upErr) throw upErr;
+      if (upErr) throw new Error("Falha ao enviar o arquivo. Tente novamente.");
       const { data, error } = await supabase.functions.invoke("supplier-catalog-import", {
-        body: { supplier_id: id, filename: outName, mime, storage_path: storagePath, size_bytes: upload.size },
+        body: { supplier_id: id, filename: outName, mime, storage_path: storagePath, size_bytes: upload.size, kind },
       });
-      if (error) throw error;
-      toast.success(`${data?.created ?? 0} criados, ${data?.updated ?? 0} atualizados`);
+      if (error) {
+        const msg = (data as any)?.error || "Erro ao processar o arquivo com a IA.";
+        throw new Error(msg);
+      }
+      toast.success(`${data?.created ?? 0} novos · ${data?.updated ?? 0} atualizados`);
       load();
     } catch (err: any) {
-      toast.error(err.message ?? "Erro na importação");
+      toast.error(err?.message ?? "Erro na importação");
     } finally {
-      setImporting(false);
+      setImporting(null);
       e.target.value = "";
     }
+  };
+
+  const openPreview = async (c: any) => {
+    const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(c.storage_path, 60 * 30);
+    if (error || !data?.signedUrl) { toast.error("Não foi possível abrir o arquivo"); return; }
+    setPreview({ url: data.signedUrl, mime: c.mime || "", filename: c.filename });
   };
 
   if (!supplier) return <div className="p-6 text-muted-foreground">Carregando…</div>;
