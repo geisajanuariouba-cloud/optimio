@@ -112,8 +112,17 @@ export default function Suppliers() {
               <div><Label>Telefone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div><Label>E-mail</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             </div>
-            <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3 space-y-3">
+            <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Motor de precificação</h4>
+              <div className="text-xs text-muted-foreground leading-relaxed bg-background/60 p-3 rounded-xl space-y-1">
+                <div><strong>Custo</strong> = valor da tabela de preços do fornecedor (não vai para venda).</div>
+                <div><strong>Taxa de custo</strong> = só ajusta o custo se houver valor configurado (frete, impostos, etc.).</div>
+                <div><strong>Margem</strong> = % de lucro desejada em cima do custo.</div>
+                <div><strong>Taxa extra</strong> = % adicional (cartão, comissão, etc.).</div>
+                <div className="pt-1 border-t border-border/50 mt-1.5">
+                  <strong>Exemplo:</strong> Custo R$100 + Margem 100% + Taxa extra 20% = <strong className="text-primary">R$220</strong> (Lucro R$120).
+                </div>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <div><Label className="text-xs">Taxa custo (%)</Label><Input type="number" step="0.1" value={form.cost_fee_percent} onChange={(e) => setForm({ ...form, cost_fee_percent: +e.target.value })} /></div>
                 <div><Label className="text-xs">Margem (%)</Label><Input type="number" step="0.1" value={form.default_margin_percent} onChange={(e) => setForm({ ...form, default_margin_percent: +e.target.value })} /></div>
@@ -121,7 +130,7 @@ export default function Suppliers() {
               </div>
               <div><Label className="text-xs">Prazo médio de entrega (dias)</Label><Input type="number" value={form.avg_delivery_days ?? ""} onChange={(e) => setForm({ ...form, avg_delivery_days: +e.target.value })} /></div>
             </div>
-            <p className="text-xs text-muted-foreground bg-secondary/40 p-3 rounded-2xl">📎 Para anexar catálogo (PDF/Excel/CSV), abra o painel do fornecedor após salvar.</p>
+            <p className="text-xs text-muted-foreground bg-secondary/40 p-3 rounded-2xl">📎 Para anexar catálogo (PDF/Excel/CSV), abra o painel do fornecedor após salvar — ele fica salvo e disponível para download a qualquer momento.</p>
             <div className="pt-2">
               <h4 className="text-sm font-semibold mb-2">Endereço da fábrica <span className="text-xs font-normal text-muted-foreground">(opcional)</span></h4>
               <AddressFields value={form} onChange={(v) => setForm({ ...form, ...v })} />
