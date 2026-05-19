@@ -71,22 +71,24 @@ export default function SupplierDetail() {
     if (!f || !id || !user) return;
     setImporting(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = String(reader.result).split(",")[1];
-        const { data, error } = await supabase.functions.invoke("supplier-catalog-import", {
-          body: { supplier_id: id, filename: f.name, mime: f.type, file_base64: base64 },
-        });
-        if (error) throw error;
-        toast.success(`${data?.created ?? 0} criados, ${data?.updated ?? 0} atualizados`);
-        load();
-        setImporting(false);
-      };
-      reader.readAsDataURL(f);
+      const safeName = f.name.replace(/[^\w.\-]+/g, "_");
+      const storagePath = `${user.id}/${id}/${Date.now()}_${safeName}`;
+      const { error: upErr } = await supabase.storage
+        .from("supplier-catalogs")
+        .upload(storagePath, f, { contentType: f.type || "application/octet-stream", upsert: false });
+      if (upErr) throw upErr;
+      const { data, error } = await supabase.functions.invoke("supplier-catalog-import", {
+        body: { supplier_id: id, filename: f.name, mime: f.type, storage_path: storagePath, size_bytes: f.size },
+      });
+      if (error) throw error;
+      toast.success(`${data?.created ?? 0} criados, ${data?.updated ?? 0} atualizados`);
+      load();
     } catch (err: any) {
-      toast.error(err.message ?? "Erro na importação"); setImporting(false);
+      toast.error(err.message ?? "Erro na importação");
+    } finally {
+      setImporting(false);
+      e.target.value = "";
     }
-    e.target.value = "";
   };
 
   if (!supplier) return <div className="p-6 text-muted-foreground">Carregando…</div>;
