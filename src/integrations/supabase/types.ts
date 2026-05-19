@@ -1770,45 +1770,80 @@ export type Database = {
       }
       supplier_catalogs: {
         Row: {
+          chunk_index: number | null
           created_at: string
+          error_message: string | null
           filename: string
           id: string
+          internal_only: boolean
           kind: string
           mime: string | null
+          page_end: number | null
+          page_start: number | null
+          parent_id: string | null
+          processed_pages: number
+          processing_status: string
           products_created: number
           products_updated: number
           size_bytes: number | null
           storage_path: string
           supplier_id: string
+          total_pages: number | null
           user_id: string
         }
         Insert: {
+          chunk_index?: number | null
           created_at?: string
+          error_message?: string | null
           filename: string
           id?: string
+          internal_only?: boolean
           kind?: string
           mime?: string | null
+          page_end?: number | null
+          page_start?: number | null
+          parent_id?: string | null
+          processed_pages?: number
+          processing_status?: string
           products_created?: number
           products_updated?: number
           size_bytes?: number | null
           storage_path: string
           supplier_id: string
+          total_pages?: number | null
           user_id: string
         }
         Update: {
+          chunk_index?: number | null
           created_at?: string
+          error_message?: string | null
           filename?: string
           id?: string
+          internal_only?: boolean
           kind?: string
           mime?: string | null
+          page_end?: number | null
+          page_start?: number | null
+          parent_id?: string | null
+          processed_pages?: number
+          processing_status?: string
           products_created?: number
           products_updated?: number
           size_bytes?: number | null
           storage_path?: string
           supplier_id?: string
+          total_pages?: number | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "supplier_catalogs_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_catalogs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supplier_commands: {
         Row: {
