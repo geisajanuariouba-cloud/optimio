@@ -66,19 +66,55 @@ export default function SupplierDetail() {
     } finally { setSending(false); }
   };
 
+  const compressImage = (file: File): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const maxDim = 2000;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const r = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * r);
+          height = Math.round(height * r);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas indisponível"));
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((b) => {
+          URL.revokeObjectURL(url);
+          b ? resolve(b) : reject(new Error("Falha ao comprimir"));
+        }, "image/jpeg", 0.82);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Imagem inválida")); };
+      img.src = url;
+    });
+
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f || !id || !user) return;
     setImporting(true);
     try {
-      const safeName = f.name.replace(/[^\w.\-]+/g, "_");
+      let upload: Blob = f;
+      let mime = f.type;
+      let outName = f.name;
+      if (f.type.startsWith("image/")) {
+        upload = await compressImage(f);
+        mime = "image/jpeg";
+        outName = f.name.replace(/\.[^.]+$/, "") + ".jpg";
+      } else if (f.size > 25 * 1024 * 1024) {
+        throw new Error("Arquivo muito grande (máx 25MB). Divida o PDF em partes menores.");
+      }
+      const safeName = outName.replace(/[^\w.\-]+/g, "_");
       const storagePath = `${user.id}/${id}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("supplier-catalogs")
-        .upload(storagePath, f, { contentType: f.type || "application/octet-stream", upsert: false });
+        .upload(storagePath, upload, { contentType: mime || "application/octet-stream", upsert: false });
       if (upErr) throw upErr;
       const { data, error } = await supabase.functions.invoke("supplier-catalog-import", {
-        body: { supplier_id: id, filename: f.name, mime: f.type, storage_path: storagePath, size_bytes: f.size },
+        body: { supplier_id: id, filename: outName, mime, storage_path: storagePath, size_bytes: upload.size },
       });
       if (error) throw error;
       toast.success(`${data?.created ?? 0} criados, ${data?.updated ?? 0} atualizados`);
