@@ -38,7 +38,7 @@ export default function Marketing() {
   const [taskDate, setTaskDate] = useState("");
 
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<{ analysis?: string; ideas?: any[] } | null>(null);
+  const [aiResult, setAiResult] = useState<{ analysis?: string; instagram_insights?: string[]; ideas?: any[] } | null>(null);
   const [instagramHandle, setInstagramHandle] = useState("");
 
   const load = async () => {
@@ -143,6 +143,12 @@ export default function Marketing() {
       ...tasks.filter(t => t.due_date === ds).map(t => ({ kind: "task", title: t.title })),
     ];
   };
+
+  const igPosts = posts.filter(p => p.channel === "instagram");
+  const igScheduled = igPosts.filter(p => p.status === "scheduled").length;
+  const igPublished = igPosts.filter(p => p.status === "published").length;
+  const igFrequency = igPosts.length ? Math.max(1, Math.round(igPosts.length / 4)) : 0;
+  const bestFormats = ["Antes/depois", "Bastidores", "Prova social", "Catálogo em vídeo"];
 
   return (
     <div>
