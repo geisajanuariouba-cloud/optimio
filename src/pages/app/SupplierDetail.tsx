@@ -286,17 +286,17 @@ export default function SupplierDetail() {
                               <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
                               <Badge className={(inBackground ? "bg-amber-500/15 text-amber-700" : st.cls) + " font-normal"}>
                                 {busy && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
-                                {inBackground ? "Processando em segundo plano" : st.label}
+                                {inBackground ? `${shownLabel} em segundo plano` : shownLabel}
                                 {busy ? ` ${progress}%` : ""}
                               </Badge>
-                              {c.processing_status === "completed" && (c.products_created || c.products_updated)
+                              {["completed", "partial"].includes(c.processing_status) && (c.products_created || c.products_updated)
                                 ? <span>· {c.products_created} novos · {c.products_updated} atualizados</span> : null}
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
                             <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
-                            {(c.processing_status === "failed" || inBackground) && (
+                            {(["failed", "partial"].includes(c.processing_status) || inBackground) && (
                               <Button size="sm" variant="secondary" className="rounded-xl" onClick={() => retryCatalog(c)}>Tentar novamente</Button>
                             )}
                             <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
@@ -309,7 +309,12 @@ export default function SupplierDetail() {
                         )}
                         {inBackground && (
                           <div className="text-xs text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
-                            O catálogo foi salvo e continuará sendo processado em segundo plano. Você pode sair desta tela e voltar depois.
+                            O catálogo original está salvo. Se não houver progresso, o sistema encerrará automaticamente como erro ou concluído parcialmente.
+                          </div>
+                        )}
+                        {c.processing_status === "partial" && (
+                          <div className="text-xs text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
+                            {c.partial_reason || "Alguns produtos foram processados. Revise os itens restantes."}
                           </div>
                         )}
                         {noProducts && (
@@ -322,14 +327,18 @@ export default function SupplierDetail() {
                             {c.error_message || "Não foi possível concluir a extração automática. Tente novamente ou revise o arquivo."}
                           </div>
                         )}
-                        {(busy || c.processing_status === "failed") && (
+                        {(busy || ["failed", "partial"].includes(c.processing_status)) && (
                           <details className="text-[11px] text-muted-foreground">
                             <summary className="cursor-pointer select-none">Detalhes técnicos</summary>
                             <div className="mt-1 grid gap-0.5 font-mono">
-                              <div>etapa: {c.processing_status}</div>
+                              <div>etapa: {shownLabel}</div>
                               <div>páginas: {c.processed_pages ?? 0} / {c.total_pages ?? "?"}</div>
+                              <div>chunks: {c.processed_chunks ?? 0} / {c.total_chunks ?? "?"}</div>
+                              <div>produtos extraídos: {c.products_extracted ?? 0}</div>
                               <div>iniciado: {new Date(c.created_at).toLocaleString("pt-BR")}</div>
+                              <div>último progresso: {Math.round(heartbeatAge)}s atrás</div>
                               <div>decorrido: {Math.round(elapsed)}s</div>
+                              {Array.isArray(c.processing_logs) && c.processing_logs.slice(-4).map((l: any, idx: number) => <div key={idx}>{l.step}: {l.message}</div>)}
                               {c.error_message && <div className="text-rose-600">erro: {c.error_message}</div>}
                             </div>
                           </details>
