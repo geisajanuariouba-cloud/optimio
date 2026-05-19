@@ -24,6 +24,14 @@ const DEFAULT_WIDGETS: Widgets = {
   tables: true, catalog: true, overdue_debts: true, quick_notes: true, anamnesis_due: true,
 };
 
+// Nicho determina quais widgets aparecem por padrão (usuário ainda pode ligar/desligar)
+const NICHE_WIDGETS: Record<string, Partial<Widgets>> = {
+  beauty:    { stock: false, deliveries_pending: false, pickups_pending: false },
+  retail:    { anamnesis_due: false, tables: false },
+  services:  { stock: false, deliveries_pending: false, pickups_pending: false, anamnesis_due: false },
+  education: { stock: false, deliveries_pending: false, pickups_pending: false, anamnesis_due: false },
+};
+
 const LABELS: Record<keyof Widgets, string> = {
   sales_month: "Venda do Mês", stock: "Estoque Depósito",
   deliveries_pending: "Entregas Pendentes", pickups_pending: "Retiradas Pendentes",
@@ -34,7 +42,8 @@ const LABELS: Record<keyof Widgets, string> = {
 export default function Dashboard() {
   const { user } = useAuth();
   const { profile, refresh } = useTenant();
-  const widgets: Widgets = { ...DEFAULT_WIDGETS, ...((profile?.dashboard_widgets as any) ?? {}) };
+  const nicheDefaults = NICHE_WIDGETS[(profile?.niche as string) ?? "beauty"] ?? {};
+  const widgets: Widgets = { ...DEFAULT_WIDGETS, ...nicheDefaults, ...((profile?.dashboard_widgets as any) ?? {}) };
 
   const [stats, setStats] = useState({
     salesMonth: 0, salesCount: 0, stock: 0, lowStock: 0,
