@@ -99,6 +99,7 @@ export default function Products() {
       stock: p.stock, min_stock: p.min_stock, sale_price: p.sale_price, cost: p.cost ?? 0,
       is_ingredient_residue: p.is_ingredient_residue, supplier_id: p.supplier_id ?? "", status: p.status ?? "active",
       has_variations: p.has_variations ?? false,
+      image_url: p.image_url ?? null,
       width: p.width ?? "", height: p.height ?? "", depth: p.depth ?? "", length_cm: p.length_cm ?? "", weight: p.weight ?? "", measure_unit: p.measure_unit ?? "cm",
     });
     if (p.has_variations) {
@@ -112,7 +113,7 @@ export default function Products() {
   };
 
   const autoGenCodname = () => {
-    const cn = generateCodname(form.name);
+    const cn = generateCodname(form.name, undefined, undefined, form.category);
     setForm({ ...form, codname: cn });
   };
 
