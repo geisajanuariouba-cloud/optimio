@@ -365,6 +365,7 @@ export default function Products() {
             </TabsList>
 
             <TabsContent value="geral" className="space-y-4 pt-4">
+              <ImageUploader value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} folder="products" label="Foto do produto" />
               <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
