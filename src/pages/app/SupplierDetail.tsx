@@ -136,7 +136,6 @@ export default function SupplierDetail() {
         const msg = (data as any)?.error || "Erro ao processar catálogo.";
         throw new Error(msg);
       }
-      toast.success(`${data?.created ?? 0} novos · ${data?.updated ?? 0} atualizados`);
       load();
     } catch (err: any) {
       toast.error(err?.message ?? "Erro na importação");
