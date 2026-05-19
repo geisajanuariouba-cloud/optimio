@@ -209,7 +209,7 @@ export default function Quotes() {
                 </Select>
               </div>
               <div><Label>Forma de pagamento</Label>
-                <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                <Select value={form.payment_method} onValueChange={(v) => { setForm({ ...form, payment_method: v }); if (v === "promissoria") setPromissoria(p => ({ ...p, total_amount: total })); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {pms.length === 0 && <>
@@ -218,10 +218,13 @@ export default function Quotes() {
                       <SelectItem value="credito">Cartão crédito</SelectItem>
                     </>}
                     {pms.map(m => <SelectItem key={m.id} value={m.code}>{m.label}</SelectItem>)}
+                    <SelectItem value="promissoria">Promissória</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {isPromissoria && <PromissoriaFields value={promissoria} onChange={setPromissoria} originalAmount={total} />}
 
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -291,7 +294,7 @@ export default function Quotes() {
 
             <div className="flex items-center justify-between pt-3 border-t">
               <span className="text-lg font-semibold">Total</span>
-              <span className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</span>
+              <span className="text-2xl font-bold text-primary">R$ {finalTotal.toFixed(2)}</span>
             </div>
           </div>
           <DialogFooter>
