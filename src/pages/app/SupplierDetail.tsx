@@ -174,32 +174,46 @@ export default function SupplierDetail() {
 
         <TabsContent value="chat" className="space-y-4">
           <Card className="p-5 rounded-3xl border-0 shadow-sm">
-            <div className="text-sm font-semibold mb-2">Importar catálogo / tabela de preços</div>
-            <p className="text-xs text-muted-foreground mb-3">A IA lê PDF, Excel ou CSV e cadastra produtos com <strong>preço de custo</strong> (não venda). O preço de venda é calculado pelo motor de precificação do fornecedor (custo + margem + taxa extra). O arquivo fica salvo aqui para reabrir ou baixar quando quiser.</p>
-            <input ref={fileRef} type="file" accept=".pdf,.csv,.xlsx,.xls" hidden onChange={onFile} />
-            <Button onClick={() => fileRef.current?.click()} disabled={importing} className="rounded-2xl gap-2">
-              {importing ? <><Loader2 className="h-4 w-4 animate-spin" />Importando…</> : <><Upload className="h-4 w-4" />Anexar catálogo</>}
-            </Button>
+            <div className="text-sm font-semibold mb-2">Anexar arquivos do fornecedor</div>
+            <p className="text-xs text-muted-foreground mb-3">A IA lê PDF ou imagem e cadastra os produtos com <strong>preço de custo</strong>. O preço de venda é calculado pelo motor (custo + margem + taxa). Você pode visualizar, baixar ou remover os arquivos a qualquer momento.</p>
+            <input ref={catalogRef} type="file" accept=".pdf,image/*" hidden onChange={(e) => onFile(e, "catalog")} />
+            <input ref={pricingRef} type="file" accept=".pdf,image/*" hidden onChange={(e) => onFile(e, "pricing")} />
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => catalogRef.current?.click()} disabled={!!importing} className="rounded-2xl gap-2">
+                {importing === "catalog" ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando catálogo…</> : <><FileText className="h-4 w-4" />Anexar catálogo</>}
+              </Button>
+              <Button onClick={() => pricingRef.current?.click()} disabled={!!importing} variant="secondary" className="rounded-2xl gap-2">
+                {importing === "pricing" ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando tabela…</> : <><DollarSign className="h-4 w-4" />Anexar tabela de preços de custo</>}
+              </Button>
+            </div>
 
-            {catalogs.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Catálogos anexados</div>
-                {catalogs.map((c: any) => (
-                  <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
-                    <Upload className="h-4 w-4 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{c.filename}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(c.created_at).toLocaleString("pt-BR")} · {c.products_created} novos · {c.products_updated} atualizados
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" className="rounded-xl" onClick={() => downloadCatalog(c.storage_path, c.filename)}>Baixar</Button>
-                    <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Loader2 className="h-4 w-4 hidden" />×</Button>
+            {(["catalog", "pricing"] as const).map((k) => {
+              const list = catalogs.filter((c: any) => (c.kind ?? "catalog") === k);
+              if (list.length === 0) return null;
+              return (
+                <div key={k} className="mt-4 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {k === "catalog" ? "Catálogos anexados" : "Tabelas de preço de custo"}
                   </div>
-                ))}
-              </div>
-            )}
+                  {list.map((c: any) => (
+                    <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
+                      {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{c.filename}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(c.created_at).toLocaleString("pt-BR")} · {c.products_created} novos · {c.products_updated} atualizados
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
+                      <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
+                      <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </Card>
+
 
           <Card className="p-5 rounded-3xl border-0 shadow-sm">
             <div className="text-sm font-semibold mb-1">Chat de comandos</div>
