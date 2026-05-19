@@ -26,7 +26,7 @@ type Product = {
   id: string; name: string; codname: string | null; code: string | null; category: string | null;
   stock: number; min_stock: number; sale_price: number; cost: number | null;
   is_ingredient_residue: boolean; supplier_id: string | null; status: string;
-  has_variations: boolean; description?: string | null;
+  has_variations: boolean; description?: string | null; image_url?: string | null;
   width?: number | null; height?: number | null; depth?: number | null; length_cm?: number | null; weight?: number | null; measure_unit?: string | null;
 };
 
@@ -40,6 +40,7 @@ const emptyForm = {
   stock: 0, min_stock: 5, sale_price: 0, cost: 0,
   is_ingredient_residue: false, supplier_id: "", status: "active",
   has_variations: false,
+  image_url: null as string | null,
   width: "", height: "", depth: "", length_cm: "", weight: "", measure_unit: "cm",
 };
 
