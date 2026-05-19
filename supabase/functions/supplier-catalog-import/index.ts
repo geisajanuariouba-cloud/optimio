@@ -11,9 +11,7 @@ function applyPricingMotor(rawCost: number, rules: {
   const cf = Number(rules.cost_fee_percent ?? 0);
   const mg = Number(rules.default_margin_percent ?? 100);
   const mk = Number(rules.default_markup_percent ?? 0);
-  // Custo final = cost + taxa de custo
   const cost = rawCost * (1 + cf / 100);
-  // Preço final = custo + margem + taxa extra
   const sale = cost * (1 + mg / 100) * (1 + mk / 100);
   return { cost: +cost.toFixed(2), sale: +sale.toFixed(2) };
 }
@@ -31,21 +29,19 @@ Deno.serve(async (req) => {
     if (!user) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const supabase = createClient(SB_URL, SVC);
 
-    const { supplier_id, filename, mime, file_base64 } = await req.json();
-    if (!supplier_id || !file_base64) {
+    const { supplier_id, filename, mime, storage_path, size_bytes } = await req.json();
+    if (!supplier_id || !storage_path) {
       return new Response(JSON.stringify({ error: "Dados obrigatórios faltando" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 1) Persistir arquivo no storage
-    const safeName = (filename ?? "catalogo.pdf").replace(/[^\w.\-]+/g, "_");
-    const storagePath = `${user.id}/${supplier_id}/${Date.now()}_${safeName}`;
-    const binStr = atob(file_base64);
-    const bytes = new Uint8Array(binStr.length);
-    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
-    const { error: upErr } = await supabase.storage.from("supplier-catalogs").upload(storagePath, bytes, { contentType: mime || "application/octet-stream", upsert: false });
-    if (upErr) console.error("storage upload error", upErr.message);
+    // 1) Signed URL para o catálogo (evita carregar bytes em memória)
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("supplier-catalogs").createSignedUrl(storage_path, 60 * 30);
+    if (signErr || !signed?.signedUrl) {
+      return new Response(JSON.stringify({ error: "Falha ao gerar URL do arquivo" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    // 2) Carregar fornecedor (regras de precificação) + categorias existentes
+    // 2) Carregar fornecedor + categorias
     const [{ data: supplier }, { data: cats }] = await Promise.all([
       supabase.from("suppliers").select("cost_fee_percent,default_margin_percent,default_markup_percent").eq("id", supplier_id).maybeSingle(),
       supabase.from("product_categories").select("id,name").eq("user_id", user.id),
@@ -54,7 +50,7 @@ Deno.serve(async (req) => {
     const existingCatNames = (cats ?? []).map(c => c.name);
     const catByName = new Map((cats ?? []).map(c => [c.name.toLowerCase(), c.id]));
 
-    // 3) IA para extrair produtos (incluindo código e medidas)
+    // 3) IA para extrair produtos
     const KEY = Deno.env.get("LOVABLE_API_KEY");
     const tools = [{
       type: "function",
@@ -69,12 +65,12 @@ Deno.serve(async (req) => {
               items: {
                 type: "object",
                 properties: {
-                  name: { type: "string", description: "Nome do produto" },
-                  code: { type: "string", description: "Código/SKU do produto, se houver" },
+                  name: { type: "string" },
+                  code: { type: "string" },
                   cost: { type: "number", description: "Preço da tabela (CUSTO, não venda)" },
-                  category: { type: "string", description: `Categoria detectada. Reutilize se possível: ${existingCatNames.join(", ") || "(nenhuma ainda)"}` },
+                  category: { type: "string", description: `Categorias existentes: ${existingCatNames.join(", ") || "(nenhuma)"}` },
                   description: { type: "string" },
-                  measurements: { type: "string", description: "Medidas (LxAxP) se constarem" },
+                  measurements: { type: "string" },
                 },
                 required: ["name", "cost"],
                 additionalProperties: false,
@@ -87,21 +83,28 @@ Deno.serve(async (req) => {
       },
     }];
 
-    const userMessage = mime?.startsWith("image/") || mime === "application/pdf"
-      ? [
-          { type: "text", text: "Extraia TODOS os produtos desta tabela de preços de fornecedor. IMPORTANTE: o valor da tabela é o CUSTO (preço de compra), não o preço de venda. Inclua código, categoria e medidas quando aparecerem. Reutilize categorias já existentes quando fizer sentido." },
-          { type: "image_url", image_url: { url: `data:${mime};base64,${file_base64}` } },
-        ]
-      : [{ type: "text", text: `Tabela de preços (texto): \n${atob(file_base64).slice(0, 50000)}\n\nExtraia todos os produtos. O valor é CUSTO, não venda. Reutilize categorias existentes: ${existingCatNames.join(", ") || "nenhuma"}.` }];
+    const isVisual = mime?.startsWith("image/") || mime === "application/pdf";
+    let userMessage: any;
+    if (isVisual) {
+      userMessage = [
+        { type: "text", text: "Extraia TODOS os produtos desta tabela de preços. O valor é o CUSTO (não venda). Inclua código, categoria e medidas quando aparecerem." },
+        { type: "image_url", image_url: { url: signed.signedUrl } },
+      ];
+    } else {
+      // Texto: baixa só o necessário
+      const txtRes = await fetch(signed.signedUrl);
+      const txt = (await txtRes.text()).slice(0, 50000);
+      userMessage = [{ type: "text", text: `Tabela (texto):\n${txt}\n\nExtraia produtos. Valor é CUSTO. Categorias: ${existingCatNames.join(", ") || "nenhuma"}.` }];
+    }
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Você é um extrator de catálogos de fornecedores. O preço presente é SEMPRE o custo (não venda). Sempre chame a tool extract_products." },
-          { role: "user", content: userMessage as any },
+          { role: "system", content: "Você é um extrator de catálogos. O preço é SEMPRE custo. Sempre chame extract_products." },
+          { role: "user", content: userMessage },
         ],
         tools,
         tool_choice: { type: "function", function: { name: "extract_products" } },
@@ -115,7 +118,6 @@ Deno.serve(async (req) => {
     const args = JSON.parse(ai.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ?? "{}");
     const incoming: any[] = args.products ?? [];
 
-    // 4) Cache de categorias / criar novas conforme necessário
     const ensureCategory = async (name?: string): Promise<string | null> => {
       if (!name) return null;
       const key = name.toLowerCase().trim();
@@ -127,7 +129,6 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    // 5) Match por code ou nome
     const { data: existing } = await supabase.from("products")
       .select("id,name,code").eq("user_id", user.id).is("deleted_at", null);
     const byCode = new Map((existing ?? []).filter(p => p.code).map(p => [p.code!.toLowerCase(), p.id]));
@@ -156,13 +157,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 6) Registrar catálogo
-    if (!upErr) {
-      await supabase.from("supplier_catalogs").insert({
-        user_id: user.id, supplier_id, filename: safeName, storage_path: storagePath,
-        mime, size_bytes: bytes.length, products_created: created, products_updated: updated,
-      });
-    }
+    await supabase.from("supplier_catalogs").insert({
+      user_id: user.id, supplier_id, filename: filename ?? "catalogo", storage_path,
+      mime, size_bytes: size_bytes ?? null, products_created: created, products_updated: updated,
+    });
 
     return new Response(JSON.stringify({ created, updated, total: incoming.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
