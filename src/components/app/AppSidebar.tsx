@@ -29,9 +29,8 @@ const ALL = [
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
   { mod: "marketing", title: "Combos", url: "/app/combos", icon: Gift },
   { mod: "marketing", title: "Projetos", url: "/app/projects", icon: KanbanSquare },
-  { mod: "integrations", title: "Automações (Make)", url: "/app/automations", icon: Zap },
-  { mod: "integrations", title: "Integrações", url: "/app/integrations", icon: Plug },
-];
+  { mod: "integrations", title: "Automações (Make)", url: "/app/automations", icon: Zap, adminOnly: true },
+] as Array<{ mod: string; title: string; url: string; icon: any; end?: boolean; adminOnly?: boolean }>;
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -40,10 +39,13 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const { hasModule, t, isAdmin } = useTenant();
 
-  const items = ALL.filter(i => hasModule(i.mod)).map(i => ({
-    ...i,
-    title: i.title === "termClients" ? t("clients") : i.title === "termServices" ? t("services") : i.title,
-  }));
+  const items = ALL
+    .filter(i => hasModule(i.mod))
+    .filter(i => !i.adminOnly || isAdmin)
+    .map(i => ({
+      ...i,
+      title: i.title === "termClients" ? t("clients") : i.title === "termServices" ? t("services") : i.title,
+    }));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

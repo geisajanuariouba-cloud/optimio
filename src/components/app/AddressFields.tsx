@@ -37,10 +37,12 @@ export function AddressFields({ value, onChange }: { value: Address; onChange: (
       });
     } catch {}
   };
+  const hasStreet = !!(value.address_street && value.address_street.trim());
+  const missingNumber = hasStreet && !(value.address_number && String(value.address_number).trim());
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-3">
-        <div><Label>CEP</Label><Input value={value.address_zip ?? ""} onChange={(e) => set("address_zip", e.target.value)} onBlur={(e) => lookupCEP(e.target.value)} placeholder="00000-000" /></div>
+        <div><Label>CEP</Label><Input value={value.address_zip ?? ""} onChange={(e) => set("address_zip", e.target.value)} onBlur={(e) => lookupCEP(e.target.value)} placeholder="Digite o CEP — preenchemos o resto" /></div>
         <div className="col-span-2"><Label>Cidade / UF</Label>
           <div className="flex gap-2">
             <Input value={value.address_city ?? ""} onChange={(e) => set("address_city", e.target.value)} placeholder="Cidade" />
@@ -52,6 +54,11 @@ export function AddressFields({ value, onChange }: { value: Address; onChange: (
         <div className="col-span-2"><Label>Rua</Label><Input value={value.address_street ?? ""} onChange={(e) => set("address_street", e.target.value)} /></div>
         <div><Label>Número</Label><Input value={value.address_number ?? ""} onChange={(e) => set("address_number", e.target.value)} /></div>
       </div>
+      {missingNumber && (
+        <div className="text-xs rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 p-2.5">
+          ⚠️ Preencha o <strong>número</strong> do endereço para que entregas e logística funcionem corretamente.
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Bairro</Label><Input value={value.address_neighborhood ?? ""} onChange={(e) => set("address_neighborhood", e.target.value)} /></div>
         <div><Label>Complemento</Label><Input value={value.address_complement ?? ""} onChange={(e) => set("address_complement", e.target.value)} /></div>

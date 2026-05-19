@@ -49,13 +49,14 @@ export default function Quotes() {
   const addProduct = (p: any) => {
     const vars = variations.filter(v => v.product_id === p.id);
     const variation_id = vars[0]?.id ?? null;
-    const cost = variation_id ? vars[0].cost : (p.cost ?? 0);
-    const unit_price = variation_id ? vars[0].sale_price : p.sale_price;
+    const cost = Number(variation_id ? vars[0].cost : (p.cost ?? 0));
+    const unit_price = Number(variation_id ? vars[0].sale_price : p.sale_price);
+    const margin_percent = cost > 0 ? +(((unit_price / cost) - 1) * 100).toFixed(1) : 100;
     setForm((f: any) => ({
       ...f,
       items: [...f.items, {
         product_id: p.id, variation_id, quantity: 1,
-        unit_cost: cost, margin_percent: 100,
+        unit_cost: cost, margin_percent,
         unit_price, name: p.name, image_url: p.image_url, has_variations: vars.length > 0,
       }],
     }));
