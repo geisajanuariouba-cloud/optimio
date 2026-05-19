@@ -237,8 +237,17 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     };
 
     await mapLimit(chunkInfos, CHUNK_CONCURRENCY, async (info, index) => {
-      if (Date.now() - started > JOB_TIMEOUT_MS) throw new Error("Tempo limite atingido. Salvando o que já foi encontrado.");
       await supabase.from("supplier_catalog_chunks").update({ status: "extraindo_produtos", started_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString() }).eq("catalog_id", parentId).eq("chunk_index", index);
+      if (Date.now() - started > JOB_TIMEOUT_MS) {
+        failedChunks++;
+        donePages += info.pages;
+        doneChunks++;
+        await supabase.from("supplier_catalog_chunks").update({
+          status: "erro", error_message: "Tempo limite atingido. Este trecho ficou para revisão.", completed_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString(),
+        }).eq("catalog_id", parentId).eq("chunk_index", index);
+        await setStatus({ processed_pages: donePages, processed_chunks: doneChunks, products_extracted: extractedTotal }, "extraindo_produtos");
+        return;
+      }
       try {
         const { data: signed } = await supabase.storage.from("supplier-catalogs").createSignedUrl(info.path, 60 * 30);
         if (!signed?.signedUrl) throw new Error("Falha ao gerar URL interna.");
@@ -285,16 +294,18 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     createdTotal = persisted.created;
     updatedTotal = persisted.updated;
 
+    const finalStatus = failedChunks && batch.length === 0 ? "failed" : failedChunks ? "partial" : "completed";
     await setStatus({
-      processing_status: failedChunks ? "partial" : "completed",
-      processing_stage: failedChunks ? "concluido_parcialmente" : "concluido",
+      processing_status: finalStatus,
+      processing_stage: finalStatus === "completed" ? "concluido" : finalStatus === "partial" ? "concluido_parcialmente" : "erro",
       products_created: createdTotal,
       products_updated: updatedTotal,
       processed_pages: totalPages,
       processed_chunks: chunkInfos.length,
       products_extracted: batch.length,
       completed_at: new Date().toISOString(),
-      partial_reason: failedChunks ? "Alguns produtos foram processados. Revise os itens restantes." : null,
+      partial_reason: finalStatus === "partial" ? "Alguns produtos foram processados. Revise os itens restantes." : null,
+      error_message: finalStatus === "failed" ? "Não foi possível extrair produtos automaticamente. O PDF original continua salvo para visualização." : null,
     });
   } catch (e: any) {
     const { data: doneChunksData } = await supabase.from("supplier_catalog_chunks").select("extracted_products").eq("catalog_id", parentId).eq("status", "concluido");
