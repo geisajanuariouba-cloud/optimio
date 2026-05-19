@@ -39,6 +39,9 @@ import Quotes from "./pages/app/Quotes";
 import Automations from "./pages/app/Automations";
 import Assemblers from "./pages/app/Assemblers";
 import Sales from "./pages/app/Sales";
+import StartHere from "./pages/app/StartHere";
+import Team from "./pages/app/Team";
+import InviteAccept from "./pages/InviteAccept";
 
 const queryClient = new QueryClient();
 
