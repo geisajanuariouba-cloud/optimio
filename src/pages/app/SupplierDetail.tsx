@@ -224,42 +224,81 @@ export default function SupplierDetail() {
                   {list.map((c: any) => {
                     const statusMap: Record<string, { label: string; cls: string }> = {
                       pending: { label: "Enviado", cls: "bg-slate-500/15 text-slate-600" },
-                      splitting: { label: "Dividindo para processamento", cls: "bg-blue-500/15 text-blue-600" },
+                      splitting: { label: "Preparando arquivo", cls: "bg-blue-500/15 text-blue-600" },
                       processing: { label: "Extraindo informações", cls: "bg-blue-500/15 text-blue-600" },
-                      extracting: { label: "Extraindo informações", cls: "bg-blue-500/15 text-blue-600" },
+                      extracting: { label: "Extraindo produtos", cls: "bg-blue-500/15 text-blue-600" },
                       consolidating: { label: "Consolidando produtos", cls: "bg-blue-500/15 text-blue-600" },
                       completed: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-600" },
                       failed: { label: "Erro no processamento", cls: "bg-rose-500/15 text-rose-600" },
                     };
                     const st = statusMap[c.processing_status] ?? statusMap.completed;
                     const busy = ["pending", "splitting", "processing", "extracting", "consolidating"].includes(c.processing_status);
-                    const progress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 100) : null;
+                    const elapsed = (Date.now() - new Date(c.created_at).getTime()) / 1000;
+                    const inBackground = busy && elapsed > 60;
+                    const rawProgress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 100) : null;
+                    // progresso estimado mínimo quando ainda não tem total
+                    const progress = rawProgress ?? Math.min(95, Math.round(elapsed * 1.5));
+                    const noProducts = c.processing_status === "completed" && !c.products_created && !c.products_updated;
                     return (
-                      <div key={c.id} className="flex items-center gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
-                        {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{c.filename}</div>
-                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
-                            <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
-                            <Badge className={st.cls + " font-normal"}>
-                              {busy && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
-                              {st.label}{progress !== null && busy ? ` ${progress}%` : ""}
-                            </Badge>
-                            {c.processing_status === "completed" && <span>· {c.products_created} novos · {c.products_updated} atualizados</span>}
-                            {c.processing_status === "failed" && c.error_message && <span className="text-rose-600">· {c.error_message}</span>}
-                          </div>
-                          {busy && (
-                            <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-                              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress ?? 5}%` }} />
+                      <div key={c.id} className="rounded-2xl bg-secondary/40 p-3 text-sm space-y-2">
+                        <div className="flex items-center gap-2">
+                          {k === "catalog" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <DollarSign className="h-4 w-4 text-emerald-600 shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{c.filename}</div>
+                            <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                              <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                              <Badge className={(inBackground ? "bg-amber-500/15 text-amber-700" : st.cls) + " font-normal"}>
+                                {busy && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
+                                {inBackground ? "Processando em segundo plano" : st.label}
+                                {busy ? ` ${progress}%` : ""}
+                              </Badge>
+                              {c.processing_status === "completed" && (c.products_created || c.products_updated)
+                                ? <span>· {c.products_created} novos · {c.products_updated} atualizados</span> : null}
                             </div>
-                          )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
+                            <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
+                            {(c.processing_status === "failed" || inBackground) && (
+                              <Button size="sm" variant="secondary" className="rounded-xl" onClick={() => retryCatalog(c)}>Tentar novamente</Button>
+                            )}
+                            <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
+                          </div>
                         </div>
-                        <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={() => openPreview(c)}><Eye className="h-3.5 w-3.5" />Visualizar</Button>
-                        <Button size="sm" variant="ghost" className="rounded-xl gap-1" onClick={() => downloadCatalog(c.storage_path, c.filename)}><Download className="h-3.5 w-3.5" />Baixar</Button>
-                        <Button size="icon" variant="ghost" onClick={() => removeCatalog(c)} className="text-rose-500"><Trash2 className="h-4 w-4" /></Button>
+                        {busy && (
+                          <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                            <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
+                          </div>
+                        )}
+                        {inBackground && (
+                          <div className="text-xs text-amber-700 bg-amber-500/10 rounded-xl px-3 py-2">
+                            O catálogo foi salvo e continuará sendo processado em segundo plano. Você pode sair desta tela e voltar depois.
+                          </div>
+                        )}
+                        {noProducts && (
+                          <div className="text-xs text-muted-foreground bg-secondary/60 rounded-xl px-3 py-2">
+                            Catálogo processado, mas nenhum produto foi identificado automaticamente.
+                          </div>
+                        )}
+                        {c.processing_status === "failed" && (
+                          <div className="text-xs text-rose-700 bg-rose-500/10 rounded-xl px-3 py-2">
+                            {c.error_message || "Não foi possível concluir a extração automática. Tente novamente ou revise o arquivo."}
+                          </div>
+                        )}
+                        {(busy || c.processing_status === "failed") && (
+                          <details className="text-[11px] text-muted-foreground">
+                            <summary className="cursor-pointer select-none">Detalhes técnicos</summary>
+                            <div className="mt-1 grid gap-0.5 font-mono">
+                              <div>etapa: {c.processing_status}</div>
+                              <div>páginas: {c.processed_pages ?? 0} / {c.total_pages ?? "?"}</div>
+                              <div>iniciado: {new Date(c.created_at).toLocaleString("pt-BR")}</div>
+                              <div>decorrido: {Math.round(elapsed)}s</div>
+                              {c.error_message && <div className="text-rose-600">erro: {c.error_message}</div>}
+                            </div>
+                          </details>
+                        )}
                       </div>
                     );
-
                   })}
                 </div>
               );
