@@ -301,6 +301,61 @@ export default function Products() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="rounded-3xl max-h-[90vh] overflow-auto">
+          <DialogHeader><DialogTitle>Editar {selected.size} produto(s) em lote</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">Deixe "(manter)" nos campos que não devem ser alterados.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Categoria</Label>
+                <Select value={bulk.category} onValueChange={(v) => setBulk({ ...bulk, category: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__keep__">(manter)</SelectItem>
+                    <SelectItem value="">Sem categoria</SelectItem>
+                    {allCats.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Fornecedor</Label>
+                <Select value={bulk.supplier_id} onValueChange={(v) => setBulk({ ...bulk, supplier_id: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__keep__">(manter)</SelectItem>
+                    <SelectItem value="">Sem fornecedor</SelectItem>
+                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Status</Label>
+                <Select value={bulk.status} onValueChange={(v) => setBulk({ ...bulk, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__keep__">(manter)</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="discontinued">Fora de linha</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Estoque mínimo</Label>
+                <Input type="number" placeholder="(manter)" value={bulk.min_stock} onChange={(e) => setBulk({ ...bulk, min_stock: e.target.value })} />
+              </div>
+              <div><Label>Ajustar estoque (+/−)</Label>
+                <Input type="number" placeholder="ex: 10 ou -5" value={bulk.adjust_stock} onChange={(e) => setBulk({ ...bulk, adjust_stock: e.target.value })} />
+              </div>
+              <div><Label>Ajustar preço (%)</Label>
+                <Input type="number" step="0.1" placeholder="ex: 10 ou -15" value={bulk.adjust_price_pct} onChange={(e) => setBulk({ ...bulk, adjust_price_pct: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBulkOpen(false)}>Cancelar</Button>
+            <Button onClick={applyBulkEdit} className="rounded-2xl">Aplicar a {selected.size}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
