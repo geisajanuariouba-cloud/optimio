@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: `You are an inventory assistant. Available products (JSON): ${JSON.stringify(products?.map(p => ({ name: p.name, price: p.sale_price, status: p.status })) ?? [])}. Interpret user command in Portuguese and call the execute tool. Use product name fuzzy match.` },
+          { role: "system", content: `Você é assistente de estoque. Produtos disponíveis (JSON): ${JSON.stringify(products?.map(p => ({ name: p.name, price: p.sale_price, status: p.status })) ?? [])}. Interprete comandos em português e chame a tool execute. Use match fuzzy por nome. Mapeamento: "saiu de linha"/"fora de linha" → discontinue; "voltou de linha"/"voltou a ativa"/"reativar" → reactivate; "renomear" → rename; "preço X de Y" → update_price; "aumentar/diminuir N%" em todos → bulk_price_change.` },
           { role: "user", content: command },
         ],
         tools,
