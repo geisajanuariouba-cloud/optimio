@@ -18,6 +18,7 @@ export default function SupplierDetail() {
   const [supplier, setSupplier] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [catalogs, setCatalogs] = useState<any[]>([]);
   const [cmd, setCmd] = useState("");
   const [sending, setSending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -25,14 +26,30 @@ export default function SupplierDetail() {
 
   const load = async () => {
     if (!id) return;
-    const [s, p, h] = await Promise.all([
+    const [s, p, h, c] = await Promise.all([
       supabase.from("suppliers").select("*").eq("id", id).maybeSingle(),
       supabase.from("products").select("*").eq("supplier_id", id).is("deleted_at", null).order("name"),
       supabase.from("supplier_commands").select("*").eq("supplier_id", id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("supplier_catalogs").select("*").eq("supplier_id", id).order("created_at", { ascending: false }),
     ]);
-    setSupplier(s.data); setProducts(p.data ?? []); setHistory(h.data ?? []);
+    setSupplier(s.data); setProducts(p.data ?? []); setHistory(h.data ?? []); setCatalogs(c.data ?? []);
   };
   useEffect(() => { if (user) load(); }, [user, id]);
+
+  const downloadCatalog = async (path: string, filename: string) => {
+    const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(path, 60);
+    if (error || !data?.signedUrl) { toast.error("Não foi possível abrir o arquivo"); return; }
+    const a = document.createElement("a");
+    a.href = data.signedUrl; a.download = filename; a.target = "_blank";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  const removeCatalog = async (c: any) => {
+    if (!confirm(`Remover "${c.filename}"?`)) return;
+    await supabase.storage.from("supplier-catalogs").remove([c.storage_path]);
+    await supabase.from("supplier_catalogs").delete().eq("id", c.id);
+    toast.success("Catálogo removido"); load();
+  };
 
   const sendCommand = async () => {
     if (!cmd.trim() || !user || !id) return;
