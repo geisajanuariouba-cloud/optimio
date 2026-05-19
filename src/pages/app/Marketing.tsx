@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon } from "lucide-react";
+import { Megaphone, Trash2, ArrowRight, ListTodo, Plus, Calendar as CalIcon, Sparkles, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTenant } from "@/hooks/useTenant";
 
@@ -28,6 +28,7 @@ const CHANNELS = ["instagram", "tiktok", "facebook", "whatsapp", "email"];
 
 export default function Marketing() {
   const { user } = useAuth();
+  const { profile } = useTenant();
   const [posts, setPosts] = useState<Post[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", channel: "instagram", scheduled_for: "", status: "idea" });
@@ -35,6 +36,9 @@ export default function Marketing() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDate, setTaskDate] = useState("");
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<{ analysis?: string; ideas?: any[] } | null>(null);
 
   const load = async () => {
     const [{ data: posts, error }, { data: ts }] = await Promise.all([
@@ -79,6 +83,39 @@ export default function Marketing() {
     });
     await supabase.from("tasks").update({ status: "scheduled" }).eq("id", t.id);
     toast.success("Tarefa virou post agendado");
+    load();
+  };
+
+  // Build calendar grid (current month)
+  const runAI = async () => {
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const { data: prods } = await supabase.from("products").select("name,sale_price").is("deleted_at", null).limit(20);
+      const { data, error } = await supabase.functions.invoke("marketing-ai", {
+        body: {
+          niche: (profile as any)?.niche ?? "geral",
+          recent_posts: posts.slice(0, 10).map(p => ({ title: p.title, channel: p.channel, status: p.status })),
+          top_products: prods ?? [],
+          goal: "engajamento e conversão de vendas",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiResult(data);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao gerar sugestões");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const useIdea = async (idea: any) => {
+    if (!user) return;
+    await supabase.from("marketing_posts").insert({
+      user_id: user.id, title: idea.title, content: idea.caption || idea.hook,
+      channel: idea.channel || "instagram", status: "idea",
+    });
+    toast.success("Ideia adicionada ao Kanban");
     load();
   };
 
@@ -145,6 +182,43 @@ export default function Marketing() {
           </div>
         </Card>
       </div>
+
+      <Card className="rounded-3xl border-0 shadow-sm p-5 mb-6 bg-gradient-to-br from-primary/5 to-transparent">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Análise + IA de Marketing
+          </div>
+          <Button size="sm" onClick={runAI} disabled={aiLoading}>
+            {aiLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            {aiLoading ? "Analisando…" : "Gerar sugestões"}
+          </Button>
+        </div>
+        {!aiResult && !aiLoading && (
+          <p className="text-sm text-muted-foreground">Clique em "Gerar sugestões" para que a IA analise seu nicho, posts recentes e top produtos, e proponha 5 ideias prontas para publicar.</p>
+        )}
+        {aiResult?.analysis && (
+          <div className="text-sm text-muted-foreground mb-3 p-3 rounded-2xl bg-secondary/40">{aiResult.analysis}</div>
+        )}
+        {aiResult?.ideas && aiResult.ideas.length > 0 && (
+          <div className="grid md:grid-cols-2 gap-3">
+            {aiResult.ideas.map((idea: any, i: number) => (
+              <div key={i} className="p-3 rounded-2xl bg-background border">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="font-medium text-sm">{idea.title}</div>
+                  <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">{idea.channel}</span>
+                </div>
+                {idea.hook && <div className="text-xs text-muted-foreground italic mb-1">"{idea.hook}"</div>}
+                {idea.caption && <div className="text-xs text-muted-foreground line-clamp-3 mb-2">{idea.caption}</div>}
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => useIdea(idea)}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar ao Kanban
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
 
       {posts.length === 0 ? (
         <Card className="rounded-3xl border-0 shadow-sm">
