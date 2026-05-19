@@ -182,6 +182,16 @@ export default function Products() {
         { label: `Mais vendido (${period}d)`, value: bestSeller?.name ?? "—", tone: "primary", hint: bestSeller ? `${bestSeller.count} vendas` : "sem dados" },
       ]} />
 
+      {selected.size > 0 && (
+        <Card className="rounded-2xl border-0 shadow-sm p-3 mb-3 bg-primary/5 flex flex-wrap items-center gap-2">
+          <Badge className="bg-primary/15 text-primary">{selected.size} selecionado(s)</Badge>
+          <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)} className="rounded-xl gap-1"><Settings2 className="h-3.5 w-3.5" />Editar em lote</Button>
+          <Button size="sm" variant="outline" onClick={bulkDelete} className="rounded-xl gap-1 text-rose-600"><Trash2 className="h-3.5 w-3.5" />Apagar selecionados</Button>
+          <div className="flex-1" />
+          <Button size="sm" variant="ghost" onClick={clearSelection} className="text-xs">Limpar seleção</Button>
+        </Card>
+      )}
+
       <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
           <EmptyState icon={Boxes} title="Estoque vazio" description="Cadastre seus produtos para controlar entradas e saídas." actionLabel="Produto" onAction={openNew} />
@@ -189,6 +199,13 @@ export default function Products() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader><TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={filtered.length > 0 && selected.size === filtered.length}
+                    onCheckedChange={toggleAll}
+                    aria-label="Selecionar tudo"
+                  />
+                </TableHead>
                 <TableHead>Produto</TableHead><TableHead className="hidden md:table-cell">Categoria</TableHead>
                 <TableHead className="hidden md:table-cell">Fornecedor</TableHead>
                 <TableHead>Estoque</TableHead><TableHead>Preço</TableHead>
