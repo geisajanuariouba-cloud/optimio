@@ -193,6 +193,15 @@ export default function Products() {
     load();
   };
 
+  const variationsByProduct = useMemo(() => {
+    const m = new Map<string, VarRow[]>();
+    for (const v of allVariations) {
+      if (!m.has(v.product_id)) m.set(v.product_id, []);
+      m.get(v.product_id)!.push(v);
+    }
+    return m;
+  }, [allVariations]);
+
   const filtered = useMemo(() => {
     let r = list;
     if (statusFilter !== "all") r = r.filter(p => p.status === statusFilter);
@@ -200,16 +209,30 @@ export default function Products() {
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       const supMap = new Map(suppliers.map(s => [s.id, s.name.toLowerCase()]));
-      r = r.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        (p.codname ?? "").toLowerCase().includes(q) ||
-        (p.code ?? "").toLowerCase().includes(q) ||
-        (p.description ?? "").toLowerCase().includes(q) ||
-        (p.supplier_id && supMap.get(p.supplier_id)?.includes(q))
-      );
+      r = r.filter(p => {
+        const matchProduct =
+          p.name.toLowerCase().includes(q) ||
+          (p.codname ?? "").toLowerCase().includes(q) ||
+          (p.code ?? "").toLowerCase().includes(q) ||
+          (p.description ?? "").toLowerCase().includes(q) ||
+          (p.supplier_id && supMap.get(p.supplier_id)?.includes(q));
+        if (matchProduct) return true;
+        const vars = variationsByProduct.get(p.id) ?? [];
+        return vars.some(v =>
+          (v.name ?? "").toLowerCase().includes(q) ||
+          (v.codname ?? "").toLowerCase().includes(q) ||
+          (v.sku ?? "").toLowerCase().includes(q) ||
+          (v.color ?? "").toLowerCase().includes(q) ||
+          (v.size ?? "").toLowerCase().includes(q) ||
+          (v.model ?? "").toLowerCase().includes(q) ||
+          (v.finish ?? "").toLowerCase().includes(q) ||
+          (v.fabric ?? "").toLowerCase().includes(q) ||
+          (v.material ?? "").toLowerCase().includes(q)
+        );
+      });
     }
     return r;
-  }, [list, filter, statusFilter, search, suppliers]);
+  }, [list, filter, statusFilter, search, suppliers, variationsByProduct]);
   const lowStock = filtered.filter(isLowStock).length;
   const allCats = Array.from(new Set(list.map(p => p.category).filter(Boolean) as string[]));
 
