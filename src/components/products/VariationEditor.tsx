@@ -71,11 +71,13 @@ export function VariationEditor({
         {value.map((v, i) => (
           <AccordionItem key={i} value={`v-${i}`} className="border rounded-2xl bg-card px-3">
             <AccordionTrigger className="py-3 hover:no-underline">
-              <div className="flex items-center gap-2 text-left flex-1">
+              <div className="flex items-center gap-2 text-left flex-1 flex-wrap">
                 <span className="font-medium">{v.name || `Variação ${i + 1}`}</span>
                 {v.codname && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{v.codname}</span>}
                 {v.color && <span className="text-xs text-muted-foreground">• {v.color}</span>}
                 {v.size && <span className="text-xs text-muted-foreground">• {v.size}</span>}
+                {v.model && <span className="text-xs bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-full">modelo: {v.model}</span>}
+                {v.finish && <span className="text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full">acab.: {v.finish}</span>}
                 <span className="ml-auto text-xs text-muted-foreground">R$ {Number(v.sale_price ?? 0).toFixed(2)} • estoque {v.stock ?? 0}</span>
               </div>
             </AccordionTrigger>
