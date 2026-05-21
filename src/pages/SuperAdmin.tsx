@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
-import { Shield, Check, X, Users, DollarSign, AlertTriangle, Upload, Ban, Power, Receipt, Plus, Trash2, ArrowLeft, Settings as SettingsIcon, Save } from "lucide-react";
+import { Shield, Check, X, Users, DollarSign, AlertTriangle, Upload, Ban, Power, Receipt, Plus, Trash2, ArrowLeft, Settings as SettingsIcon, Save, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type Tenant = { id: string; full_name: string|null; company_name: string|null; phone_number: string|null; plan: string; account_status: string; created_at: string; niche: string };
