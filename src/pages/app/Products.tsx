@@ -355,6 +355,18 @@ export default function Products() {
                           {p.status === "discontinued" && <Badge className="bg-amber-500/15 text-amber-600 text-[10px]">fora de linha</Badge>}
                           {p.is_ingredient_residue && <Badge className="bg-cyan-500/10 text-cyan-600 text-[10px]">ingrediente</Badge>}
                         </div>
+                        {p.has_variations && (variationsByProduct.get(p.id) ?? []).length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap mt-1">
+                            {(variationsByProduct.get(p.id) ?? []).slice(0, 6).map(v => (
+                              <span key={v.id} className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full">
+                                {[v.color, v.size, v.model && `modelo ${v.model}`, v.finish && `acab. ${v.finish}`].filter(Boolean).join(" · ") || v.name}
+                              </span>
+                            ))}
+                            {(variationsByProduct.get(p.id) ?? []).length > 6 && (
+                              <span className="text-[10px] text-muted-foreground">+{(variationsByProduct.get(p.id) ?? []).length - 6}</span>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {p.codname ? <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-0.5 rounded">{p.codname}</span> : <span className="text-muted-foreground text-xs">—</span>}
