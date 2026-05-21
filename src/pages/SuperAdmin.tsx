@@ -169,6 +169,10 @@ export default function SuperAdmin() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="billing">
+            <BillingPanel />
+          </TabsContent>
+
           <TabsContent value="settings">
             <GlobalSettings />
           </TabsContent>
