@@ -44,10 +44,13 @@ const emptyForm = {
   width: "", height: "", depth: "", length_cm: "", weight: "", measure_unit: "cm",
 };
 
+type VarRow = { id: string; product_id: string; name: string; codname: string|null; color: string|null; size: string|null; model: string|null; finish: string|null; fabric: string|null; material: string|null; sku: string|null; sale_price: number; stock: number };
+
 export default function Products() {
   const { user } = useAuth();
   const [list, setList] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [allVariations, setAllVariations] = useState<VarRow[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<any>(emptyForm);
@@ -64,12 +67,14 @@ export default function Products() {
   const [bulk, setBulk] = useState<any>({ category: "__keep__", supplier_id: "__keep__", status: "__keep__", adjust_stock: "", adjust_price_pct: "", min_stock: "" });
 
   const load = async () => {
-    const [a, b] = await Promise.all([
+    const [a, b, v] = await Promise.all([
       supabase.from("products").select("*").is("deleted_at", null).order("name"),
       supabase.from("suppliers").select("id,name").is("deleted_at", null).order("name"),
+      supabase.from("product_variations").select("id,product_id,name,codname,color,size,model,finish,fabric,material,sku,sale_price,stock"),
     ]);
     setList((a.data ?? []) as Product[]);
     setSuppliers((b.data ?? []) as Supplier[]);
+    setAllVariations((v.data ?? []) as VarRow[]);
   };
 
   const loadBestSeller = async () => {
