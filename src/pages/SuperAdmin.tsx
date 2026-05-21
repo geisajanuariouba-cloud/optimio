@@ -89,6 +89,7 @@ export default function SuperAdmin() {
             <TabsTrigger value="expiring">A Vencer ({expiringSoon.length + overdue.length})</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="approval">Aprovações ({pending.length})</TabsTrigger>
+            <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
             <TabsTrigger value="settings"><SettingsIcon className="h-4 w-4 mr-1" />Configurações</TabsTrigger>
           </TabsList>
 
