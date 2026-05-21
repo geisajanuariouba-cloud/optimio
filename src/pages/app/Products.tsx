@@ -44,10 +44,13 @@ const emptyForm = {
   width: "", height: "", depth: "", length_cm: "", weight: "", measure_unit: "cm",
 };
 
+type VarRow = { id: string; product_id: string; name: string; codname: string|null; color: string|null; size: string|null; model: string|null; finish: string|null; fabric: string|null; material: string|null; sku: string|null; sale_price: number; stock: number };
+
 export default function Products() {
   const { user } = useAuth();
   const [list, setList] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [allVariations, setAllVariations] = useState<VarRow[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<any>(emptyForm);
@@ -64,12 +67,14 @@ export default function Products() {
   const [bulk, setBulk] = useState<any>({ category: "__keep__", supplier_id: "__keep__", status: "__keep__", adjust_stock: "", adjust_price_pct: "", min_stock: "" });
 
   const load = async () => {
-    const [a, b] = await Promise.all([
+    const [a, b, v] = await Promise.all([
       supabase.from("products").select("*").is("deleted_at", null).order("name"),
       supabase.from("suppliers").select("id,name").is("deleted_at", null).order("name"),
+      supabase.from("product_variations").select("id,product_id,name,codname,color,size,model,finish,fabric,material,sku,sale_price,stock"),
     ]);
     setList((a.data ?? []) as Product[]);
     setSuppliers((b.data ?? []) as Supplier[]);
+    setAllVariations((v.data ?? []) as VarRow[]);
   };
 
   const loadBestSeller = async () => {
@@ -188,6 +193,15 @@ export default function Products() {
     load();
   };
 
+  const variationsByProduct = useMemo(() => {
+    const m = new Map<string, VarRow[]>();
+    for (const v of allVariations) {
+      if (!m.has(v.product_id)) m.set(v.product_id, []);
+      m.get(v.product_id)!.push(v);
+    }
+    return m;
+  }, [allVariations]);
+
   const filtered = useMemo(() => {
     let r = list;
     if (statusFilter !== "all") r = r.filter(p => p.status === statusFilter);
@@ -195,16 +209,30 @@ export default function Products() {
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       const supMap = new Map(suppliers.map(s => [s.id, s.name.toLowerCase()]));
-      r = r.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        (p.codname ?? "").toLowerCase().includes(q) ||
-        (p.code ?? "").toLowerCase().includes(q) ||
-        (p.description ?? "").toLowerCase().includes(q) ||
-        (p.supplier_id && supMap.get(p.supplier_id)?.includes(q))
-      );
+      r = r.filter(p => {
+        const matchProduct =
+          p.name.toLowerCase().includes(q) ||
+          (p.codname ?? "").toLowerCase().includes(q) ||
+          (p.code ?? "").toLowerCase().includes(q) ||
+          (p.description ?? "").toLowerCase().includes(q) ||
+          (p.supplier_id && supMap.get(p.supplier_id)?.includes(q));
+        if (matchProduct) return true;
+        const vars = variationsByProduct.get(p.id) ?? [];
+        return vars.some(v =>
+          (v.name ?? "").toLowerCase().includes(q) ||
+          (v.codname ?? "").toLowerCase().includes(q) ||
+          (v.sku ?? "").toLowerCase().includes(q) ||
+          (v.color ?? "").toLowerCase().includes(q) ||
+          (v.size ?? "").toLowerCase().includes(q) ||
+          (v.model ?? "").toLowerCase().includes(q) ||
+          (v.finish ?? "").toLowerCase().includes(q) ||
+          (v.fabric ?? "").toLowerCase().includes(q) ||
+          (v.material ?? "").toLowerCase().includes(q)
+        );
+      });
     }
     return r;
-  }, [list, filter, statusFilter, search, suppliers]);
+  }, [list, filter, statusFilter, search, suppliers, variationsByProduct]);
   const lowStock = filtered.filter(isLowStock).length;
   const allCats = Array.from(new Set(list.map(p => p.category).filter(Boolean) as string[]));
 
@@ -258,7 +286,7 @@ export default function Products() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, apelido curto, código, fornecedor..." className="pl-9 h-9" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, apelido, código, cor, modelo, acabamento, fornecedor..." className="pl-9 h-9" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="h-9 w-40 bg-primary/10 border-primary/30 hover:bg-primary/15"><SelectValue /></SelectTrigger>
@@ -327,6 +355,18 @@ export default function Products() {
                           {p.status === "discontinued" && <Badge className="bg-amber-500/15 text-amber-600 text-[10px]">fora de linha</Badge>}
                           {p.is_ingredient_residue && <Badge className="bg-cyan-500/10 text-cyan-600 text-[10px]">ingrediente</Badge>}
                         </div>
+                        {p.has_variations && (variationsByProduct.get(p.id) ?? []).length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap mt-1">
+                            {(variationsByProduct.get(p.id) ?? []).slice(0, 6).map(v => (
+                              <span key={v.id} className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full">
+                                {[v.color, v.size, v.model && `modelo ${v.model}`, v.finish && `acab. ${v.finish}`].filter(Boolean).join(" · ") || v.name}
+                              </span>
+                            ))}
+                            {(variationsByProduct.get(p.id) ?? []).length > 6 && (
+                              <span className="text-[10px] text-muted-foreground">+{(variationsByProduct.get(p.id) ?? []).length - 6}</span>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {p.codname ? <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-0.5 rounded">{p.codname}</span> : <span className="text-muted-foreground text-xs">—</span>}

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
-import { Shield, Check, X, Users, DollarSign, AlertTriangle, Upload, Ban, Power, Receipt, Plus, Trash2, ArrowLeft, Settings as SettingsIcon, Save } from "lucide-react";
+import { Shield, Check, X, Users, DollarSign, AlertTriangle, Upload, Ban, Power, Receipt, Plus, Trash2, ArrowLeft, Settings as SettingsIcon, Save, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type Tenant = { id: string; full_name: string|null; company_name: string|null; phone_number: string|null; plan: string; account_status: string; created_at: string; niche: string };
@@ -89,6 +89,7 @@ export default function SuperAdmin() {
             <TabsTrigger value="expiring">A Vencer ({expiringSoon.length + overdue.length})</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="approval">Aprovações ({pending.length})</TabsTrigger>
+            <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
             <TabsTrigger value="settings"><SettingsIcon className="h-4 w-4 mr-1" />Configurações</TabsTrigger>
           </TabsList>
 
@@ -166,6 +167,10 @@ export default function SuperAdmin() {
                     </div>
                   ))}</div>}
             </Card>
+          </TabsContent>
+
+          <TabsContent value="billing">
+            <BillingPanel />
           </TabsContent>
 
           <TabsContent value="settings">
@@ -304,5 +309,113 @@ function GlobalSettings() {
       </div>
       <Button onClick={save} disabled={busy} className="bg-gradient-brand text-white border-0 gap-2"><Save className="h-4 w-4" />{busy ? "Salvando…" : "Salvar"}</Button>
     </Card>
+  );
+}
+
+type BillingEvent = { id: string; provider: string; event_type: string; event_id: string; status: string; error_message: string|null; created_at: string; user_id: string|null; raw_payload: any };
+
+function BillingPanel() {
+  const [events, setEvents] = useState<BillingEvent[]>([]);
+  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [busy, setBusy] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const load = async () => {
+    const [{ data: ev }, { data: ss }] = await Promise.all([
+      supabase.from("billing_events").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("system_settings").select("key,value").eq("scope", "global"),
+    ]);
+    setEvents((ev ?? []) as BillingEvent[]);
+    const map: Record<string, any> = {};
+    for (const s of (ss ?? [])) map[(s as any).key] = (s as any).value;
+    setSettings(map);
+  };
+  useEffect(() => { load(); }, []);
+
+  const getStr = (k: string) => {
+    const v = settings[k];
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "object" && "value" in v) return String((v as any).value ?? "");
+    return JSON.stringify(v);
+  };
+  const setStr = (k: string, val: string) => setSettings(s => ({ ...s, [k]: val }));
+
+  const saveSetting = async (key: string, raw: string, asJson = false) => {
+    let value: any = raw;
+    if (asJson) { try { value = JSON.parse(raw || "{}"); } catch { return toast.error("JSON inválido em " + key); } }
+    const { error } = await supabase.from("system_settings").upsert({ scope: "global", owner_user_id: null, key, value }, { onConflict: "scope,owner_user_id,key" } as any);
+    if (error) return toast.error(error.message);
+    toast.success("Salvo: " + key);
+  };
+
+  const saveAll = async () => {
+    setBusy(true);
+    await Promise.all([
+      saveSetting("checkout_basic_url", getStr("checkout_basic_url")),
+      saveSetting("checkout_pro_url", getStr("checkout_pro_url")),
+      saveSetting("checkout_advanced_url", getStr("checkout_advanced_url")),
+      saveSetting("kiwify_webhook_secret", getStr("kiwify_webhook_secret")),
+      saveSetting("kiwify_product_map", getStr("kiwify_product_map"), true),
+      saveSetting("demo_video_url", getStr("demo_video_url")),
+    ]);
+    setBusy(false); load();
+  };
+
+  const filtered = events.filter(e =>
+    !filter.trim() ||
+    e.event_type.toLowerCase().includes(filter.toLowerCase()) ||
+    e.event_id.toLowerCase().includes(filter.toLowerCase()) ||
+    (e.user_id ?? "").includes(filter)
+  );
+
+  return (
+    <div className="space-y-4">
+      <Card className="glass border-0 rounded-3xl p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2"><SettingsIcon className="h-4 w-4" /> Configuração Kiwify & Checkout</h3>
+        <div className="grid md:grid-cols-3 gap-3">
+          <div><Label>Checkout URL — Basic</Label><Input value={getStr("checkout_basic_url")} onChange={(e) => setStr("checkout_basic_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
+          <div><Label>Checkout URL — Pro</Label><Input value={getStr("checkout_pro_url")} onChange={(e) => setStr("checkout_pro_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
+          <div><Label>Checkout URL — Advanced</Label><Input value={getStr("checkout_advanced_url")} onChange={(e) => setStr("checkout_advanced_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
+        </div>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div><Label>Kiwify Webhook Secret</Label><Input value={getStr("kiwify_webhook_secret")} onChange={(e) => setStr("kiwify_webhook_secret", e.target.value)} placeholder="token compartilhado" /></div>
+          <div><Label>Vídeo demonstração (URL embed)</Label><Input value={getStr("demo_video_url")} onChange={(e) => setStr("demo_video_url", e.target.value)} placeholder="https://www.youtube.com/embed/..." /></div>
+        </div>
+        <div>
+          <Label>Mapeamento Kiwify (JSON: product_id → internal_plan)</Label>
+          <textarea className="w-full min-h-[100px] rounded-md bg-secondary/40 border border-border px-3 py-2 font-mono text-xs" value={typeof settings.kiwify_product_map === "string" ? settings.kiwify_product_map : JSON.stringify(settings.kiwify_product_map ?? {}, null, 2)} onChange={(e) => setStr("kiwify_product_map", e.target.value)} placeholder='{"PROD_ID_BASIC":"basic","PROD_ID_PRO":"pro"}' />
+          <p className="text-xs text-muted-foreground mt-1">Use o ID do produto Kiwify como chave e o plano interno (basic/pro/advanced) como valor.</p>
+        </div>
+        <Button onClick={saveAll} disabled={busy} className="bg-gradient-brand text-white border-0 gap-2"><Save className="h-4 w-4" />{busy ? "Salvando…" : "Salvar configurações"}</Button>
+      </Card>
+
+      <Card className="glass border-0 rounded-3xl overflow-hidden">
+        <div className="p-5 border-b border-border/40 font-semibold flex items-center justify-between gap-3">
+          <span>Eventos de billing (últimos 200)</span>
+          <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filtrar por evento, ID ou user" className="max-w-xs h-9" />
+        </div>
+        <div className="divide-y divide-border/40 max-h-[500px] overflow-auto">
+          {filtered.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">Nenhum evento ainda. Configure a webhook no Kiwify para começar.</div>
+          ) : filtered.map(e => (
+            <details key={e.id} className="p-3 text-sm">
+              <summary className="cursor-pointer flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="capitalize">{e.provider}</Badge>
+                <span className="font-medium">{e.event_type}</span>
+                <Badge className={e.status === "processed" ? "bg-emerald-500/10 text-emerald-600" : e.status === "error" ? "bg-rose-500/10 text-rose-600" : "bg-amber-500/10 text-amber-600"}>{e.status}</Badge>
+                <span className="text-xs text-muted-foreground ml-auto">{new Date(e.created_at).toLocaleString()}</span>
+              </summary>
+              <div className="mt-2 space-y-1 text-xs">
+                <div><span className="text-muted-foreground">event_id:</span> <code className="font-mono">{e.event_id}</code></div>
+                {e.user_id && <div><span className="text-muted-foreground">user:</span> <code className="font-mono">{e.user_id}</code></div>}
+                {e.error_message && <div className="text-rose-600">{e.error_message}</div>}
+                <pre className="bg-secondary/40 rounded p-2 overflow-auto max-h-48 text-[10px]">{JSON.stringify(e.raw_payload, null, 2)}</pre>
+              </div>
+            </details>
+          ))}
+        </div>
+      </Card>
+    </div>
   );
 }
