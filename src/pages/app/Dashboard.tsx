@@ -61,7 +61,7 @@ export default function Dashboard() {
     const ms = monthStart.toISOString().slice(0, 10);
     const today = new Date().toISOString().slice(0, 10);
     const [fin, prod, svc, deliv, debts, anam, qn] = await Promise.all([
-      supabase.from("financial").select("net_amount,type,transaction_date").eq("type", "income").gte("transaction_date", ms),
+      supabase.from("financial").select("net_amount,type,transaction_date,origin").eq("type", "income").gte("transaction_date", ms),
       supabase.from("products").select("stock,min_stock").is("deleted_at", null),
       supabase.from("services").select("id").is("deleted_at", null),
       supabase.from("deliveries").select("id,status,is_pickup").neq("status", "delivered"),
@@ -72,9 +72,11 @@ export default function Dashboard() {
     const products = prod.data ?? [];
     const dlist = deliv.data ?? [];
     const dueAnam = (anam.data ?? []).filter((a: any) => a.next_due_date && a.next_due_date < today);
+    // Vendas reais = exclui baixas de promissória (apenas controlam recebimento de venda anterior)
+    const realSales = (fin.data ?? []).filter((f: any) => f.origin !== "promissoria");
     setStats({
-      salesMonth: (fin.data ?? []).reduce((a: number, f: any) => a + Number(f.net_amount), 0),
-      salesCount: (fin.data ?? []).length,
+      salesMonth: realSales.reduce((a: number, f: any) => a + Number(f.net_amount), 0),
+      salesCount: realSales.length,
       stock: products.reduce((a: number, p: any) => a + Number(p.stock ?? 0), 0),
       lowStock: products.filter((p: any) => !(p.min_stock === 0 && p.stock === 0) && p.stock <= p.min_stock).length,
       deliveriesPending: dlist.filter((d: any) => !d.is_pickup).length,
