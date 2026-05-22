@@ -22,7 +22,7 @@ const ALL = [
   { mod: "products", title: "Orçamentos", url: "/app/quotes", icon: FileText },
   { mod: "financial", title: "Vendas", url: "/app/sales", icon: ShoppingBag },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
-  { mod: "financial", title: "Caixa em Dinheiro", url: "/app/cash-drawer", icon: Banknote },
+  { mod: "financial", title: "Caixa do Dia", url: "/app/cash-drawer", icon: Banknote },
   { mod: "financial", title: "Métodos de Pagamento", url: "/app/payment-methods", icon: CreditCard },
   { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
   { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },

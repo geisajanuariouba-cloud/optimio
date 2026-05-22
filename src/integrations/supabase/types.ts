@@ -375,6 +375,7 @@ export type Database = {
           description: string | null
           financial_id: string | null
           id: string
+          payment_method: string
           reason: string
           type: string
           user_id: string
@@ -385,6 +386,7 @@ export type Database = {
           description?: string | null
           financial_id?: string | null
           id?: string
+          payment_method?: string
           reason: string
           type: string
           user_id: string
@@ -395,6 +397,7 @@ export type Database = {
           description?: string | null
           financial_id?: string | null
           id?: string
+          payment_method?: string
           reason?: string
           type?: string
           user_id?: string
@@ -614,6 +617,7 @@ export type Database = {
       debt_installments: {
         Row: {
           amount: number
+          amount_paid: number
           created_at: string
           debt_id: string
           due_date: string
@@ -621,10 +625,12 @@ export type Database = {
           number: number
           paid_at: string | null
           payment_method: string | null
+          status: string
           user_id: string
         }
         Insert: {
           amount?: number
+          amount_paid?: number
           created_at?: string
           debt_id: string
           due_date: string
@@ -632,10 +638,12 @@ export type Database = {
           number: number
           paid_at?: string | null
           payment_method?: string | null
+          status?: string
           user_id: string
         }
         Update: {
           amount?: number
+          amount_paid?: number
           created_at?: string
           debt_id?: string
           due_date?: string
@@ -643,6 +651,52 @@ export type Database = {
           number?: number
           paid_at?: string | null
           payment_method?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      debt_payments: {
+        Row: {
+          amount: number
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          debt_id: string
+          financial_id: string | null
+          id: string
+          installment_id: string | null
+          note: string | null
+          payment_date: string
+          payment_method: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          debt_id: string
+          financial_id?: string | null
+          id?: string
+          installment_id?: string | null
+          note?: string | null
+          payment_date?: string
+          payment_method?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          debt_id?: string
+          financial_id?: string | null
+          id?: string
+          installment_id?: string | null
+          note?: string | null
+          payment_date?: string
+          payment_method?: string
           user_id?: string
         }
         Relationships: []
@@ -1460,6 +1514,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           depth: number | null
+          description: string | null
           has_variations: boolean
           height: number | null
           id: string
@@ -1491,6 +1546,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           depth?: number | null
+          description?: string | null
           has_variations?: boolean
           height?: number | null
           id?: string
@@ -1522,6 +1578,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           depth?: number | null
+          description?: string | null
           has_variations?: boolean
           height?: number | null
           id?: string
