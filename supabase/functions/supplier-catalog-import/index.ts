@@ -196,7 +196,15 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     const isPdf = mime === "application/pdf" || /\.pdf$/i.test(storagePath);
     let chunkInfos: { path: string; pageStart: number; pageEnd: number; pages: number }[];
 
-    if (isPdf) {
+    // Retomada: reaproveita chunks existentes (não re-divide o PDF)
+    const { data: existingChunks } = await supabase.from("supplier_catalog_chunks")
+      .select("chunk_index,storage_path,page_start,page_end,pages,status,products_extracted")
+      .eq("catalog_id", parentId).order("chunk_index");
+
+    if (existingChunks && existingChunks.length > 0) {
+      chunkInfos = existingChunks.map((c: any) => ({ path: c.storage_path, pageStart: c.page_start, pageEnd: c.page_end, pages: c.pages }));
+      await log("ocr", "Retomando catálogo: chunks já existentes serão reaproveitados.", { chunks: chunkInfos.length });
+    } else if (isPdf) {
       const { data: file, error: dlErr } = await supabase.storage.from("supplier-catalogs").download(storagePath);
       if (dlErr || !file) throw new Error("Erro ao ler o catálogo do armazenamento.");
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -210,18 +218,24 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
         const tp = src.getPageCount();
         chunkInfos = [{ path: storagePath, pageStart: 1, pageEnd: tp, pages: tp }];
       }
+      await supabase.from("supplier_catalog_chunks").insert(chunkInfos.map((c, i) => ({
+        catalog_id: parentId, user_id: userId, supplier_id: supplierId, storage_path: c.path,
+        chunk_index: i, page_start: c.pageStart, page_end: c.pageEnd, pages: c.pages, status: "enviado",
+      })));
     } else {
       chunkInfos = [{ path: storagePath, pageStart: 1, pageEnd: 1, pages: 1 }];
+      await supabase.from("supplier_catalog_chunks").insert(chunkInfos.map((c, i) => ({
+        catalog_id: parentId, user_id: userId, supplier_id: supplierId, storage_path: c.path,
+        chunk_index: i, page_start: c.pageStart, page_end: c.pageEnd, pages: c.pages, status: "enviado",
+      })));
     }
 
     const totalPages = chunkInfos.reduce((s, c) => s + c.pages, 0);
-    await supabase.from("supplier_catalog_chunks").delete().eq("catalog_id", parentId);
-    await supabase.from("supplier_catalog_chunks").insert(chunkInfos.map((c, i) => ({
-      catalog_id: parentId, user_id: userId, supplier_id: supplierId, storage_path: c.path,
-      chunk_index: i, page_start: c.pageStart, page_end: c.pageEnd, pages: c.pages, status: "enviado",
-    })));
-    await setStatus({ total_pages: totalPages, processed_pages: 0, total_chunks: chunkInfos.length, processed_chunks: 0, products_extracted: 0, processing_status: "extracting" }, "extraindo_produtos");
-    await log("ocr", "Chunks preparados para processamento paralelo.", { chunks: chunkInfos.length, totalPages });
+    const alreadyDone = new Set<number>((existingChunks ?? []).filter((c: any) => c.status === "concluido").map((c: any) => c.chunk_index));
+    const extracted0 = (existingChunks ?? []).filter((c: any) => c.status === "concluido")
+      .reduce((s: number, c: any) => s + Number(c.products_extracted ?? 0), 0);
+    await setStatus({ total_pages: totalPages, processed_pages: 0, total_chunks: chunkInfos.length, processed_chunks: alreadyDone.size, products_extracted: extracted0, processing_status: "extracting" }, "extraindo_produtos");
+    await log("ocr", "Chunks prontos. Pulando os já concluídos.", { chunks: chunkInfos.length, totalPages, alreadyDone: alreadyDone.size });
 
     let extractedTotal = 0, donePages = 0, doneChunks = 0, failedChunks = 0;
 
