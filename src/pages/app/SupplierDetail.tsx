@@ -226,7 +226,10 @@ export default function SupplierDetail() {
         <TabsContent value="chat" className="space-y-4">
           <Card className="p-5 rounded-3xl border-0 shadow-sm">
             <div className="text-sm font-semibold mb-2">Anexar arquivos do fornecedor</div>
-            <p className="text-xs text-muted-foreground mb-3">A IA lê PDF ou imagem e cadastra os produtos com <strong>preço de custo</strong>. O preço de venda é calculado pelo motor (custo + margem + taxa). Você pode visualizar, baixar ou remover os arquivos a qualquer momento.</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              <strong>Catálogo:</strong> cadastra produtos, variações, medidas, modelo e acabamento. <em>Não preenche preço</em> — produtos ficam como “aguardando tabela de custo”.
+              <br /><strong>Tabela de custo:</strong> casa pelo código/nome e preenche custo, margem e preço de venda.
+            </p>
             <input ref={catalogRef} type="file" accept=".pdf,image/*" hidden onChange={(e) => onFile(e, "catalog")} />
             <input ref={pricingRef} type="file" accept=".pdf,image/*" hidden onChange={(e) => onFile(e, "pricing")} />
             <div className="flex flex-wrap gap-2">
