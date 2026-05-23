@@ -310,6 +310,7 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     };
 
     await mapLimit(chunkInfos, CHUNK_CONCURRENCY, async (info, index) => {
+      if (alreadyDone.has(index)) { donePages += info.pages; return; }
       await supabase.from("supplier_catalog_chunks").update({ status: "extraindo_produtos", started_at: new Date().toISOString(), last_heartbeat_at: new Date().toISOString() }).eq("catalog_id", parentId).eq("chunk_index", index);
       if (Date.now() - started > JOB_TIMEOUT_MS) {
         failedChunks++;
