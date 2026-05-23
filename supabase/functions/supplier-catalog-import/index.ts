@@ -419,8 +419,7 @@ Deno.serve(async (req) => {
       }
       await supabase.from("supplier_catalogs").update({
         processing_status: "pending", processing_stage: "enviado", error_message: null, partial_reason: null,
-        processed_pages: 0, processed_chunks: 0, total_chunks: 0, products_extracted: 0,
-        products_created: 0, products_updated: 0, processing_logs: [], completed_at: null,
+        processing_logs: [], completed_at: null, last_heartbeat_at: new Date().toISOString(),
       }).eq("id", cat.id);
       // @ts-ignore
       EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime));
