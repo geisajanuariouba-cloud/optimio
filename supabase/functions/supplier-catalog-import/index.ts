@@ -237,7 +237,7 @@ async function processCatalog(parentId: string, userId: string, supplierId: stri
     await setStatus({ total_pages: totalPages, processed_pages: 0, total_chunks: chunkInfos.length, processed_chunks: alreadyDone.size, products_extracted: extracted0, processing_status: "extracting" }, "extraindo_produtos");
     await log("ocr", "Chunks prontos. Pulando os já concluídos.", { chunks: chunkInfos.length, totalPages, alreadyDone: alreadyDone.size });
 
-    let extractedTotal = 0, donePages = 0, doneChunks = 0, failedChunks = 0;
+    let extractedTotal = extracted0, donePages = 0, doneChunks = alreadyDone.size, failedChunks = 0;
 
     const ensureCategory = async (name?: string): Promise<string | null> => {
       if (!name) return null;
