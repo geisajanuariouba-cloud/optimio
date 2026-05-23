@@ -2586,6 +2586,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      recover_stuck_catalogs: { Args: { _user_id: string }; Returns: number }
       seed_default_categories: {
         Args: { _niche: string; _user_id: string }
         Returns: undefined

@@ -30,7 +30,9 @@ export default function SupplierDetail() {
 
 
   const load = async () => {
-    if (!id) return;
+    if (!id || !user) return;
+    // Destrava catálogos parados há mais de 3min sem heartbeat
+    await supabase.rpc("recover_stuck_catalogs", { _user_id: user.id });
     const [s, p, h, c] = await Promise.all([
       supabase.from("suppliers").select("*").eq("id", id).maybeSingle(),
       supabase.from("products").select("*").eq("supplier_id", id).is("deleted_at", null).order("name"),
