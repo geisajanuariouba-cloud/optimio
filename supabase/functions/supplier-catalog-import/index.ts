@@ -427,10 +427,31 @@ Deno.serve(async (req) => {
     // RETRY
     if (body.retry_catalog_id) {
       const { data: cat } = await supabase.from("supplier_catalogs")
-        .select("id,user_id,supplier_id,storage_path,mime,kind")
+        .select("id,user_id,supplier_id,storage_path,mime,kind,parent_id")
         .eq("id", body.retry_catalog_id).maybeSingle();
       if (!cat || cat.user_id !== user.id) {
         return new Response(JSON.stringify({ error: "Catálogo não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Se é um pai com filhos: reprocessar apenas filhos que não concluíram com sucesso
+      const { data: childRows } = await supabase.from("supplier_catalogs")
+        .select("id,user_id,supplier_id,storage_path,mime,kind,processing_status")
+        .eq("parent_id", cat.id);
+      if (childRows && childRows.length > 0) {
+        const targets = childRows.filter((c: any) => ["failed", "partial", "pending", "processing", "extracting", "consolidating", "splitting"].includes(c.processing_status));
+        await supabase.from("supplier_catalogs").update({
+          processing_status: "processing", processing_stage: "criando_produtos",
+          error_message: null, partial_reason: null, last_heartbeat_at: new Date().toISOString(),
+        }).eq("id", cat.id);
+        for (const ch of targets) {
+          await supabase.from("supplier_catalogs").update({
+            processing_status: "pending", processing_stage: "enviado",
+            error_message: null, partial_reason: null, processing_logs: [],
+            completed_at: null, last_heartbeat_at: new Date().toISOString(),
+          }).eq("id", ch.id);
+          // @ts-ignore
+          EdgeRuntime.waitUntil(processCatalog(ch.id, ch.user_id, ch.supplier_id, ch.storage_path, ch.mime, (ch.kind ?? "catalog") as any, cat.id));
+        }
+        return new Response(JSON.stringify({ catalog_id: cat.id, status: "processing", retried: targets.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       await supabase.from("supplier_catalogs").update({
         processing_status: "pending", processing_stage: "enviado",
@@ -438,9 +459,10 @@ Deno.serve(async (req) => {
         completed_at: null, last_heartbeat_at: new Date().toISOString(),
       }).eq("id", cat.id);
       // @ts-ignore
-      EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime, (cat.kind ?? "catalog") as any));
+      EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime, (cat.kind ?? "catalog") as any, cat.parent_id));
       return new Response(JSON.stringify({ catalog_id: cat.id, status: "processing" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
 
     const { supplier_id, filename, mime, storage_path, size_bytes, kind, parent_catalog_id, chunk_index, page_start, page_end } = body;
     const docKind: "catalog" | "pricing" = kind === "pricing" ? "pricing" : "catalog";
