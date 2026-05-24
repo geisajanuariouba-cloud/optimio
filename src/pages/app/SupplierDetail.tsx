@@ -57,8 +57,13 @@ export default function SupplierDetail() {
       if (!busy.includes(c.processing_status)) return false;
       const heartbeat = new Date(c.last_heartbeat_at || c.created_at).getTime();
       const elapsed = Date.now() - new Date(c.created_at).getTime();
-      return elapsed > 75_000 && Date.now() - heartbeat > 45_000;
+      // pais com chunks têm tolerância maior pois dependem de múltiplos filhos
+      const isParent = Number(c.total_chunks || 0) > 0;
+      const heartbeatLimit = isParent ? 180_000 : 45_000;
+      const elapsedLimit = isParent ? 300_000 : 75_000;
+      return elapsed > elapsedLimit && Date.now() - heartbeat > heartbeatLimit;
     });
+
     if (!stale.length) return;
     stale.forEach(async (c: any) => {
       const hasPartial = Number(c.products_created || 0) + Number(c.products_updated || 0) + Number(c.products_extracted || 0) > 0;
@@ -85,10 +90,14 @@ export default function SupplierDetail() {
 
   const removeCatalog = async (c: any) => {
     if (!confirm(`Remover "${c.filename}"?`)) return;
-    await supabase.storage.from("supplier-catalogs").remove([c.storage_path]);
+    const { data: children } = await supabase.from("supplier_catalogs").select("storage_path,id").eq("parent_id", c.id);
+    const paths = [c.storage_path, ...((children ?? []).map((x: any) => x.storage_path).filter(Boolean))];
+    if (paths.length) await supabase.storage.from("supplier-catalogs").remove(paths);
+    if (children?.length) await supabase.from("supplier_catalogs").delete().eq("parent_id", c.id);
     await supabase.from("supplier_catalogs").delete().eq("id", c.id);
     toast.success("Catálogo removido"); load();
   };
+
 
   const retryCatalog = async (c: any) => {
     try {
@@ -144,6 +153,10 @@ export default function SupplierDetail() {
       img.src = url;
     });
 
+  const CHUNK_PAGES = 8;             // páginas por chunk processado pela IA
+  const SPLIT_THRESHOLD_BYTES = 4_500_000; // > ~4.5MB ou > 12 páginas dispara split
+  const SPLIT_THRESHOLD_PAGES = 12;
+
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>, kind: "catalog" | "pricing") => {
     const f = e.target.files?.[0];
     if (!f || !id || !user) return;
@@ -160,6 +173,66 @@ export default function SupplierDetail() {
         throw new Error("Arquivo muito grande (máx 200MB).");
       }
       const safeName = outName.replace(/[^\w.\-]+/g, "_");
+
+      // --- PDF grande: dividir no navegador em partes menores e processar em paralelo no backend ---
+      if (mime === "application/pdf" && f.size > SPLIT_THRESHOLD_BYTES) {
+        const { PDFDocument } = await import("pdf-lib");
+        const srcBuf = await f.arrayBuffer();
+        const srcDoc = await PDFDocument.load(srcBuf, { ignoreEncryption: true });
+        const totalPages = srcDoc.getPageCount();
+
+        if (totalPages > SPLIT_THRESHOLD_PAGES) {
+          // 1) Sobe PDF completo (parent) para o usuário poder visualizar/baixar inteiro
+          const parentPath = `${user.id}/${id}/${kind}/${Date.now()}_${safeName}`;
+          const { error: upErr } = await supabase.storage.from("supplier-catalogs")
+            .upload(parentPath, f, { contentType: mime, upsert: false });
+          if (upErr) throw new Error("Erro ao enviar PDF original.");
+          const totalChunks = Math.ceil(totalPages / CHUNK_PAGES);
+          const { data: parentRow, error: pErr } = await supabase.from("supplier_catalogs").insert({
+            user_id: user.id, supplier_id: id, filename: outName, storage_path: parentPath,
+            mime, size_bytes: f.size, kind,
+            processing_status: "processing", processing_stage: "criando_produtos",
+            internal_only: false, total_pages: totalPages, total_chunks: totalChunks,
+            processed_chunks: 0, processed_pages: 0,
+          } as any).select("id").single();
+          if (pErr || !parentRow) throw new Error("Erro ao registrar catálogo.");
+          toast.success(`PDF enviado (${totalPages} págs). Processando em ${totalChunks} partes…`);
+          load();
+
+          // 2) Divide em partes de N páginas, sobe cada parte e dispara processamento
+          for (let i = 0; i < totalPages; i += CHUNK_PAGES) {
+            const partIdx = Math.floor(i / CHUNK_PAGES);
+            const sub = await PDFDocument.create();
+            const range = Array.from({ length: Math.min(CHUNK_PAGES, totalPages - i) }, (_, k) => i + k);
+            const copied = await sub.copyPages(srcDoc, range);
+            copied.forEach((p) => sub.addPage(p));
+            const bytes = await sub.save();
+            const partName = safeName.replace(/\.pdf$/i, "") + `_parte${partIdx + 1}.pdf`;
+            const partPath = `${user.id}/${id}/${kind}/${Date.now()}_${partIdx}_${partName}`;
+            const { error: uErr } = await supabase.storage.from("supplier-catalogs")
+              .upload(partPath, new Blob([bytes as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
+            if (uErr) continue;
+            await supabase.functions.invoke("supplier-catalog-import", {
+              body: {
+                supplier_id: id,
+                filename: `${outName} (parte ${partIdx + 1}/${totalChunks})`,
+                mime: "application/pdf",
+                storage_path: partPath,
+                size_bytes: bytes.length,
+                kind,
+                parent_catalog_id: parentRow.id,
+                chunk_index: partIdx,
+                page_start: i + 1,
+                page_end: i + range.length,
+              },
+            });
+          }
+          load();
+          return;
+        }
+      }
+
+      // --- caminho original (arquivo único, IA processa em 1 chamada) ---
       const storagePath = `${user.id}/${id}/${kind}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("supplier-catalogs")
@@ -183,6 +256,7 @@ export default function SupplierDetail() {
       e.target.value = "";
     }
   };
+
 
   const openPreview = async (c: any) => {
     const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(c.storage_path, 60 * 30);
@@ -276,9 +350,11 @@ export default function SupplierDetail() {
                     const elapsed = (Date.now() - new Date(c.created_at).getTime()) / 1000;
                     const heartbeatAge = (Date.now() - new Date(c.last_heartbeat_at || c.created_at).getTime()) / 1000;
                     const inBackground = busy && elapsed > 45;
-                    const rawProgress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 92) : null;
+                    const chunkProgress = c.total_chunks ? Math.round((c.processed_chunks / c.total_chunks) * 100) : null;
+                    const rawProgress = chunkProgress ?? (c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 92) : null);
                     // progresso estimado mínimo quando ainda não tem total
                     const progress = rawProgress ?? Math.min(95, Math.round(elapsed * 1.5));
+
                     const noProducts = c.processing_status === "completed" && !c.products_created && !c.products_updated;
                     const shownLabel = stageLabel[c.processing_stage] || st.label;
                     return (

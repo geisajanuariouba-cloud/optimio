@@ -164,8 +164,38 @@ async function callAI(signedUrl: string, mime: string, kind: "catalog" | "pricin
   return kind === "catalog" ? (args.products ?? []) : (args.items ?? []);
 }
 
+// ---------- parent aggregation ----------
+async function recomputeParent(parentId: string) {
+  const supabase = createClient(SB_URL, SVC);
+  const { data: parent } = await supabase.from("supplier_catalogs")
+    .select("total_chunks").eq("id", parentId).maybeSingle();
+  const { data: children } = await supabase.from("supplier_catalogs")
+    .select("processing_status,products_created,products_updated,products_extracted")
+    .eq("parent_id", parentId);
+  if (!children) return;
+  const sum = (k: string) => children.reduce((a: number, c: any) => a + (Number(c[k]) || 0), 0);
+  const terminalSt = ["completed", "partial", "failed"];
+  const done = children.filter((c: any) => terminalSt.includes(c.processing_status));
+  const expected = parent?.total_chunks || children.length;
+  const allDone = done.length >= expected;
+  const anyOk = children.some((c: any) => ["completed", "partial"].includes(c.processing_status));
+  const status = !allDone ? "processing" : (anyOk ? (children.some((c: any) => c.processing_status === "failed") ? "partial" : "completed") : "failed");
+  await supabase.from("supplier_catalogs").update({
+    processing_status: status,
+    processing_stage: status === "processing" ? "criando_produtos" : (status === "completed" ? "concluido" : (status === "partial" ? "concluido_parcialmente" : "erro")),
+    processed_chunks: done.length,
+    products_created: sum("products_created"),
+    products_updated: sum("products_updated"),
+    products_extracted: sum("products_extracted"),
+    last_heartbeat_at: new Date().toISOString(),
+    completed_at: allDone ? new Date().toISOString() : null,
+    partial_reason: status === "partial" ? "Algumas partes do PDF falharam, mas o restante foi processado." : null,
+  }).eq("id", parentId);
+}
+
 // ---------- catalog processor ----------
-async function processCatalog(catalogId: string, userId: string, supplierId: string, storagePath: string, mime: string, kind: "catalog" | "pricing") {
+async function processCatalog(catalogId: string, userId: string, supplierId: string, storagePath: string, mime: string, kind: "catalog" | "pricing", parentId: string | null = null) {
+
   const supabase = createClient(SB_URL, SVC);
   const t0 = Date.now();
   const logs: any[] = [];
@@ -370,8 +400,14 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
       completed_at: new Date().toISOString(),
       last_heartbeat_at: new Date().toISOString(),
     }).eq("id", catalogId);
+  } finally {
+    if (parentId) {
+      try { await recomputeParent(parentId); } catch { /* noop */ }
+    }
   }
 }
+
+
 
 // ---------- HTTP ----------
 Deno.serve(async (req) => {
@@ -391,10 +427,31 @@ Deno.serve(async (req) => {
     // RETRY
     if (body.retry_catalog_id) {
       const { data: cat } = await supabase.from("supplier_catalogs")
-        .select("id,user_id,supplier_id,storage_path,mime,kind")
+        .select("id,user_id,supplier_id,storage_path,mime,kind,parent_id")
         .eq("id", body.retry_catalog_id).maybeSingle();
       if (!cat || cat.user_id !== user.id) {
         return new Response(JSON.stringify({ error: "Catálogo não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Se é um pai com filhos: reprocessar apenas filhos que não concluíram com sucesso
+      const { data: childRows } = await supabase.from("supplier_catalogs")
+        .select("id,user_id,supplier_id,storage_path,mime,kind,processing_status")
+        .eq("parent_id", cat.id);
+      if (childRows && childRows.length > 0) {
+        const targets = childRows.filter((c: any) => ["failed", "partial", "pending", "processing", "extracting", "consolidating", "splitting"].includes(c.processing_status));
+        await supabase.from("supplier_catalogs").update({
+          processing_status: "processing", processing_stage: "criando_produtos",
+          error_message: null, partial_reason: null, last_heartbeat_at: new Date().toISOString(),
+        }).eq("id", cat.id);
+        for (const ch of targets) {
+          await supabase.from("supplier_catalogs").update({
+            processing_status: "pending", processing_stage: "enviado",
+            error_message: null, partial_reason: null, processing_logs: [],
+            completed_at: null, last_heartbeat_at: new Date().toISOString(),
+          }).eq("id", ch.id);
+          // @ts-ignore
+          EdgeRuntime.waitUntil(processCatalog(ch.id, ch.user_id, ch.supplier_id, ch.storage_path, ch.mime, (ch.kind ?? "catalog") as any, cat.id));
+        }
+        return new Response(JSON.stringify({ catalog_id: cat.id, status: "processing", retried: targets.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       await supabase.from("supplier_catalogs").update({
         processing_status: "pending", processing_stage: "enviado",
@@ -402,31 +459,39 @@ Deno.serve(async (req) => {
         completed_at: null, last_heartbeat_at: new Date().toISOString(),
       }).eq("id", cat.id);
       // @ts-ignore
-      EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime, (cat.kind ?? "catalog") as any));
+      EdgeRuntime.waitUntil(processCatalog(cat.id, cat.user_id, cat.supplier_id, cat.storage_path, cat.mime, (cat.kind ?? "catalog") as any, cat.parent_id));
       return new Response(JSON.stringify({ catalog_id: cat.id, status: "processing" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { supplier_id, filename, mime, storage_path, size_bytes, kind } = body;
+
+    const { supplier_id, filename, mime, storage_path, size_bytes, kind, parent_catalog_id, chunk_index, page_start, page_end } = body;
     const docKind: "catalog" | "pricing" = kind === "pricing" ? "pricing" : "catalog";
     if (!supplier_id || !storage_path) {
       return new Response(JSON.stringify({ error: "Dados obrigatórios faltando" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const isChild = !!parent_catalog_id;
     const { data: parent, error: insErr } = await supabase.from("supplier_catalogs").insert({
       user_id: user.id, supplier_id, filename: filename ?? "catalogo", storage_path,
       mime, size_bytes: size_bytes ?? null, kind: docKind,
-      processing_status: "pending", processing_stage: "enviado", internal_only: false,
+      processing_status: "pending", processing_stage: "enviado",
+      internal_only: isChild,
+      parent_id: isChild ? parent_catalog_id : null,
+      chunk_index: chunk_index ?? null,
+      page_start: page_start ?? null,
+      page_end: page_end ?? null,
     }).select("id").single();
     if (insErr || !parent) {
       return new Response(JSON.stringify({ error: "Erro ao registrar catálogo." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // @ts-ignore
-    EdgeRuntime.waitUntil(processCatalog(parent.id, user.id, supplier_id, storage_path, mime, docKind));
+    EdgeRuntime.waitUntil(processCatalog(parent.id, user.id, supplier_id, storage_path, mime, docKind, isChild ? parent_catalog_id : null));
 
     return new Response(JSON.stringify({ catalog_id: parent.id, status: "processing" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro inesperado" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
