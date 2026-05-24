@@ -345,9 +345,11 @@ export default function SupplierDetail() {
                     const elapsed = (Date.now() - new Date(c.created_at).getTime()) / 1000;
                     const heartbeatAge = (Date.now() - new Date(c.last_heartbeat_at || c.created_at).getTime()) / 1000;
                     const inBackground = busy && elapsed > 45;
-                    const rawProgress = c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 92) : null;
+                    const chunkProgress = c.total_chunks ? Math.round((c.processed_chunks / c.total_chunks) * 100) : null;
+                    const rawProgress = chunkProgress ?? (c.total_pages ? Math.round((c.processed_pages / c.total_pages) * 92) : null);
                     // progresso estimado mínimo quando ainda não tem total
                     const progress = rawProgress ?? Math.min(95, Math.round(elapsed * 1.5));
+
                     const noProducts = c.processing_status === "completed" && !c.products_created && !c.products_updated;
                     const shownLabel = stageLabel[c.processing_stage] || st.label;
                     return (
