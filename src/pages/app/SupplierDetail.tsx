@@ -85,10 +85,14 @@ export default function SupplierDetail() {
 
   const removeCatalog = async (c: any) => {
     if (!confirm(`Remover "${c.filename}"?`)) return;
-    await supabase.storage.from("supplier-catalogs").remove([c.storage_path]);
+    const { data: children } = await supabase.from("supplier_catalogs").select("storage_path,id").eq("parent_id", c.id);
+    const paths = [c.storage_path, ...((children ?? []).map((x: any) => x.storage_path).filter(Boolean))];
+    if (paths.length) await supabase.storage.from("supplier-catalogs").remove(paths);
+    if (children?.length) await supabase.from("supplier_catalogs").delete().eq("parent_id", c.id);
     await supabase.from("supplier_catalogs").delete().eq("id", c.id);
     toast.success("Catálogo removido"); load();
   };
+
 
   const retryCatalog = async (c: any) => {
     try {
