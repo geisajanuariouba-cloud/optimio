@@ -442,27 +442,34 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ catalog_id: cat.id, status: "processing" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { supplier_id, filename, mime, storage_path, size_bytes, kind } = body;
+    const { supplier_id, filename, mime, storage_path, size_bytes, kind, parent_catalog_id, chunk_index, page_start, page_end } = body;
     const docKind: "catalog" | "pricing" = kind === "pricing" ? "pricing" : "catalog";
     if (!supplier_id || !storage_path) {
       return new Response(JSON.stringify({ error: "Dados obrigatórios faltando" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const isChild = !!parent_catalog_id;
     const { data: parent, error: insErr } = await supabase.from("supplier_catalogs").insert({
       user_id: user.id, supplier_id, filename: filename ?? "catalogo", storage_path,
       mime, size_bytes: size_bytes ?? null, kind: docKind,
-      processing_status: "pending", processing_stage: "enviado", internal_only: false,
+      processing_status: "pending", processing_stage: "enviado",
+      internal_only: isChild,
+      parent_id: isChild ? parent_catalog_id : null,
+      chunk_index: chunk_index ?? null,
+      page_start: page_start ?? null,
+      page_end: page_end ?? null,
     }).select("id").single();
     if (insErr || !parent) {
       return new Response(JSON.stringify({ error: "Erro ao registrar catálogo." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // @ts-ignore
-    EdgeRuntime.waitUntil(processCatalog(parent.id, user.id, supplier_id, storage_path, mime, docKind));
+    EdgeRuntime.waitUntil(processCatalog(parent.id, user.id, supplier_id, storage_path, mime, docKind, isChild ? parent_catalog_id : null));
 
     return new Response(JSON.stringify({ catalog_id: parent.id, status: "processing" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro inesperado" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
