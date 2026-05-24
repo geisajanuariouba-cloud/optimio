@@ -164,8 +164,38 @@ async function callAI(signedUrl: string, mime: string, kind: "catalog" | "pricin
   return kind === "catalog" ? (args.products ?? []) : (args.items ?? []);
 }
 
+// ---------- parent aggregation ----------
+async function recomputeParent(parentId: string) {
+  const supabase = createClient(SB_URL, SVC);
+  const { data: parent } = await supabase.from("supplier_catalogs")
+    .select("total_chunks").eq("id", parentId).maybeSingle();
+  const { data: children } = await supabase.from("supplier_catalogs")
+    .select("processing_status,products_created,products_updated,products_extracted")
+    .eq("parent_id", parentId);
+  if (!children) return;
+  const sum = (k: string) => children.reduce((a: number, c: any) => a + (Number(c[k]) || 0), 0);
+  const terminalSt = ["completed", "partial", "failed"];
+  const done = children.filter((c: any) => terminalSt.includes(c.processing_status));
+  const expected = parent?.total_chunks || children.length;
+  const allDone = done.length >= expected;
+  const anyOk = children.some((c: any) => ["completed", "partial"].includes(c.processing_status));
+  const status = !allDone ? "processing" : (anyOk ? (children.some((c: any) => c.processing_status === "failed") ? "partial" : "completed") : "failed");
+  await supabase.from("supplier_catalogs").update({
+    processing_status: status,
+    processing_stage: status === "processing" ? "criando_produtos" : (status === "completed" ? "concluido" : (status === "partial" ? "concluido_parcialmente" : "erro")),
+    processed_chunks: done.length,
+    products_created: sum("products_created"),
+    products_updated: sum("products_updated"),
+    products_extracted: sum("products_extracted"),
+    last_heartbeat_at: new Date().toISOString(),
+    completed_at: allDone ? new Date().toISOString() : null,
+    partial_reason: status === "partial" ? "Algumas partes do PDF falharam, mas o restante foi processado." : null,
+  }).eq("id", parentId);
+}
+
 // ---------- catalog processor ----------
-async function processCatalog(catalogId: string, userId: string, supplierId: string, storagePath: string, mime: string, kind: "catalog" | "pricing") {
+async function processCatalog(catalogId: string, userId: string, supplierId: string, storagePath: string, mime: string, kind: "catalog" | "pricing", parentId: string | null = null) {
+
   const supabase = createClient(SB_URL, SVC);
   const t0 = Date.now();
   const logs: any[] = [];
