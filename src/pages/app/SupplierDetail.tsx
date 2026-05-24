@@ -205,7 +205,7 @@ export default function SupplierDetail() {
             const partName = safeName.replace(/\.pdf$/i, "") + `_parte${partIdx + 1}.pdf`;
             const partPath = `${user.id}/${id}/${kind}/${Date.now()}_${partIdx}_${partName}`;
             const { error: uErr } = await supabase.storage.from("supplier-catalogs")
-              .upload(partPath, new Blob([bytes], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
+              .upload(partPath, new Blob([bytes as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
             if (uErr) continue;
             await supabase.functions.invoke("supplier-catalog-import", {
               body: {
