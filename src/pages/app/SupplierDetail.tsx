@@ -148,6 +148,10 @@ export default function SupplierDetail() {
       img.src = url;
     });
 
+  const CHUNK_PAGES = 8;             // páginas por chunk processado pela IA
+  const SPLIT_THRESHOLD_BYTES = 4_500_000; // > ~4.5MB ou > 12 páginas dispara split
+  const SPLIT_THRESHOLD_PAGES = 12;
+
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>, kind: "catalog" | "pricing") => {
     const f = e.target.files?.[0];
     if (!f || !id || !user) return;
@@ -164,6 +168,66 @@ export default function SupplierDetail() {
         throw new Error("Arquivo muito grande (máx 200MB).");
       }
       const safeName = outName.replace(/[^\w.\-]+/g, "_");
+
+      // --- PDF grande: dividir no navegador em partes menores e processar em paralelo no backend ---
+      if (mime === "application/pdf" && f.size > SPLIT_THRESHOLD_BYTES) {
+        const { PDFDocument } = await import("pdf-lib");
+        const srcBuf = await f.arrayBuffer();
+        const srcDoc = await PDFDocument.load(srcBuf, { ignoreEncryption: true });
+        const totalPages = srcDoc.getPageCount();
+
+        if (totalPages > SPLIT_THRESHOLD_PAGES) {
+          // 1) Sobe PDF completo (parent) para o usuário poder visualizar/baixar inteiro
+          const parentPath = `${user.id}/${id}/${kind}/${Date.now()}_${safeName}`;
+          const { error: upErr } = await supabase.storage.from("supplier-catalogs")
+            .upload(parentPath, f, { contentType: mime, upsert: false });
+          if (upErr) throw new Error("Erro ao enviar PDF original.");
+          const totalChunks = Math.ceil(totalPages / CHUNK_PAGES);
+          const { data: parentRow, error: pErr } = await supabase.from("supplier_catalogs").insert({
+            user_id: user.id, supplier_id: id, filename: outName, storage_path: parentPath,
+            mime, size_bytes: f.size, kind,
+            processing_status: "processing", processing_stage: "criando_produtos",
+            internal_only: false, total_pages: totalPages, total_chunks: totalChunks,
+            processed_chunks: 0, processed_pages: 0,
+          } as any).select("id").single();
+          if (pErr || !parentRow) throw new Error("Erro ao registrar catálogo.");
+          toast.success(`PDF enviado (${totalPages} págs). Processando em ${totalChunks} partes…`);
+          load();
+
+          // 2) Divide em partes de N páginas, sobe cada parte e dispara processamento
+          for (let i = 0; i < totalPages; i += CHUNK_PAGES) {
+            const partIdx = Math.floor(i / CHUNK_PAGES);
+            const sub = await PDFDocument.create();
+            const range = Array.from({ length: Math.min(CHUNK_PAGES, totalPages - i) }, (_, k) => i + k);
+            const copied = await sub.copyPages(srcDoc, range);
+            copied.forEach((p) => sub.addPage(p));
+            const bytes = await sub.save();
+            const partName = safeName.replace(/\.pdf$/i, "") + `_parte${partIdx + 1}.pdf`;
+            const partPath = `${user.id}/${id}/${kind}/${Date.now()}_${partIdx}_${partName}`;
+            const { error: uErr } = await supabase.storage.from("supplier-catalogs")
+              .upload(partPath, new Blob([bytes], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
+            if (uErr) continue;
+            await supabase.functions.invoke("supplier-catalog-import", {
+              body: {
+                supplier_id: id,
+                filename: `${outName} (parte ${partIdx + 1}/${totalChunks})`,
+                mime: "application/pdf",
+                storage_path: partPath,
+                size_bytes: bytes.length,
+                kind,
+                parent_catalog_id: parentRow.id,
+                chunk_index: partIdx,
+                page_start: i + 1,
+                page_end: i + range.length,
+              },
+            });
+          }
+          load();
+          return;
+        }
+      }
+
+      // --- caminho original (arquivo único, IA processa em 1 chamada) ---
       const storagePath = `${user.id}/${id}/${kind}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("supplier-catalogs")
@@ -187,6 +251,7 @@ export default function SupplierDetail() {
       e.target.value = "";
     }
   };
+
 
   const openPreview = async (c: any) => {
     const { data, error } = await supabase.storage.from("supplier-catalogs").createSignedUrl(c.storage_path, 60 * 30);
