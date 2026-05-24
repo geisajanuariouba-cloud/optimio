@@ -57,8 +57,13 @@ export default function SupplierDetail() {
       if (!busy.includes(c.processing_status)) return false;
       const heartbeat = new Date(c.last_heartbeat_at || c.created_at).getTime();
       const elapsed = Date.now() - new Date(c.created_at).getTime();
-      return elapsed > 75_000 && Date.now() - heartbeat > 45_000;
+      // pais com chunks têm tolerância maior pois dependem de múltiplos filhos
+      const isParent = Number(c.total_chunks || 0) > 0;
+      const heartbeatLimit = isParent ? 180_000 : 45_000;
+      const elapsedLimit = isParent ? 300_000 : 75_000;
+      return elapsed > elapsedLimit && Date.now() - heartbeat > heartbeatLimit;
     });
+
     if (!stale.length) return;
     stale.forEach(async (c: any) => {
       const hasPartial = Number(c.products_created || 0) + Number(c.products_updated || 0) + Number(c.products_extracted || 0) > 0;
