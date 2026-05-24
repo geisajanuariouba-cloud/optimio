@@ -400,8 +400,14 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
       completed_at: new Date().toISOString(),
       last_heartbeat_at: new Date().toISOString(),
     }).eq("id", catalogId);
+  } finally {
+    if (parentId) {
+      try { await recomputeParent(parentId); } catch { /* noop */ }
+    }
   }
 }
+
+
 
 // ---------- HTTP ----------
 Deno.serve(async (req) => {
