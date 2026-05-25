@@ -148,27 +148,6 @@ export default function Dashboard() {
         </Popover>
       </div>
 
-      {/* Busca global no catálogo */}
-      <Card className="p-4 rounded-3xl border-0 shadow-sm">
-        <div className="relative">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔎 Buscar no catálogo (nome, código)…" className="h-11 rounded-2xl" />
-          {searchHits.length > 0 && (
-            <Card className="absolute top-12 left-0 right-0 z-50 rounded-2xl border-0 shadow-lg max-h-80 overflow-auto">
-              {searchHits.map(p => (
-                <div key={p.id} className="p-3 flex items-center gap-3 hover:bg-secondary/60">
-                  {p.image_url ? <img src={p.image_url} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-secondary" />}
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">{p.category ?? "—"} · R$ {Number(p.sale_price).toFixed(2)}</div>
-                  </div>
-                  <Link to="/app/quotes"><Button size="sm" variant="outline" className="rounded-xl"><FileText className="h-3 w-3 mr-1" />Orçar</Button></Link>
-                </div>
-              ))}
-            </Card>
-          )}
-        </div>
-      </Card>
-
       {/* Quick Notes flutuante */}
       <W k="quick_notes">
         <Card className="p-4 rounded-3xl border-0 shadow-sm bg-amber-500/5 border border-amber-500/20">
