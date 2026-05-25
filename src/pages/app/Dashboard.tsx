@@ -132,7 +132,7 @@ export default function Dashboard() {
         </div>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="rounded-2xl"><Settings2 className="h-4 w-4 mr-2" />Personalizar</Button>
+            <Button size="sm" className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"><Settings2 className="h-4 w-4 mr-2" />Personalizar</Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 rounded-2xl">
             <div className="text-sm font-semibold mb-2">Widgets visíveis</div>
