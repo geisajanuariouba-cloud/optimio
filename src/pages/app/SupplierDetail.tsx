@@ -196,7 +196,7 @@ export default function SupplierDetail() {
             processed_chunks: 0, processed_pages: 0,
           } as any).select("id").single();
           if (pErr || !parentRow) throw new Error("Erro ao registrar catálogo.");
-          toast.success(`PDF enviado (${totalPages} págs). Processando em ${totalChunks} partes…`);
+          toast.success(`PDF enviado (${totalPages} págs). Processando em ${totalChunks} partes em segundo plano — você pode sair desta tela, a criação dos produtos continua normalmente.`, { duration: 8000 });
           load();
 
           // 2) Divide em partes de N páginas, sobe cada parte e dispara processamento
