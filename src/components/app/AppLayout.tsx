@@ -77,7 +77,7 @@ export default function AppLayout() {
           <AppSidebar />
           <div className="flex-1 flex flex-col min-w-0">
             <header className="h-16 border-b border-border bg-card/50 backdrop-blur flex items-center gap-4 px-4 lg:px-6">
-              <SidebarTrigger />
+              <SidebarTrigger className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 shrink-0" />
               <div className="flex-1 max-w-md relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar clientes, produtos, serviços…" className="pl-9 bg-secondary/50 border-0 h-10" />
