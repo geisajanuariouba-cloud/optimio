@@ -238,7 +238,7 @@ export default function SupplierDetail() {
         .from("supplier-catalogs")
         .upload(storagePath, upload, { contentType: mime, upsert: false });
       if (upErr) throw new Error("Erro ao enviar catálogo. Tente novamente.");
-      toast.success("Catálogo enviado com sucesso. Processando produtos…");
+      toast.success("Catálogo enviado. Processando em segundo plano — pode sair desta tela, a criação dos produtos continua normalmente.", { duration: 8000 });
       load();
       const { data, error } = await supabase.functions.invoke("supplier-catalog-import", {
         body: { supplier_id: id, filename: outName, mime, storage_path: storagePath, size_bytes: upload.size, kind },
