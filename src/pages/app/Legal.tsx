@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { ScrollText, Sparkles, Eye, CheckCircle2 } from "lucide-react";
+import DOMPurify from "dompurify";
 
 const TYPES = [
   { key: "terms", label: "Termos de Uso" },
