@@ -36,7 +36,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
     expectedToken = (data?.value as string) || "";
   }
-  if (expectedToken && incomingToken !== expectedToken) {
+  if (!expectedToken) {
+    return json(500, { error: "Webhook secret not configured" });
+  }
+  if (incomingToken !== expectedToken) {
     return json(401, { error: "Token inválido" });
   }
 
