@@ -2650,37 +2650,61 @@ export type Database = {
       }
       tasks: {
         Row: {
+          ai_generated: boolean
+          assignee_user_id: string | null
+          completed_at: string | null
           created_at: string
           deleted_at: string | null
           description: string | null
           due_date: string | null
           id: string
           linked_post_id: string | null
+          metadata: Json
+          parent_task_id: string | null
+          priority: string
+          recurrence: string | null
           status: string
+          tags: string[] | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_generated?: boolean
+          assignee_user_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           linked_post_id?: string | null
+          metadata?: Json
+          parent_task_id?: string | null
+          priority?: string
+          recurrence?: string | null
           status?: string
+          tags?: string[] | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_generated?: boolean
+          assignee_user_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           linked_post_id?: string | null
+          metadata?: Json
+          parent_task_id?: string | null
+          priority?: string
+          recurrence?: string | null
           status?: string
+          tags?: string[] | null
           title?: string
           updated_at?: string
           user_id?: string
