@@ -36,7 +36,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
     expectedToken = (data?.value as string) || "";
   }
-  if (expectedToken && incomingToken !== expectedToken) {
+  if (!expectedToken) {
+    return json(500, { error: "Webhook secret not configured" });
+  }
+  if (incomingToken !== expectedToken) {
     return json(401, { error: "Token inválido" });
   }
 
@@ -111,9 +114,9 @@ Deno.serve(async (req) => {
         userId = created.user.id;
       }
 
-      // Gera link de recuperação para o cliente definir senha
+      // Gera link de recuperação para o cliente definir senha (NÃO retornar na resposta)
       const siteUrl = Deno.env.get("SITE_URL") || "";
-      const { data: link } = await supabase.auth.admin.generateLink({
+      await supabase.auth.admin.generateLink({
         type: "recovery", email,
         options: { redirectTo: siteUrl ? `${siteUrl}/auth` : undefined },
       });
@@ -140,7 +143,7 @@ Deno.serve(async (req) => {
       }, { onConflict: "user_id" });
 
       await logEvent("processed", userId);
-      return json(200, { ok: true, user_id: userId, plan: internalPlan, recovery_link: link?.properties?.action_link ?? null });
+      return json(200, { ok: true });
     }
 
     if (isRenewed && subscriptionId) {

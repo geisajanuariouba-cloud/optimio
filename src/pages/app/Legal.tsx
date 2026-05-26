@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { ScrollText, Sparkles, Eye, CheckCircle2 } from "lucide-react";
+import DOMPurify from "dompurify";
 
 const TYPES = [
   { key: "terms", label: "Termos de Uso" },
@@ -109,7 +110,7 @@ export default function Legal() {
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="rounded-3xl max-w-3xl max-h-[80vh] overflow-auto">
           <DialogHeader><DialogTitle>{preview?.title}</DialogTitle></DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: preview?.html_content ?? "" }} />
+          <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview?.html_content ?? "") }} />
           <DialogFooter><Button variant="ghost" onClick={() => setPreview(null)}>Fechar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
