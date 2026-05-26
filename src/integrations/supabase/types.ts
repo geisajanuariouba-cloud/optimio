@@ -404,6 +404,72 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_review_items: {
+        Row: {
+          catalog_id: string | null
+          created_at: string
+          dedup_hash: string | null
+          id: string
+          match_product_id: string | null
+          match_status: string
+          proposed_category: string | null
+          proposed_code: string | null
+          proposed_image_url: string | null
+          proposed_measurements: Json | null
+          proposed_name: string | null
+          proposed_variations: Json | null
+          raw_data: Json
+          review_status: string
+          reviewer_notes: string | null
+          source_page: number | null
+          supplier_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          catalog_id?: string | null
+          created_at?: string
+          dedup_hash?: string | null
+          id?: string
+          match_product_id?: string | null
+          match_status?: string
+          proposed_category?: string | null
+          proposed_code?: string | null
+          proposed_image_url?: string | null
+          proposed_measurements?: Json | null
+          proposed_name?: string | null
+          proposed_variations?: Json | null
+          raw_data?: Json
+          review_status?: string
+          reviewer_notes?: string | null
+          source_page?: number | null
+          supplier_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          catalog_id?: string | null
+          created_at?: string
+          dedup_hash?: string | null
+          id?: string
+          match_product_id?: string | null
+          match_status?: string
+          proposed_category?: string | null
+          proposed_code?: string | null
+          proposed_image_url?: string | null
+          proposed_measurements?: Json | null
+          proposed_name?: string | null
+          proposed_variations?: Json | null
+          raw_data?: Json
+          review_status?: string
+          reviewer_notes?: string | null
+          source_page?: number | null
+          supplier_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string | null
@@ -1025,6 +1091,60 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_campaigns: {
+        Row: {
+          ai_generated: boolean
+          audience: string | null
+          budget: number | null
+          channel: string
+          content: Json
+          created_at: string
+          ends_at: string | null
+          id: string
+          metrics: Json
+          name: string
+          objective: string | null
+          starts_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          audience?: string | null
+          budget?: number | null
+          channel?: string
+          content?: Json
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          metrics?: Json
+          name: string
+          objective?: string | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_generated?: boolean
+          audience?: string | null
+          budget?: number | null
+          channel?: string
+          content?: Json
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          metrics?: Json
+          name?: string
+          objective?: string | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       marketing_posts: {
         Row: {
           channel: string | null
@@ -1408,6 +1528,48 @@ export type Database = {
         }
         Relationships: []
       }
+      product_ideas: {
+        Row: {
+          category: string | null
+          created_at: string
+          estimated_margin: number | null
+          id: string
+          metadata: Json
+          name: string
+          potential_score: number | null
+          reason: string | null
+          source: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          estimated_margin?: number | null
+          id?: string
+          metadata?: Json
+          name: string
+          potential_score?: number | null
+          reason?: string | null
+          source?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          estimated_margin?: number | null
+          id?: string
+          metadata?: Json
+          name?: string
+          potential_score?: number | null
+          reason?: string | null
+          source?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_variations: {
         Row: {
           attributes: Json
@@ -1506,12 +1668,14 @@ export type Database = {
       }
       products: {
         Row: {
+          ai_category_suggestion: string | null
           category: string | null
           category_id: string | null
           code: string | null
           codname: string | null
           cost: number | null
           created_at: string
+          dedup_hash: string | null
           deleted_at: string | null
           depth: number | null
           description: string | null
@@ -1528,7 +1692,10 @@ export type Database = {
           min_stock: number
           name: string
           out_of_line: boolean
+          product_type: string | null
+          review_status: string | null
           sale_price: number
+          source_catalog_id: string | null
           status: string
           stock: number
           supplier_id: string | null
@@ -1538,12 +1705,14 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          ai_category_suggestion?: string | null
           category?: string | null
           category_id?: string | null
           code?: string | null
           codname?: string | null
           cost?: number | null
           created_at?: string
+          dedup_hash?: string | null
           deleted_at?: string | null
           depth?: number | null
           description?: string | null
@@ -1560,7 +1729,10 @@ export type Database = {
           min_stock?: number
           name: string
           out_of_line?: boolean
+          product_type?: string | null
+          review_status?: string | null
           sale_price?: number
+          source_catalog_id?: string | null
           status?: string
           stock?: number
           supplier_id?: string | null
@@ -1570,12 +1742,14 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          ai_category_suggestion?: string | null
           category?: string | null
           category_id?: string | null
           code?: string | null
           codname?: string | null
           cost?: number | null
           created_at?: string
+          dedup_hash?: string | null
           deleted_at?: string | null
           depth?: number | null
           description?: string | null
@@ -1592,7 +1766,10 @@ export type Database = {
           min_stock?: number
           name?: string
           out_of_line?: boolean
+          product_type?: string | null
+          review_status?: string | null
           sale_price?: number
+          source_catalog_id?: string | null
           status?: string
           stock?: number
           supplier_id?: string | null
@@ -1963,6 +2140,48 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          movement_type: string
+          product_id: string | null
+          quantity: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+          unit_cost: number | null
+          user_id: string
+          variation_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movement_type: string
+          product_id?: string | null
+          quantity: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
+          user_id: string
+          variation_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movement_type?: string
+          product_id?: string | null
+          quantity?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
+          user_id?: string
+          variation_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -2089,6 +2308,7 @@ export type Database = {
           filename: string
           id: string
           internal_only: boolean
+          items_pending_review: number | null
           kind: string
           last_heartbeat_at: string
           mime: string | null
@@ -2104,6 +2324,7 @@ export type Database = {
           products_created: number
           products_extracted: number
           products_updated: number
+          review_required: boolean | null
           size_bytes: number | null
           storage_path: string
           supplier_id: string
@@ -2119,6 +2340,7 @@ export type Database = {
           filename: string
           id?: string
           internal_only?: boolean
+          items_pending_review?: number | null
           kind?: string
           last_heartbeat_at?: string
           mime?: string | null
@@ -2134,6 +2356,7 @@ export type Database = {
           products_created?: number
           products_extracted?: number
           products_updated?: number
+          review_required?: boolean | null
           size_bytes?: number | null
           storage_path: string
           supplier_id: string
@@ -2149,6 +2372,7 @@ export type Database = {
           filename?: string
           id?: string
           internal_only?: boolean
+          items_pending_review?: number | null
           kind?: string
           last_heartbeat_at?: string
           mime?: string | null
@@ -2164,6 +2388,7 @@ export type Database = {
           products_created?: number
           products_extracted?: number
           products_updated?: number
+          review_required?: boolean | null
           size_bytes?: number | null
           storage_path?: string
           supplier_id?: string
@@ -2388,6 +2613,41 @@ export type Database = {
         }
         Relationships: []
       }
+      task_comments: {
+        Row: {
+          author_user_id: string
+          content: string
+          created_at: string
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          author_user_id: string
+          content: string
+          created_at?: string
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          author_user_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           created_at: string
@@ -2463,6 +2723,51 @@ export type Database = {
           role?: string
           status?: string
           token?: string
+        }
+        Relationships: []
+      }
+      team_meetings: {
+        Row: {
+          action_items: Json
+          agenda: string | null
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          participants: Json
+          scheduled_for: string | null
+          scope: string
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json
+          agenda?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          participants?: Json
+          scheduled_for?: string | null
+          scope?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json
+          agenda?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          participants?: Json
+          scheduled_for?: string | null
+          scope?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
