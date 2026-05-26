@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote, ShoppingBag, Sparkles, UserCog } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, ClipboardCheck, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote, ShoppingBag, Sparkles, UserCog, CheckSquare, TrendingUp, Lightbulb, Users2, Rocket, Warehouse } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -8,30 +8,35 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
+import { NICHES_WITH_ANAMNESIS, NicheKey } from "@/lib/niches";
 
 const ALL = [
   { mod: "dashboard", title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
   { mod: "appointments", title: "Agenda", url: "/app/appointments", icon: Calendar },
   { mod: "clients", title: "termClients", url: "/app/clients", icon: Users },
   { mod: "packages", title: "Recorrência", url: "/app/packages", icon: Package },
-  { mod: "anamnesis", title: "Anamnese", url: "/app/anamnesis", icon: ClipboardList },
+  { mod: "anamnesis", title: "Anamnese", url: "/app/anamnesis", icon: ClipboardList, anamnesisOnly: true },
   { mod: "services", title: "termServices", url: "/app/services", icon: Scissors },
-  { mod: "products", title: "Produtos & Estoque", url: "/app/products", icon: Boxes },
+  { mod: "products", title: "Produtos", url: "/app/products", icon: Boxes },
+  { mod: "products", title: "Estoque Inteligente", url: "/app/stock", icon: Warehouse },
+  { mod: "products", title: "Ideias de Produto", url: "/app/product-ideas", icon: Lightbulb },
   { mod: "products", title: "Fornecedores", url: "/app/suppliers", icon: Factory },
-  { mod: "products", title: "Categorias", url: "/app/categories", icon: Tags },
+  { mod: "products", title: "Revisão Importação", url: "/app/import-review", icon: ClipboardCheck },
   { mod: "products", title: "Orçamentos", url: "/app/quotes", icon: FileText },
   { mod: "financial", title: "Vendas", url: "/app/sales", icon: ShoppingBag },
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
   { mod: "financial", title: "Caixa do Dia", url: "/app/cash-drawer", icon: Banknote },
-  { mod: "financial", title: "Métodos de Pagamento", url: "/app/payment-methods", icon: CreditCard },
   { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
   { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },
   { mod: "financial", title: "Montadores", url: "/app/assemblers", icon: Wrench },
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
+  { mod: "marketing", title: "Campanhas IA", url: "/app/campaigns", icon: TrendingUp },
   { mod: "marketing", title: "Combos", url: "/app/combos", icon: Gift },
   { mod: "marketing", title: "Projetos", url: "/app/projects", icon: KanbanSquare },
+  { mod: "dashboard", title: "Tarefas", url: "/app/tasks", icon: CheckSquare },
+  { mod: "dashboard", title: "Reuniões", url: "/app/meetings", icon: Users2 },
   { mod: "integrations", title: "Automações (Make)", url: "/app/automations", icon: Zap, adminOnly: true },
-] as Array<{ mod: string; title: string; url: string; icon: any; end?: boolean; adminOnly?: boolean }>;
+] as Array<{ mod: string; title: string; url: string; icon: any; end?: boolean; adminOnly?: boolean; anamnesisOnly?: boolean }>;
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -40,9 +45,12 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const { hasModule, t, isAdmin } = useTenant();
 
+  const { profile } = useTenant();
+  const nicheKey = (profile?.niche as NicheKey) ?? "beauty";
   const items = ALL
     .filter(i => hasModule(i.mod))
     .filter(i => !i.adminOnly || isAdmin)
+    .filter(i => !i.anamnesisOnly || NICHES_WITH_ANAMNESIS.includes(nicheKey))
     .map(i => ({
       ...i,
       title: i.title === "termClients" ? t("clients") : i.title === "termServices" ? t("services") : i.title,
@@ -93,6 +101,7 @@ export function AppSidebar() {
               {[
                 { title: "Comece aqui", url: "/app/start", icon: Sparkles },
                 { title: "Equipe", url: "/app/team", icon: UserCog },
+                { title: "Melhorar plano", url: "/app/upgrade", icon: Rocket },
                 { title: "Suporte", url: "/app/support", icon: LifeBuoy },
                 { title: "Lixeira", url: "/app/trash", icon: Trash2 },
                 { title: "Configurações", url: "/app/settings", icon: Settings },

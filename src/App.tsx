@@ -42,6 +42,13 @@ import Sales from "./pages/app/Sales";
 import StartHere from "./pages/app/StartHere";
 import Team from "./pages/app/Team";
 import InviteAccept from "./pages/InviteAccept";
+import Tasks from "./pages/app/Tasks";
+import Stock from "./pages/app/Stock";
+import ImportReview from "./pages/app/ImportReview";
+import ProductIdeas from "./pages/app/ProductIdeas";
+import Campaigns from "./pages/app/Campaigns";
+import Meetings from "./pages/app/Meetings";
+import PlanUpgrade from "./pages/app/PlanUpgrade";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +99,13 @@ const App = () => (
                 <Route path="support" element={<Support />} />
                 <Route path="trash" element={<Trash />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="tasks" element={<Tasks />} />
+                <Route path="stock" element={<Stock />} />
+                <Route path="import-review" element={<ImportReview />} />
+                <Route path="product-ideas" element={<ProductIdeas />} />
+                <Route path="campaigns" element={<Campaigns />} />
+                <Route path="meetings" element={<Meetings />} />
+                <Route path="upgrade" element={<PlanUpgrade />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
