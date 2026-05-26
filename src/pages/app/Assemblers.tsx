@@ -234,7 +234,7 @@ export default function Assemblers() {
               <div><Label>Telefone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             </div>
-            <div><Label>% comissão padrão (sugerido 5%)</Label><Input type="number" step="0.1" value={form.default_commission_percent} onChange={(e) => setForm({ ...form, default_commission_percent: +e.target.value })} /></div>
+            <div><Label>% comissão padrão</Label><Input type="number" step="0.1" value={form.default_commission_percent} onChange={(e) => setForm({ ...form, default_commission_percent: +e.target.value })} /></div>
             <div><Label>Notas</Label><Input value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
           <DialogFooter>
