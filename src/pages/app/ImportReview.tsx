@@ -50,7 +50,7 @@ export default function ImportReview() {
       review_status: "approved",
       status: "active",
     });
-    if (pErr) return toast.error(pErr.message);
+    if (pErr) return toast.error(friendlyError(pErr));
     await supabase.from("catalog_review_items").update({ review_status: "approved" }).eq("id", i.id);
     toast.success("Produto criado"); load();
   };
