@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/errors";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +50,7 @@ export default function ImportReview() {
       review_status: "approved",
       status: "active",
     });
-    if (pErr) return toast.error(pErr.message);
+    if (pErr) return toast.error(friendlyError(pErr));
     await supabase.from("catalog_review_items").update({ review_status: "approved" }).eq("id", i.id);
     toast.success("Produto criado"); load();
   };
