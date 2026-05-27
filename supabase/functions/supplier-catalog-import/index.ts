@@ -298,6 +298,38 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
       return true;
     });
 
+    // Alimenta fila de revisão (Revisão de Importação)
+    try {
+      const { data: existingHashes } = await supabase.from("products")
+        .select("dedup_hash").eq("user_id", userId).not("dedup_hash", "is", null);
+      const known = new Set((existingHashes ?? []).map((r: any) => r.dedup_hash));
+      const reviewRows = batch.map((p: any) => {
+        const hash = `${(p.code ?? "").toString().toLowerCase()}|${p.name.toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
+        return {
+          user_id: userId,
+          catalog_id: catalogId,
+          supplier_id: supplierId,
+          source_page: num(p.page),
+          proposed_name: p.name,
+          proposed_code: p.code ?? null,
+          proposed_category: p.category ?? null,
+          proposed_image_url: null,
+          proposed_measurements: {
+            width: num(p.width), height: num(p.height), depth: num(p.depth),
+            length_cm: num(p.length_cm), weight: num(p.weight), raw: p.measurements ?? null,
+          },
+          proposed_variations: p.variations ?? null,
+          dedup_hash: hash,
+          match_status: known.has(hash) ? "duplicate" : "new",
+          review_status: "pending",
+          raw_data: p,
+        };
+      });
+      for (let i = 0; i < reviewRows.length; i += 200) {
+        await supabase.from("catalog_review_items").insert(reviewRows.slice(i, i + 200));
+      }
+    } catch (_) { /* não bloqueia o fluxo principal */ }
+
     // existentes para dedup contra o BD
     const { data: existing } = await supabase.from("products")
       .select("id,name,code").eq("user_id", userId).eq("supplier_id", supplierId).is("deleted_at", null);
