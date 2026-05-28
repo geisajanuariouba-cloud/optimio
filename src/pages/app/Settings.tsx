@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +72,7 @@ export default function Settings() {
       primary_color: primaryColor, border_style: borderStyle,
     }).eq("id", user.id);
     setLoading(false);
-    if (error) toast.error(error.message); else { toast.success("Configurações salvas!"); refresh(); }
+    if (error) toast.error(friendlyError(error)); else { toast.success("Configurações salvas!"); refresh(); }
   };
 
   const resetNiche = async () => {
@@ -80,13 +81,13 @@ export default function Settings() {
     const { error } = await supabase.from("profiles").update({
       niche, enabled_modules: n.modules, terms: n.terms,
     }).eq("id", user.id);
-    if (error) toast.error(error.message); else { toast.success(`Nicho alterado para ${n.label}`); refresh(); }
+    if (error) toast.error(friendlyError(error)); else { toast.success(`Nicho alterado para ${n.label}`); refresh(); }
   };
 
   const addCat = async () => {
     if (!user || !newCat.name.trim()) return;
     const { error } = await supabase.from("categories").insert({ user_id: user.id, kind: newCat.kind, name: newCat.name.trim() });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     setNewCat({ ...newCat, name: "" });
     loadExtras();
   };
@@ -100,7 +101,7 @@ export default function Settings() {
     setSavingAnam(true);
     const { error } = await supabase.from("anamnesis_templates").upsert({ user_id: user.id, questions: questions as any });
     setSavingAnam(false);
-    if (error) toast.error(error.message); else toast.success("Anamnese atualizada");
+    if (error) toast.error(friendlyError(error)); else toast.success("Anamnese atualizada");
   };
 
   const goCheckout = (plan: string) => {

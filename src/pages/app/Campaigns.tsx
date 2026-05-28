@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ export default function Campaigns() {
       starts_at: form.starts_at || null, ends_at: form.ends_at || null,
       objective: form.objective, audience: form.audience, status: "draft",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Campanha criada"); setOpen(false); setForm(empty); load();
   };
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -30,7 +31,7 @@ export default function Categories() {
     const name = drafts[kind].trim();
     if (!user || !name) return;
     const { error } = await supabase.from("categories").insert({ user_id: user.id, kind, name });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     setDrafts({ ...drafts, [kind]: "" });
     load();
   };
@@ -39,7 +40,7 @@ export default function Categories() {
     if (!editing || !editing.name.trim()) return;
     const old = cats.find(c => c.id === editing.id);
     const { error } = await supabase.from("categories").update({ name: editing.name.trim() }).eq("id", editing.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     if (old && old.kind === "product") {
       await supabase.from("products").update({ category: editing.name.trim() }).eq("category", old.name);
     }

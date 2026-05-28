@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
@@ -56,7 +57,7 @@ export default function Legal() {
       toast.success("Página gerada por IA");
       load();
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao gerar");
+      toast.error(friendlyError(e, "Falha ao gerar"));
     } finally { setLoadingType(null); }
   };
 

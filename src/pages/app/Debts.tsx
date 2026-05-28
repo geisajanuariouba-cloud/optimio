@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -83,7 +84,7 @@ export default function Debts() {
       original_amount: form.original_amount, interest_amount: form.interest_amount,
       total_amount: total, installments_count: form.installments_count, notes: form.notes || null,
     }).select().single();
-    if (error || !debt) return toast.error(error?.message ?? "Erro");
+    if (error || !debt) return toast.error(friendlyError(error, "Erro"));
     const rows = Array.from({ length: form.installments_count }, (_, k) => {
       const d = new Date(form.first_due); d.setMonth(d.getMonth() + k);
       return { user_id: user.id, debt_id: debt.id, number: k + 1, amount: perInstallment, due_date: d.toISOString().slice(0, 10), status: "pending", amount_paid: 0 };
@@ -159,7 +160,7 @@ export default function Debts() {
     await supabase.from("debt_payments").delete().eq("debt_id", id);
     await supabase.from("debt_installments").delete().eq("debt_id", id);
     const { error } = await supabase.from("debts").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Promissória excluída");
     load();
   };

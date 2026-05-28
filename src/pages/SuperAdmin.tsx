@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -43,7 +44,7 @@ export default function SuperAdmin() {
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("profiles").update({ account_status: status }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Status atualizado"); load();
   };
 
@@ -210,7 +211,7 @@ function ProofDialog({ tenant, sub, adminId, onDone }: { tenant: Tenant; sub: Su
       await supabase.from("profiles").update({ account_status: "active" }).eq("id", tenant.id);
       toast.success("Pagamento registrado. Assinatura renovada por 30 dias.");
       setOpen(false); onDone();
-    } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+    } catch (e: any) { toast.error(friendlyError(e)); } finally { setBusy(false); }
   };
 
   return (
@@ -239,13 +240,13 @@ function PlansEditor({ plans, onChange }: { plans: Plan[]; onChange: () => void 
   const save = async (p: Plan) => {
     const patch = draft[p.id]; if (!patch) return;
     const { error } = await supabase.from("plans").update(patch as any).eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Plano atualizado"); setDraft(d => { const n = {...d}; delete n[p.id]; return n; }); onChange();
   };
   const add = async () => {
     const slug = prompt("Slug do novo plano (ex: pro):"); if (!slug) return;
     const { error } = await supabase.from("plans").insert({ slug, name: slug, price: 0 });
-    if (error) return toast.error(error.message); onChange();
+    if (error) return toast.error(friendlyError(error)); onChange();
   };
   const del = async (id: string) => {
     if (!confirm("Excluir este plano?")) return;
@@ -293,7 +294,7 @@ function GlobalSettings() {
     setBusy(true);
     const { error } = await supabase.from("app_settings").upsert({ id: 1, whatsapp_link: link, support_email: supportEmail });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Configurações salvas");
   };
   return (
@@ -345,7 +346,7 @@ function BillingPanel() {
     let value: any = raw;
     if (asJson) { try { value = JSON.parse(raw || "{}"); } catch { return toast.error("JSON inválido em " + key); } }
     const { error } = await supabase.from("system_settings").upsert({ scope: "global", owner_user_id: null, key, value }, { onConflict: "scope,owner_user_id,key" } as any);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Salvo: " + key);
   };
 

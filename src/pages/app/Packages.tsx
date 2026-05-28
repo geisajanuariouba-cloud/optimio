@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -56,7 +57,7 @@ export default function Packages() {
       sessions_total: form.treatments.length,
       start_date: new Date().toISOString().slice(0, 10),
     }).select().single();
-    if (error || !pkg) return toast.error(error?.message ?? "Erro");
+    if (error || !pkg) return toast.error(friendlyError(error, "Erro"));
     const sessRows = form.treatments.map((t, i) => ({ user_id: user.id, package_id: pkg.id, session_number: i + 1, treatment: t, status: "pending" }));
     await supabase.from("package_sessions").insert(sessRows);
     toast.success(`Recorrência criada com ${form.treatments.length} sessões`);

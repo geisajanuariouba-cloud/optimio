@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -55,7 +56,7 @@ export default function Tasks() {
       user_id: user.id, title: form.title, description: form.description || null,
       priority: form.priority, due_date: form.due_date || null, tags, status: "todo",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Tarefa criada"); setOpen(false); setForm(empty); load();
   };
 

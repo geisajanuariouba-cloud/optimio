@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -144,10 +145,10 @@ export default function Products() {
     let prodId: string | undefined = editing?.id;
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(friendlyError(error));
     } else {
       const { data, error } = await supabase.from("products").insert(payload).select("id").single();
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(friendlyError(error));
       prodId = data?.id;
     }
 
@@ -245,7 +246,7 @@ export default function Products() {
     if (!ids.length) return;
     if (!confirm(`Mover ${ids.length} produto(s) para a lixeira?`)) return;
     const { error } = await supabase.from("products").update({ deleted_at: new Date().toISOString() }).in("id", ids);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success(`${ids.length} produto(s) removido(s)`);
     clearSelection(); load();
   };
@@ -260,7 +261,7 @@ export default function Products() {
     if (bulk.min_stock !== "") updates.min_stock = Number(bulk.min_stock);
     if (Object.keys(updates).length) {
       const { error } = await supabase.from("products").update(updates).in("id", ids);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(friendlyError(error));
     }
     const adjustStock = bulk.adjust_stock !== "" ? Number(bulk.adjust_stock) : null;
     const adjustPct = bulk.adjust_price_pct !== "" ? Number(bulk.adjust_price_pct) : null;

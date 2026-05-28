@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,7 +32,7 @@ export function CategorySelect({ kind, value, onChange, allowCreate = true, plac
   const create = async () => {
     if (!user || !newName.trim()) return;
     const { error } = await supabase.from("categories").insert({ user_id: user.id, kind, name: newName.trim() });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     setNewName(""); setAdding(false);
     await load();
     onChange(newName.trim());

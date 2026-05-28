@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -91,12 +92,12 @@ export default function Financial() {
       client_id: form.client_id || null,
       needs_delivery: !!form.needs_delivery,
     }).select().single();
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
 
     if (isPromissoria && tx) {
       try {
         await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: form.gross_amount, data: promo, appointment_id: null, notes: form.description });
-      } catch (e: any) { return toast.error("Falha ao criar promissória: " + e.message); }
+      } catch (e: any) { return toast.error(friendlyError(e, "Falha ao criar promissória: ".replace(/:\s*$/, ""))); }
     }
 
     // Cash drawer for cash sales (and subtract change)
