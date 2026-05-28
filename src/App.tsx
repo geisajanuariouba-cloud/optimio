@@ -50,7 +50,18 @@ import Campaigns from "./pages/app/Campaigns";
 import Meetings from "./pages/app/Meetings";
 import PlanUpgrade from "./pages/app/PlanUpgrade";
 
-const queryClient = new QueryClient();
+import { ErrorBoundary } from "./components/app/ErrorBoundary";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 30_000,
+    },
+    mutations: { retry: 0 },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
