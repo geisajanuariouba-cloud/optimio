@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -38,7 +39,7 @@ export default function Automations() {
     const { error } = recordId
       ? await supabase.from("tenant_integrations").update(payload).eq("id", recordId)
       : await supabase.from("tenant_integrations").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Webhook salvo");
     setEnabled(true); load();
   };
@@ -50,7 +51,7 @@ export default function Automations() {
       await fetch(url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "test", source: "lovable_app", timestamp: new Date().toISOString() }) });
       toast.success("Teste enviado! Confira no Make.");
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(friendlyError(e));
     } finally { setTesting(false); }
   };
 

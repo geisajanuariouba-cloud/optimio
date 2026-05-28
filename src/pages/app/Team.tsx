@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,7 +70,7 @@ export default function Team() {
       owner_user_id: user.id, email: form.email.toLowerCase().trim(), role: form.role,
       permissions: form.permissions, token, created_by: user.id,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     const url = `${window.location.origin}/invite/${token}`;
     await navigator.clipboard.writeText(url).catch(() => {});
     toast.success("Convite criado — link copiado!");

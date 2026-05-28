@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -65,7 +66,7 @@ export default function CashDrawer() {
       user_id: user.id, type: form.type, amount: form.amount, reason: form.reason,
       description: form.description || null, payment_method: form.payment_method,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Movimentação registrada"); setOpen(false);
     setForm({ type: "in", amount: 0, reason: "suprimento", description: "", payment_method: "dinheiro" });
     load();

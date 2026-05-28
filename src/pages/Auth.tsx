@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -88,7 +89,7 @@ export default function Auth() {
         navigate(prof?.onboarding_completed ? "/app" : "/onboarding");
       }
     } catch (err: any) {
-      toast.error(err.message ?? "Erro ao autenticar");
+      toast.error(friendlyError(err, "Erro ao autenticar"));
     } finally { setLoading(false); }
   };
 

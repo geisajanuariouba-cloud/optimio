@@ -45,12 +45,23 @@ import InviteAccept from "./pages/InviteAccept";
 import Tasks from "./pages/app/Tasks";
 import Stock from "./pages/app/Stock";
 import ImportReview from "./pages/app/ImportReview";
-import ProductIdeas from "./pages/app/ProductIdeas";
+
 import Campaigns from "./pages/app/Campaigns";
 import Meetings from "./pages/app/Meetings";
 import PlanUpgrade from "./pages/app/PlanUpgrade";
 
-const queryClient = new QueryClient();
+import { ErrorBoundary } from "./components/app/ErrorBoundary";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 30_000,
+    },
+    mutations: { retry: 0 },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -60,6 +71,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TenantProvider>
+            <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
@@ -102,13 +114,14 @@ const App = () => (
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="stock" element={<Stock />} />
                 <Route path="import-review" element={<ImportReview />} />
-                <Route path="product-ideas" element={<ProductIdeas />} />
+                
                 <Route path="campaigns" element={<Campaigns />} />
                 <Route path="meetings" element={<Meetings />} />
                 <Route path="upgrade" element={<PlanUpgrade />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </ErrorBoundary>
           </TenantProvider>
         </AuthProvider>
       </BrowserRouter>

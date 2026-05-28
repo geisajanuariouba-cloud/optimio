@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -37,7 +38,7 @@ export default function Projects() {
       user_id: user.id, title: form.title, description: form.description || null,
       due_date: form.due_date || null, status: form.status,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Tarefa criada");
     setOpen(false); setForm({ title: "", description: "", due_date: "", status: "todo" }); load();
   };

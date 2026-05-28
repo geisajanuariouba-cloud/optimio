@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,7 +44,7 @@ export default function Suppliers() {
     const { error } = editing
       ? await supabase.from("suppliers").update(payload).eq("id", editing.id)
       : await supabase.from("suppliers").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Fornecedor salvo"); setOpen(false); load();
   };
 

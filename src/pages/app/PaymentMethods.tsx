@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -62,7 +63,7 @@ export default function PaymentMethods() {
     const { error } = editing
       ? await supabase.from("payment_methods").update(payload).eq("id", editing.id)
       : await supabase.from("payment_methods").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Salvo"); setOpen(false); load();
   };
 

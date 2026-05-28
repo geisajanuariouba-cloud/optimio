@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -108,7 +109,7 @@ export default function SupplierDetail() {
       toast.success("Reprocessando catálogo…");
       load();
     } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível reprocessar");
+      toast.error(friendlyError(e, "Não foi possível reprocessar"));
     }
   };
 
@@ -123,7 +124,7 @@ export default function SupplierDetail() {
       toast.success(data?.message ?? "Comando processado");
       setCmd(""); load();
     } catch (e: any) {
-      toast.error(e.message ?? "Erro no comando");
+      toast.error(friendlyError(e, "Erro no comando"));
     } finally { setSending(false); }
   };
 
@@ -249,7 +250,7 @@ export default function SupplierDetail() {
       }
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Erro na importação");
+      toast.error(friendlyError(err, "Erro na importação"));
       load();
     } finally {
       setImporting(null);

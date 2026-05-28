@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -56,7 +57,7 @@ export default function PromoChat() {
     let q = supabase.from(table as any).select(`id, ${priceField}, category`).eq("user_id", user.id).is("deleted_at", null);
     if (parsed.category) q = q.ilike("category", `%${parsed.category}%`);
     const { data, error } = await q;
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     const items = (data ?? []) as any[];
     if (items.length === 0) {
       setMessages(m => [...m, { role: "system", text: "Nenhum item encontrado para esse filtro." }]);

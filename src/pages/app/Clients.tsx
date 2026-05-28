@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,7 +31,7 @@ export default function Clients() {
 
   const load = async () => {
     const { data, error } = await supabase.from("clients").select("*").is("deleted_at", null).order("created_at", { ascending: false });
-    if (error) toast.error(error.message); else setClients(data as Client[]);
+    if (error) toast.error(friendlyError(error)); else setClients(data as Client[]);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -54,7 +55,7 @@ export default function Clients() {
     const { error } = editing
       ? await supabase.from("clients").update(payload).eq("id", editing.id)
       : await supabase.from("clients").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success(editing ? "Cliente atualizado" : "Cliente criado");
     setOpen(false); load();
   };
@@ -62,7 +63,7 @@ export default function Clients() {
   const remove = async (id: string) => {
     if (!confirm("Mover para a lixeira?")) return;
     const { error } = await supabase.from("clients").update({ deleted_at: new Date().toISOString() }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Movido para lixeira"); load();
   };
 

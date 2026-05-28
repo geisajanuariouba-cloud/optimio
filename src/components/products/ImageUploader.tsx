@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function ImageUploader({ value, onChange, folder = "products", label = "I
       onChange(data.publicUrl);
       toast.success("Imagem enviada");
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao enviar imagem");
+      toast.error(friendlyError(e, "Falha ao enviar imagem"));
     } finally {
       setUploading(false);
     }

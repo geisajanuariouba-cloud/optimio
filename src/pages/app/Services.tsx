@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -24,7 +25,7 @@ export default function Services() {
 
   const load = async () => {
     const { data, error } = await supabase.from("services").select("*").is("deleted_at", null).order("name");
-    if (error) toast.error(error.message); else setList(data as Service[]);
+    if (error) toast.error(friendlyError(error)); else setList(data as Service[]);
   };
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -35,7 +36,7 @@ export default function Services() {
     if (!user || !form.name.trim()) return toast.error("Nome obrigatório");
     const payload = { ...form, user_id: user.id, category: form.category || null };
     const { error } = editing ? await supabase.from("services").update(payload).eq("id", editing.id) : await supabase.from("services").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Salvo"); setOpen(false); load();
   };
   const remove = async (id: string) => {

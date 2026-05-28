@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export default function InviteAccept() {
       email: invite.email, role: invite.role, permissions: invite.permissions,
       status: "active", invited_by: invite.created_by,
     }, { onConflict: "owner_user_id,member_user_id" });
-    if (error) { setAccepting(false); return toast.error(error.message); }
+    if (error) { setAccepting(false); return toast.error(friendlyError(error)); }
     await supabase.from("team_invites").update({ status: "accepted" }).eq("id", invite.id);
     toast.success("Convite aceito! Bem-vindo à equipe.");
     nav("/app");

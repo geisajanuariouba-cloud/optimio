@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ export default function Onboarding() {
       account_status: accountStatus,
       onboarding_completed: true,
     }).eq("id", user.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
 
     // Cria assinatura pending apenas se ainda não tem nenhuma (sem Kiwify)
     if (!alreadyActive) {

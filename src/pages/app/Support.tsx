@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
@@ -33,7 +34,7 @@ export default function Support() {
     const { data: ticket, error } = await supabase.from("support_tickets").insert({
       user_id: user.id, subject: msg.slice(0, 80), status: "human",
     }).select().single();
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     if (ticket) {
       await supabase.from("support_messages").insert({ ticket_id: ticket.id, user_id: user.id, role: "user", content: msg });
     }

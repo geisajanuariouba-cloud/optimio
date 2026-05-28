@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -55,7 +56,7 @@ export default function Combos() {
       original_price: original, combo_price: Number(form.combo_price) || 0,
       starts_at: form.starts_at || null, ends_at: form.ends_at || null,
     }).select().single();
-    if (error || !combo) return toast.error(error?.message ?? "Erro");
+    if (error || !combo) return toast.error(friendlyError(error, "Erro"));
     if (form.items.length) {
       const rows = form.items.map((x: any) => ({
         combo_id: combo.id, user_id: user.id, item_type: x.item_type,

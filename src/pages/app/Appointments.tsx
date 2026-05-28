@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -117,17 +118,17 @@ export default function Appointments() {
     let apptId = editing?.id ?? null;
     if (editing) {
       const { error } = await supabase.from("appointments").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(friendlyError(error));
     } else {
       const { data, error } = await supabase.from("appointments").insert(payload).select().single();
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(friendlyError(error));
       apptId = data.id;
     }
     if (form.payment_method === "promissoria") {
       if (!form.client_id) return toast.error("Promissória requer cliente cadastrado.");
       try {
         await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: amount, data: promissoria, appointment_id: apptId, notes: form.notes });
-      } catch (e: any) { return toast.error("Falha promissória: " + e.message); }
+      } catch (e: any) { return toast.error(friendlyError(e, "Falha promissória: ".replace(/:\s*$/, ""))); }
     }
     toast.success(editing ? "Agendamento atualizado" : "Agendamento criado");
     setOpen(false); load();

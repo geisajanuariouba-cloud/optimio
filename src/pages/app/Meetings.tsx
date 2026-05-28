@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ export default function Meetings() {
       user_id: user.id, title: form.title, scheduled_for: form.scheduled_for || null,
       duration_minutes: form.duration_minutes, agenda: form.agenda || null, scope: form.scope,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Reunião criada"); setOpen(false); setForm(empty); load();
   };
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
@@ -89,7 +90,7 @@ export default function Quotes() {
         toast.success(`${newItems.length} item(s) adicionado(s) por voz`);
       }
     } catch (e: any) {
-      toast.error(e.message || "Erro ao processar áudio");
+      toast.error(friendlyError(e, "Erro ao processar áudio"));
     } finally {
       setProcessing(false);
     }
@@ -148,7 +149,7 @@ export default function Quotes() {
       payment_method: form.payment_method, total: finalTotal, status: "open",
       notes: isPromissoria ? `Promissória: ${promissoria.installments_count}x, 1º vencimento ${promissoria.first_due}, valor final R$ ${finalTotal.toFixed(2)}` : null,
     }).select().single();
-    if (error || !quote) return toast.error(error?.message ?? "Erro");
+    if (error || !quote) return toast.error(friendlyError(error, "Erro"));
     const rows = form.items.map((x: any) => ({
       quote_id: quote.id, user_id: user.id, product_id: x.product_id,
       variation_id: x.variation_id, quantity: x.quantity, unit_cost: x.unit_cost,

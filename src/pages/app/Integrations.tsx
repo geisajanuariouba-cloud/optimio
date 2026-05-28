@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -68,7 +69,7 @@ export default function Integrations() {
       user_id: user.id, provider: open.id, status: "connected",
       credentials, metadata, connected_at: new Date().toISOString(),
     }, { onConflict: "user_id,provider" });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success(`${open.label} conectado`);
     setOpen(null); load();
   };

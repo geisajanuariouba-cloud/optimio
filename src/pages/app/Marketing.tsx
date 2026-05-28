@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -49,7 +50,7 @@ export default function Marketing() {
       supabase.from("tasks").select("id, title, due_date, status").is("deleted_at", null).order("due_date", { ascending: true, nullsFirst: false }),
       supabase.from("integrations").select("id,config,status").eq("provider", "instagram").maybeSingle(),
     ]);
-    if (error) toast.error(error.message); else setPosts((posts ?? []) as Post[]);
+    if (error) toast.error(friendlyError(error)); else setPosts((posts ?? []) as Post[]);
     setTasks((ts ?? []) as Task[]);
     setInstagramHandle(((ig?.config as any)?.handle ?? "") as string);
     setInstagramId((ig as any)?.id ?? null);
@@ -62,7 +63,7 @@ export default function Marketing() {
       user_id: user.id, title: form.title, content: form.content || null, channel: form.channel,
       scheduled_for: form.scheduled_for || null, status: form.status,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Post criado"); setOpen(false);
     setForm({ title: "", content: "", channel: "instagram", scheduled_for: "", status: "idea" });
     load();
@@ -98,7 +99,7 @@ export default function Marketing() {
     const { error } = instagramId
       ? await supabase.from("integrations").update(payload).eq("id", instagramId)
       : await supabase.from("integrations").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Instagram conectado para análise");
     load();
   };
@@ -122,7 +123,7 @@ export default function Marketing() {
       if (data?.error) throw new Error(data.error);
       setAiResult(data);
     } catch (e: any) {
-      toast.error(e.message || "Erro ao gerar sugestões");
+      toast.error(friendlyError(e, "Erro ao gerar sugestões"));
     } finally {
       setAiLoading(false);
     }

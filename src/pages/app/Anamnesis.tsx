@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -55,7 +56,7 @@ export default function Anamnesis() {
       answers: form.answers, professional_notes: form.professional_notes,
       next_due_date: next_due.toISOString().slice(0, 10),
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(friendlyError(error));
     toast.success("Anamnese registrada"); setOpen(false); load();
   };
 

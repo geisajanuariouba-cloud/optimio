@@ -19,7 +19,7 @@ const ALL = [
   { mod: "services", title: "termServices", url: "/app/services", icon: Scissors },
   { mod: "products", title: "Produtos", url: "/app/products", icon: Boxes },
   { mod: "products", title: "Estoque Inteligente", url: "/app/stock", icon: Warehouse },
-  { mod: "products", title: "Ideias de Produto", url: "/app/product-ideas", icon: Lightbulb },
+  
   { mod: "products", title: "Fornecedores", url: "/app/suppliers", icon: Factory },
   { mod: "products", title: "Revisão Importação", url: "/app/import-review", icon: ClipboardCheck },
   { mod: "products", title: "Orçamentos", url: "/app/quotes", icon: FileText },
