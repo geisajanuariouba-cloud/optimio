@@ -68,73 +68,12 @@ export default function Stock() {
         { label: "Valor em estoque", value: `R$ ${totalValue.toFixed(2)}`, tone: "success" },
       ]} />
 
-      <Tabs defaultValue="alerts">
+      <Tabs defaultValue="all">
         <TabsList className="rounded-2xl mb-4">
-          <TabsTrigger value="alerts">Alertas IA</TabsTrigger>
           <TabsTrigger value="all">Todos ({products.length})</TabsTrigger>
           <TabsTrigger value="movements">Movimentações</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="alerts" className="space-y-4">
-          {outOfStock.length > 0 && (
-            <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
-              <div className="p-4 bg-rose-500/5 border-b border-rose-500/20 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-rose-600" />
-                <span className="font-medium">Ruptura — produtos zerados</span>
-              </div>
-              <div className="divide-y divide-border">
-                {outOfStock.slice(0, 10).map(p => (
-                  <div key={p.id} className="p-3 flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.code ?? "—"} · {p.category ?? "Sem categoria"}</div>
-                    </div>
-                    <Badge className="bg-primary/10 text-primary"><Sparkles className="h-3 w-3 mr-1" />Comprar {suggestRestock(p)} un.</Badge>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-          {lowStock.length > 0 && (
-            <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
-              <div className="p-4 bg-amber-500/5 border-b border-amber-500/20 flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-amber-600" />
-                <span className="font-medium">Estoque baixo</span>
-              </div>
-              <div className="divide-y divide-border">
-                {lowStock.slice(0, 15).map(p => (
-                  <div key={p.id} className="p-3 flex items-center gap-3 text-sm">
-                    <div className="flex-1 font-medium">{p.name}</div>
-                    <span className="text-xs text-muted-foreground">Atual {p.stock} / mín {p.min_stock}</span>
-                    <Badge variant="outline">Sugerido: comprar {suggestRestock(p)}</Badge>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-          {overStock.length > 0 && (
-            <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
-              <div className="p-4 bg-blue-500/5 border-b border-blue-500/20 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-                <span className="font-medium">Excesso de estoque (parado)</span>
-              </div>
-              <div className="divide-y divide-border">
-                {overStock.slice(0, 10).map(p => (
-                  <div key={p.id} className="p-3 flex items-center gap-3 text-sm">
-                    <div className="flex-1 font-medium">{p.name}</div>
-                    <span className="text-xs text-muted-foreground">Em estoque {p.stock}</span>
-                    <Badge variant="outline" className="text-blue-600 border-blue-500/30">Promover</Badge>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-          {outOfStock.length === 0 && lowStock.length === 0 && overStock.length === 0 && (
-            <Card className="rounded-3xl border-0 shadow-sm p-10 text-center text-muted-foreground text-sm">
-              ✨ Tudo em equilíbrio. Sem alertas no momento.
-            </Card>
-          )}
-        </TabsContent>
 
         <TabsContent value="all">
           <Card className="rounded-3xl border-0 shadow-sm divide-y divide-border overflow-hidden">
