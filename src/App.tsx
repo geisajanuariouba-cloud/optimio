@@ -121,6 +121,7 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </ErrorBoundary>
           </TenantProvider>
         </AuthProvider>
       </BrowserRouter>
