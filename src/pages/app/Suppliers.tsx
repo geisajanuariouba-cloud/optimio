@@ -27,7 +27,13 @@ export default function Suppliers() {
   const load = async () => {
     const [a, b] = await Promise.all([
       supabase.from("suppliers").select("*").is("deleted_at", null).order("name"),
-      supabase.from("products").select("supplier_id,id,name,status").is("deleted_at", null),
+      // Conta APENAS produtos reais aprovados (não variações, não pendentes, não deletados).
+      supabase
+        .from("products")
+        .select("id,supplier_id,status,out_of_line,review_status")
+        .is("deleted_at", null)
+        .or("review_status.is.null,review_status.eq.approved")
+        .limit(10000),
     ]);
     setList(a.data ?? []); setProducts(b.data ?? []);
   };
@@ -54,18 +60,31 @@ export default function Suppliers() {
     load();
   };
 
-  const productCount = (sid: string) => products.filter(p => p.supplier_id === sid && p.status !== "discontinued").length;
-  const discontinuedCount = (sid: string) => products.filter(p => p.supplier_id === sid && p.status === "discontinued").length;
+  // Regras de contagem (produtos únicos — variações NÃO entram aqui).
+  const isOutOfLine = (p: any) => p.out_of_line === true || p.status === "discontinued";
+  const isActive = (p: any) => !isOutOfLine(p) && p.status !== "deleted" && p.status !== "trash";
+
+  const productCount = (sid: string) =>
+    products.filter(p => p.supplier_id === sid && isActive(p)).length;
+  const discontinuedCount = (sid: string) =>
+    products.filter(p => p.supplier_id === sid && isOutOfLine(p)).length;
+  const totalLinked = (sid: string) =>
+    products.filter(p => p.supplier_id === sid).length;
+
+  const linkedTotal = products.filter(p => p.supplier_id && isActive(p)).length;
+  const outOfLineTotal = products.filter(p => p.supplier_id && isOutOfLine(p)).length;
+  const noSupplierTotal = products.filter(p => !p.supplier_id && isActive(p)).length;
 
   return (
     <div>
       <PageHeader title="Fornecedores / Fábricas" description="Cadastre fábricas, importe catálogos com IA e dispare comandos por chat." actionLabel="Novo fornecedor" onAction={openNew} />
       <MetricsRow items={[
         { label: "Cadastrados", value: String(list.length), tone: "primary" },
-        { label: "Produtos vinculados", value: String(products.filter(p => p.supplier_id).length), tone: "primary" },
-        { label: "Fora de linha", value: String(products.filter(p => p.status === "discontinued").length), tone: "warning" },
-        { label: "Sem fornecedor", value: String(products.filter(p => !p.supplier_id).length), tone: "primary" },
+        { label: "Produtos vinculados", value: String(linkedTotal), tone: "primary" },
+        { label: "Fora de linha", value: String(outOfLineTotal), tone: "warning" },
+        { label: "Sem fornecedor", value: String(noSupplierTotal), tone: "primary" },
       ]} />
+
 
       {list.length === 0 ? (
         <Card className="rounded-3xl border-0 shadow-sm">
