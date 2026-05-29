@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Send, Upload, Phone, MapPin, MessageSquare, Boxes, Loader2, FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Send, Upload, Phone, MapPin, MessageSquare, Boxes, Loader2, FileText, DollarSign, Eye, Download, Trash2, Search, X, AlertTriangle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MetricsRow } from "@/components/app/PageHeader";
+
 
 export default function SupplierDetail() {
   const { id } = useParams();
