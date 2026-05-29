@@ -29,6 +29,8 @@ type Product = {
   is_ingredient_residue: boolean; supplier_id: string | null; status: string;
   has_variations: boolean; description?: string | null; image_url?: string | null;
   width?: number | null; height?: number | null; depth?: number | null; length_cm?: number | null; weight?: number | null; measure_unit?: string | null;
+  price_out_of_sync?: boolean | null; engine_suggested_price?: number | null; manual_price_override?: boolean | null;
+  out_of_line?: boolean | null;
 };
 
 const isLowStock = (p: Product) => {
