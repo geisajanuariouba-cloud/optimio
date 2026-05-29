@@ -149,6 +149,10 @@ export default function Suppliers() {
                 <div><Label className="text-xs">Taxa extra (%)</Label><Input type="number" step="0.1" value={form.default_markup_percent} onChange={(e) => setForm({ ...form, default_markup_percent: +e.target.value })} /></div>
               </div>
               <div><Label className="text-xs">Prazo médio de entrega (dias)</Label><Input type="number" value={form.avg_delivery_days ?? ""} onChange={(e) => setForm({ ...form, avg_delivery_days: +e.target.value })} /></div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                <input type="checkbox" checked={!!form.auto_out_of_line} onChange={(e) => setForm({ ...form, auto_out_of_line: e.target.checked })} />
+                <span>Marcar produtos como <b>fora de linha</b> automaticamente quando não vierem na próxima tabela de custo</span>
+              </label>
             </div>
             <p className="text-xs text-muted-foreground bg-secondary/40 p-3 rounded-2xl">📎 Para anexar catálogo (PDF/Excel/CSV), abra o painel do fornecedor após salvar — ele fica salvo e disponível para download a qualquer momento.</p>
             <div className="pt-2">
