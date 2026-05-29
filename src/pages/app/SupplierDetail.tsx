@@ -27,6 +27,10 @@ export default function SupplierDetail() {
   const pricingRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState<null | "catalog" | "pricing">(null);
   const [preview, setPreview] = useState<{ url: string; mime: string; filename: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
 
 
 
