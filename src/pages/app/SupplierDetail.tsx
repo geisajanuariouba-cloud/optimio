@@ -36,13 +36,22 @@ export default function SupplierDetail() {
     await supabase.rpc("recover_stuck_catalogs", { _user_id: user.id });
     const [s, p, h, c] = await Promise.all([
       supabase.from("suppliers").select("*").eq("id", id).maybeSingle(),
-      supabase.from("products").select("*").eq("supplier_id", id).is("deleted_at", null).order("name"),
+      // Produtos vinculados: vivos, aprovados (ou legados sem review_status). Variações ficam de fora.
+      supabase.from("products")
+        .select("id,name,code,sku,model,finish,category,stock,sale_price,cost,status,out_of_line,review_status,image_url")
+        .eq("supplier_id", id)
+        .is("deleted_at", null)
+        .or("review_status.is.null,review_status.eq.approved")
+        .order("name")
+        .limit(10000),
       supabase.from("supplier_commands").select("*").eq("supplier_id", id).order("created_at", { ascending: false }).limit(50),
       supabase.from("supplier_catalogs").select("*").eq("supplier_id", id).eq("internal_only", false).order("created_at", { ascending: false }),
     ]);
     setSupplier(s.data); setProducts(p.data ?? []); setHistory(h.data ?? []); setCatalogs(c.data ?? []);
+    setSelected(new Set()); // limpa seleção ao recarregar
   };
   useEffect(() => { if (user) load(); }, [user, id]);
+
 
   // Polling de status enquanto houver catálogos em processamento
   useEffect(() => {
