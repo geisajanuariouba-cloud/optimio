@@ -144,6 +144,13 @@ export default function Products() {
       measure_unit: form.measure_unit || "cm",
     };
 
+    // Detecta edição manual de preço para marcar override
+    if (editing && !form.has_variations && Number(form.sale_price) !== Number(editing.sale_price)) {
+      payload.manual_price_override = true;
+      payload.pricing_mode = "manual";
+      payload.price_out_of_sync = false;
+    }
+
     let prodId: string | undefined = editing?.id;
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
@@ -153,6 +160,14 @@ export default function Products() {
       if (error) return toast.error(friendlyError(error));
       prodId = data?.id;
     }
+
+    const applyEnginePrice = async (productId: string, force = false) => {
+      const { data, error } = await supabase.rpc("apply_engine_price", { _kind: "product", _id: productId, _force: force });
+      if (error) return toast.error(friendlyError(error));
+      toast.success(`Preço do motor aplicado: R$ ${Number(data).toFixed(2)}`);
+      load();
+    };
+    // expor via closure no escopo do componente — registramos como prop adicional abaixo
 
     // Sync de variações se ativado
     if (form.has_variations && prodId) {
