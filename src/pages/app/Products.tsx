@@ -161,13 +161,6 @@ export default function Products() {
       prodId = data?.id;
     }
 
-    const applyEnginePrice = async (productId: string, force = false) => {
-      const { data, error } = await supabase.rpc("apply_engine_price", { _kind: "product", _id: productId, _force: force });
-      if (error) return toast.error(friendlyError(error));
-      toast.success(`Preço do motor aplicado: R$ ${Number(data).toFixed(2)}`);
-      load();
-    };
-    // expor via closure no escopo do componente — registramos como prop adicional abaixo
 
     // Sync de variações se ativado
     if (form.has_variations && prodId) {
