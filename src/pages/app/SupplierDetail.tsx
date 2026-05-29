@@ -284,8 +284,59 @@ export default function SupplierDetail() {
 
   if (!supplier) return <div className="p-6 text-muted-foreground">Carregando…</div>;
 
-  const active = products.filter(p => p.status !== "discontinued").length;
-  const disc = products.filter(p => p.status === "discontinued").length;
+  const isOutOfLine = (p: any) => p.out_of_line === true || p.status === "discontinued";
+  const active = products.filter(p => !isOutOfLine(p)).length;
+  const disc = products.filter(p => isOutOfLine(p)).length;
+
+  // Filtro de busca (nome, código, sku, modelo, acabamento, categoria)
+  const q = search.trim().toLowerCase();
+  const filteredProducts = q
+    ? products.filter(p => [p.name, p.code, p.sku, p.model, p.finish, p.category]
+        .some(v => String(v ?? "").toLowerCase().includes(q)))
+    : products;
+
+  const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => selected.has(p.id));
+  const toggleAllFiltered = () => {
+    const next = new Set(selected);
+    if (allFilteredSelected) filteredProducts.forEach(p => next.delete(p.id));
+    else filteredProducts.forEach(p => next.add(p.id));
+    setSelected(next);
+  };
+  const toggleOne = (pid: string) => {
+    const next = new Set(selected);
+    next.has(pid) ? next.delete(pid) : next.add(pid);
+    setSelected(next);
+  };
+
+  const bulkUpdate = async (patch: Record<string, any>, label: string) => {
+    if (selected.size === 0) return;
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selected);
+      const { error } = await supabase.from("products").update(patch).in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} produto(s): ${label}`);
+      setSelected(new Set());
+      await load();
+    } catch (e: any) {
+      toast.error(friendlyError(e, "Falha na ação em lote: "));
+    } finally { setBulkBusy(false); }
+  };
+
+  const bulkUnlink = () => {
+    if (!confirm(`Remover vínculo de ${selected.size} produto(s) com este fornecedor?`)) return;
+    return bulkUpdate({ supplier_id: null }, "vínculo removido");
+  };
+  const bulkOutOfLine = () => {
+    if (!confirm(`Marcar ${selected.size} produto(s) como fora de linha?`)) return;
+    return bulkUpdate({ out_of_line: true, status: "discontinued" }, "marcado(s) como fora de linha");
+  };
+  const bulkActivate = () => bulkUpdate({ out_of_line: false, status: "active" }, "reativado(s)");
+  const bulkTrash = () => {
+    if (!confirm(`Mover ${selected.size} produto(s) para a lixeira? Esta ação pode ser desfeita.`)) return;
+    return bulkUpdate({ deleted_at: new Date().toISOString() }, "movido(s) para lixeira");
+  };
+
 
   return (
     <div className="space-y-5">
