@@ -2493,6 +2493,7 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          auto_out_of_line: boolean
           avg_delivery_days: number | null
           catalog_url: string | null
           cnpj: string | null
@@ -2521,6 +2522,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          auto_out_of_line?: boolean
           avg_delivery_days?: number | null
           catalog_url?: string | null
           cnpj?: string | null
@@ -2549,6 +2551,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          auto_out_of_line?: boolean
           avg_delivery_days?: number | null
           catalog_url?: string | null
           cnpj?: string | null
