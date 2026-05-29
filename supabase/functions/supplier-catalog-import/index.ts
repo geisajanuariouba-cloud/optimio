@@ -239,38 +239,130 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
       await log("ai_done", `IA retornou ${items.length} linhas.`);
 
       const { data: supplier } = await supabase.from("suppliers")
-        .select("cost_fee_percent,default_margin_percent,default_markup_percent")
+        .select("cost_fee_percent,default_margin_percent,default_markup_percent,auto_out_of_line")
         .eq("id", supplierId).maybeSingle();
       const cf = Number(supplier?.cost_fee_percent ?? 0);
       const mg = Number(supplier?.default_margin_percent ?? 100);
       const mk = Number(supplier?.default_markup_percent ?? 0);
+      const computeSale = (finalCost: number) => +(finalCost * (1 + mg / 100) * (1 + mk / 100)).toFixed(2);
 
-      const { data: existing } = await supabase.from("products")
-        .select("id,name,code")
-        .eq("user_id", userId).eq("supplier_id", supplierId).is("deleted_at", null);
-      const byCode = new Map((existing ?? []).filter(p => p.code).map(p => [String(p.code).toLowerCase(), p.id]));
-      const byName = new Map((existing ?? []).map(p => [String(p.name).toLowerCase(), p.id]));
+      // Carrega produtos e variações do fornecedor para matching robusto
+      const { data: prods } = await supabase.from("products")
+        .select("id,name,code,match_key_code,match_key_name,manual_price_override,pricing_mode")
+        .eq("user_id", userId).eq("supplier_id", supplierId).is("deleted_at", null).limit(20000);
+      const { data: vars } = await supabase.from("product_variations")
+        .select("id,name,sku,codname,match_key_code,match_key_name,manual_price_override,pricing_mode")
+        .eq("user_id", userId).eq("supplier_id", supplierId).limit(50000);
 
-      let updated = 0, missed = 0;
+      const norm = (s?: string | null) => {
+        if (!s) return "";
+        return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase().replace(/[^a-z0-9]/g, "");
+      };
+
+      const pByCode = new Map<string, any>();
+      const pByName = new Map<string, any>();
+      for (const p of prods ?? []) {
+        const k = p.match_key_code ?? norm(p.code);
+        const n = p.match_key_name ?? norm(p.name);
+        if (k) pByCode.set(k, p);
+        if (n) pByName.set(n, p);
+      }
+      const vByCode = new Map<string, any>();
+      const vByName = new Map<string, any>();
+      for (const v of vars ?? []) {
+        const k = v.match_key_code ?? norm(v.sku || v.codname);
+        const n = v.match_key_name ?? norm(v.name);
+        if (k) vByCode.set(k, v);
+        if (n) vByName.set(n, v);
+      }
+
+      const syncStart = new Date().toISOString();
+      let updated = 0, missed = 0, varsUpdated = 0, outOfSync = 0;
+      const missedLines: string[] = [];
+
       for (const it of items) {
         const rawCost = num(it.cost) ?? 0;
         if (!rawCost) { missed++; continue; }
-        const cost = +(rawCost * (1 + cf / 100)).toFixed(2);
-        const sale = +(cost * (1 + mg / 100) * (1 + mk / 100)).toFixed(2);
-        const pid = (it.code && byCode.get(String(it.code).toLowerCase())) || (it.name && byName.get(String(it.name).toLowerCase()));
-        if (!pid) { missed++; continue; }
-        await supabase.from("products").update({ cost, sale_price: sale, status: "active" }).eq("id", pid);
-        updated++;
+        const finalCost = +(rawCost * (1 + cf / 100)).toFixed(2);
+        const suggested = computeSale(finalCost);
+        const codeKey = norm(it.code);
+        const nameKey = norm(it.name);
+
+        // Match prioridade: variação por código > produto por código > variação por nome > produto por nome
+        const vMatch = (codeKey && vByCode.get(codeKey)) || (nameKey && vByName.get(nameKey));
+        const pMatch = (codeKey && pByCode.get(codeKey)) || (nameKey && pByName.get(nameKey));
+
+        if (vMatch) {
+          const patch: any = {
+            cost: rawCost,
+            final_cost_price: finalCost,
+            engine_suggested_price: suggested,
+            last_cost_synced_at: syncStart,
+          };
+          if (vMatch.manual_price_override) {
+            patch.price_out_of_sync = true;
+            outOfSync++;
+          } else {
+            patch.sale_price = suggested;
+            patch.price_out_of_sync = false;
+            patch.pricing_mode = "auto";
+          }
+          await supabase.from("product_variations").update(patch).eq("id", vMatch.id);
+          varsUpdated++;
+          continue;
+        }
+        if (pMatch) {
+          const patch: any = {
+            cost: rawCost,
+            final_cost_price: finalCost,
+            engine_suggested_price: suggested,
+            last_cost_synced_at: syncStart,
+            status: "active",
+            out_of_line: false,
+          };
+          if (pMatch.manual_price_override) {
+            patch.price_out_of_sync = true;
+            outOfSync++;
+          } else {
+            patch.sale_price = suggested;
+            patch.price_out_of_sync = false;
+            patch.pricing_mode = "auto";
+          }
+          await supabase.from("products").update(patch).eq("id", pMatch.id);
+          updated++;
+          continue;
+        }
+        missed++;
+        if (missedLines.length < 20) missedLines.push(String(it.code || it.name || "?"));
       }
+
+      // Fora de linha automático (se fornecedor habilitar)
+      let outOfLineMarked = 0;
+      if (supplier?.auto_out_of_line) {
+        try {
+          const { data: c } = await supabase.rpc("mark_supplier_out_of_line", {
+            _supplier_id: supplierId, _since: syncStart,
+          });
+          outOfLineMarked = Number(c ?? 0);
+        } catch (_) { /* opcional */ }
+      }
+
       await setStatus({
         processing_status: "completed",
         processing_stage: "concluido",
-        products_updated: updated,
+        products_updated: updated + varsUpdated,
         products_extracted: items.length,
         completed_at: new Date().toISOString(),
-        partial_reason: missed ? `${missed} linha(s) sem produto correspondente.` : null,
+        partial_reason: missed || outOfSync || outOfLineMarked
+          ? [
+              missed && `${missed} linha(s) sem produto correspondente.`,
+              outOfSync && `${outOfSync} item(ns) com preço manual ficaram fora de sincronia.`,
+              outOfLineMarked && `${outOfLineMarked} produto(s) marcados como fora de linha.`,
+            ].filter(Boolean).join(" ")
+          : null,
       });
-      await log("done", `Custos aplicados: ${updated}. Sem match: ${missed}. Tempo: ${Math.round((Date.now() - t0) / 1000)}s.`);
+      await log("done", `Produtos: ${updated}, variações: ${varsUpdated}, sem match: ${missed}, fora de sync: ${outOfSync}, fora de linha: ${outOfLineMarked}. ${missedLines.length ? "Exemplos sem match: " + missedLines.join(", ") : ""}`);
       return;
     }
 
