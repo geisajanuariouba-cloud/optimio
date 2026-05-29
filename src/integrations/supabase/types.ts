@@ -1578,17 +1578,25 @@ export type Database = {
           cost: number
           created_at: string
           depth: number | null
+          engine_suggested_price: number | null
           fabric: string | null
+          final_cost_price: number | null
           finish: string | null
           height: number | null
           id: string
           image_url: string | null
+          last_cost_synced_at: string | null
           length_cm: number | null
+          manual_price_override: boolean
+          match_key_code: string | null
+          match_key_name: string | null
           material: string | null
           measure_unit: string | null
           min_stock: number
           model: string | null
           name: string
+          price_out_of_sync: boolean
+          pricing_mode: string
           product_id: string
           sale_price: number
           size: string | null
@@ -1609,17 +1617,25 @@ export type Database = {
           cost?: number
           created_at?: string
           depth?: number | null
+          engine_suggested_price?: number | null
           fabric?: string | null
+          final_cost_price?: number | null
           finish?: string | null
           height?: number | null
           id?: string
           image_url?: string | null
+          last_cost_synced_at?: string | null
           length_cm?: number | null
+          manual_price_override?: boolean
+          match_key_code?: string | null
+          match_key_name?: string | null
           material?: string | null
           measure_unit?: string | null
           min_stock?: number
           model?: string | null
           name: string
+          price_out_of_sync?: boolean
+          pricing_mode?: string
           product_id: string
           sale_price?: number
           size?: string | null
@@ -1640,17 +1656,25 @@ export type Database = {
           cost?: number
           created_at?: string
           depth?: number | null
+          engine_suggested_price?: number | null
           fabric?: string | null
+          final_cost_price?: number | null
           finish?: string | null
           height?: number | null
           id?: string
           image_url?: string | null
+          last_cost_synced_at?: string | null
           length_cm?: number | null
+          manual_price_override?: boolean
+          match_key_code?: string | null
+          match_key_name?: string | null
           material?: string | null
           measure_unit?: string | null
           min_stock?: number
           model?: string | null
           name?: string
+          price_out_of_sync?: boolean
+          pricing_mode?: string
           product_id?: string
           sale_price?: number
           size?: string | null
@@ -1679,19 +1703,27 @@ export type Database = {
           deleted_at: string | null
           depth: number | null
           description: string | null
+          engine_suggested_price: number | null
+          final_cost_price: number | null
           has_variations: boolean
           height: number | null
           id: string
           image_url: string | null
           is_ingredient_residue: boolean
+          last_cost_synced_at: string | null
           length_cm: number | null
+          manual_price_override: boolean
           margin_percent: number | null
           markup_percent: number | null
+          match_key_code: string | null
+          match_key_name: string | null
           measure_unit: string | null
           measurements: Json | null
           min_stock: number
           name: string
           out_of_line: boolean
+          price_out_of_sync: boolean
+          pricing_mode: string
           product_type: string | null
           review_status: string | null
           sale_price: number
@@ -1716,19 +1748,27 @@ export type Database = {
           deleted_at?: string | null
           depth?: number | null
           description?: string | null
+          engine_suggested_price?: number | null
+          final_cost_price?: number | null
           has_variations?: boolean
           height?: number | null
           id?: string
           image_url?: string | null
           is_ingredient_residue?: boolean
+          last_cost_synced_at?: string | null
           length_cm?: number | null
+          manual_price_override?: boolean
           margin_percent?: number | null
           markup_percent?: number | null
+          match_key_code?: string | null
+          match_key_name?: string | null
           measure_unit?: string | null
           measurements?: Json | null
           min_stock?: number
           name: string
           out_of_line?: boolean
+          price_out_of_sync?: boolean
+          pricing_mode?: string
           product_type?: string | null
           review_status?: string | null
           sale_price?: number
@@ -1753,19 +1793,27 @@ export type Database = {
           deleted_at?: string | null
           depth?: number | null
           description?: string | null
+          engine_suggested_price?: number | null
+          final_cost_price?: number | null
           has_variations?: boolean
           height?: number | null
           id?: string
           image_url?: string | null
           is_ingredient_residue?: boolean
+          last_cost_synced_at?: string | null
           length_cm?: number | null
+          manual_price_override?: boolean
           margin_percent?: number | null
           markup_percent?: number | null
+          match_key_code?: string | null
+          match_key_name?: string | null
           measure_unit?: string | null
           measurements?: Json | null
           min_stock?: number
           name?: string
           out_of_line?: boolean
+          price_out_of_sync?: boolean
+          pricing_mode?: string
           product_type?: string | null
           review_status?: string | null
           sale_price?: number
@@ -2445,6 +2493,7 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          auto_out_of_line: boolean
           avg_delivery_days: number | null
           catalog_url: string | null
           cnpj: string | null
@@ -2473,6 +2522,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          auto_out_of_line?: boolean
           avg_delivery_days?: number | null
           catalog_url?: string | null
           cnpj?: string | null
@@ -2501,6 +2551,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          auto_out_of_line?: boolean
           avg_delivery_days?: number | null
           catalog_url?: string | null
           cnpj?: string | null
@@ -2899,7 +2950,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_engine_price: {
+        Args: { _force?: boolean; _id: string; _kind: string }
+        Returns: number
+      }
       current_tenant_owner: { Args: never; Returns: string }
+      engine_compute_sale: {
+        Args: { _cost: number; _supplier_id: string }
+        Returns: number
+      }
       generate_codname: {
         Args: { _color?: string; _name: string; _size?: string }
         Returns: string
@@ -2915,6 +2974,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_supplier_out_of_line: {
+        Args: { _since: string; _supplier_id: string }
+        Returns: number
+      }
+      normalize_match: { Args: { _s: string }; Returns: string }
       recover_stuck_catalogs: { Args: { _user_id: string }; Returns: number }
       seed_default_categories: {
         Args: { _niche: string; _user_id: string }

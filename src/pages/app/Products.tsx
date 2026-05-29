@@ -29,6 +29,8 @@ type Product = {
   is_ingredient_residue: boolean; supplier_id: string | null; status: string;
   has_variations: boolean; description?: string | null; image_url?: string | null;
   width?: number | null; height?: number | null; depth?: number | null; length_cm?: number | null; weight?: number | null; measure_unit?: string | null;
+  price_out_of_sync?: boolean | null; engine_suggested_price?: number | null; manual_price_override?: boolean | null;
+  out_of_line?: boolean | null;
 };
 
 const isLowStock = (p: Product) => {
@@ -142,6 +144,13 @@ export default function Products() {
       measure_unit: form.measure_unit || "cm",
     };
 
+    // Detecta edição manual de preço para marcar override
+    if (editing && !form.has_variations && Number(form.sale_price) !== Number(editing.sale_price)) {
+      payload.manual_price_override = true;
+      payload.pricing_mode = "manual";
+      payload.price_out_of_sync = false;
+    }
+
     let prodId: string | undefined = editing?.id;
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
@@ -151,6 +160,7 @@ export default function Products() {
       if (error) return toast.error(friendlyError(error));
       prodId = data?.id;
     }
+
 
     // Sync de variações se ativado
     if (form.has_variations && prodId) {
@@ -191,6 +201,13 @@ export default function Products() {
   const remove = async (id: string) => {
     if (!confirm("Mover para a lixeira?")) return;
     await supabase.from("products").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    load();
+  };
+
+  const applyEnginePrice = async (productId: string, force = false) => {
+    const { data, error } = await supabase.rpc("apply_engine_price", { _kind: "product", _id: productId, _force: force });
+    if (error) return toast.error(friendlyError(error));
+    toast.success(`Preço do motor aplicado: R$ ${Number(data).toFixed(2)}`);
     load();
   };
 
@@ -380,7 +397,29 @@ export default function Products() {
                           {p.stock} <span className="text-muted-foreground text-xs">/ min {p.min_stock}</span>
                         </span>
                       </TableCell>
-                      <TableCell className="font-bold text-primary">R$ {Number(p.sale_price).toFixed(2)}</TableCell>
+                      <TableCell className="font-bold text-primary">
+                        <div className="flex flex-col gap-1">
+                          <span>R$ {Number(p.sale_price).toFixed(2)}</span>
+                          {p.price_out_of_sync && (
+                            <div className="flex items-center gap-1">
+                              <Badge className="bg-amber-500/15 text-amber-700 text-[10px] gap-1">
+                                <AlertTriangle className="h-3 w-3" />fora de sync
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[10px] text-primary"
+                                title={`Aplicar R$ ${Number(p.engine_suggested_price ?? 0).toFixed(2)} sugerido pelo motor`}
+                                onClick={() => {
+                                  if (confirm(`Aplicar preço do motor (R$ ${Number(p.engine_suggested_price ?? 0).toFixed(2)})? Isso vai sobrescrever seu preço manual.`)) {
+                                    applyEnginePrice(p.id, true);
+                                  }
+                                }}
+                              >Aplicar motor</Button>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></Button>
