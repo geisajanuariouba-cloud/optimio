@@ -59,21 +59,55 @@ export default function ImportReview() {
 
   const approve = async (i: Item) => {
     if (!user) return;
-    const { error: pErr } = await supabase.from("products").insert({
+    const m = (i.proposed_measurements ?? {}) as any;
+    const raw = (i.raw_data ?? {}) as any;
+    const vars: any[] = Array.isArray(i.proposed_variations) ? i.proposed_variations : [];
+    const categoryId = await ensureCategoryId(user.id, i.proposed_category);
+    const codname = (raw.codname && String(raw.codname).trim()) || codnameOf(i.proposed_name ?? "", raw.size, raw.color);
+    const { data: ins, error: pErr } = await supabase.from("products").insert({
       user_id: user.id,
       name: i.proposed_name ?? "Produto sem nome",
       code: i.proposed_code,
       category: i.proposed_category,
+      category_id: categoryId,
+      supplier_id: i.supplier_id,
       image_url: i.proposed_image_url,
+      description: raw.description ?? null,
+      codname,
+      has_variations: vars.length > 0,
+      width: m.width ?? null, height: m.height ?? null, depth: m.depth ?? null,
+      length_cm: m.length_cm ?? null, weight: m.weight ?? null,
+      measurements: m.raw ? { raw: m.raw } : null,
       sale_price: 0,
       cost: 0,
+      stock: 0,
+      min_stock: 0,
       source_catalog_id: i.catalog_id,
       dedup_hash: i.dedup_hash,
       review_status: "approved",
-      status: "active",
-    });
-    if (pErr) return toast.error(friendlyError(pErr));
-    await supabase.from("catalog_review_items").update({ review_status: "approved" }).eq("id", i.id);
+      status: "aguardando_tabela_custo",
+    }).select("id").single();
+    if (pErr || !ins) return toast.error(friendlyError(pErr));
+
+    if (vars.length > 0) {
+      const rows = vars.map((v: any) => ({
+        product_id: ins.id, user_id: user.id, supplier_id: i.supplier_id,
+        name: v.name || [v.size, v.color, v.fabric, v.model, v.finish].filter(Boolean).join(" ") || "Variação",
+        codname: codnameOf(i.proposed_name ?? "", v.size, v.color),
+        sku: v.sku || null,
+        color: v.color || null, fabric: v.fabric || null, material: v.material || null,
+        size: v.size || null, model: v.model || null, finish: v.finish || null,
+        cost: 0, sale_price: 0, stock: 0, min_stock: 0,
+        width: v.width ?? null, height: v.height ?? null, depth: v.depth ?? null,
+        length_cm: v.length_cm ?? null, weight: v.weight ?? null,
+        attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size, model: v.model, finish: v.finish },
+      }));
+      const { error: vErr } = await supabase.from("product_variations").insert(rows);
+      if (vErr) toast.warning("Produto criado, mas variações falharam: " + friendlyError(vErr));
+    }
+
+    await supabase.from("catalog_review_items")
+      .update({ review_status: "approved", match_product_id: ins.id }).eq("id", i.id);
     toast.success("Produto criado"); load();
   };
 
