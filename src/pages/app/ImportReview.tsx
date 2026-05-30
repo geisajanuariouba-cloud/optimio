@@ -17,7 +17,29 @@ type Item = {
   id: string; catalog_id: string | null; supplier_id: string | null; source_page: number | null;
   proposed_name: string | null; proposed_code: string | null; proposed_category: string | null;
   proposed_image_url: string | null; review_status: string; match_status: string; dedup_hash: string | null;
+  proposed_measurements: any; proposed_variations: any; raw_data: any;
 };
+
+async function ensureCategoryId(userId: string, name?: string | null): Promise<string | null> {
+  if (!name) return null;
+  const n = name.trim();
+  if (!n) return null;
+  const { data: existing } = await supabase.from("product_categories")
+    .select("id").eq("user_id", userId).ilike("name", n).maybeSingle();
+  if (existing?.id) return existing.id;
+  const { data: created } = await supabase.from("product_categories")
+    .insert({ user_id: userId, name: n }).select("id").single();
+  return created?.id ?? null;
+}
+
+function codnameOf(name: string, size?: string | null, color?: string | null): string {
+  if (!name) return "";
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const base = norm(name).trim().split(/\s+/)[0]?.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() ?? "";
+  const sz = size ? (String(size).match(/[0-9]+/g)?.join("") ?? "").slice(0, 4) : "";
+  const co = color ? norm(color).replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() : "";
+  return `${base}${sz}${co}`;
+}
 
 export default function ImportReview() {
   const { user } = useAuth();
