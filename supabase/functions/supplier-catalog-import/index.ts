@@ -366,10 +366,9 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
       return;
     }
 
-    // ---------- CATALOG ----------
+    // ---------- CATALOG (STAGING ONLY — não cria produtos diretos) ----------
     const { data: cats } = await supabase.from("product_categories")
       .select("id,name").eq("user_id", userId);
-    const catMap = new Map<string, string>((cats ?? []).map(c => [normCat(c.name), c.id]));
     const existingCatNames = (cats ?? []).map(c => c.name);
 
     await log("ai", "Enviando catálogo para a IA.");
@@ -378,7 +377,7 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
       AI_TIMEOUT_MS, "IA"
     );
     await log("ai_done", `IA retornou ${items.length} produto(s).`);
-    await setStatus({ products_extracted: items.length }, "criando_produtos");
+    await setStatus({ products_extracted: items.length }, "extraindo_imagens");
 
     // dedup interno
     const seen = new Set<string>();
@@ -390,132 +389,100 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
       return true;
     });
 
-    // Alimenta fila de revisão (Revisão de Importação)
+    // ---------- Extração best-effort de imagens (JPEG embutido no PDF) ----------
+    const imageUrls: string[] = [];
     try {
-      const { data: existingHashes } = await supabase.from("products")
-        .select("dedup_hash").eq("user_id", userId).not("dedup_hash", "is", null);
-      const known = new Set((existingHashes ?? []).map((r: any) => r.dedup_hash));
-      const reviewRows = batch.map((p: any) => {
-        const hash = `${(p.code ?? "").toString().toLowerCase()}|${p.name.toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
-        return {
-          user_id: userId,
-          catalog_id: catalogId,
-          supplier_id: supplierId,
-          source_page: num(p.page),
-          proposed_name: p.name,
-          proposed_code: p.code ?? null,
-          proposed_category: p.category ?? null,
-          proposed_image_url: null,
-          proposed_measurements: {
-            width: num(p.width), height: num(p.height), depth: num(p.depth),
-            length_cm: num(p.length_cm), weight: num(p.weight), raw: p.measurements ?? null,
-          },
-          proposed_variations: p.variations ?? null,
-          dedup_hash: hash,
-          match_status: known.has(hash) ? "duplicate" : "new",
-          review_status: "pending",
-          raw_data: p,
-        };
-      });
-      for (let i = 0; i < reviewRows.length; i += 200) {
-        await supabase.from("catalog_review_items").insert(reviewRows.slice(i, i + 200));
-      }
-    } catch (_) { /* não bloqueia o fluxo principal */ }
-
-    // existentes para dedup contra o BD
-    const { data: existing } = await supabase.from("products")
-      .select("id,name,code").eq("user_id", userId).eq("supplier_id", supplierId).is("deleted_at", null);
-    const byCode = new Map((existing ?? []).filter(p => p.code).map(p => [String(p.code).toLowerCase(), p.id]));
-    const byName = new Map((existing ?? []).map(p => [String(p.name).toLowerCase(), p.id]));
-
-    const ensureCategory = async (name?: string): Promise<{ id: string | null; label: string | null }> => {
-      if (!name) return { id: null, label: null };
-      const k = normCat(name);
-      if (catMap.has(k)) return { id: catMap.get(k)!, label: name };
-      const { data: created } = await supabase.from("product_categories")
-        .insert({ user_id: userId, name: name.trim() }).select("id,name").single();
-      if (created?.id) { catMap.set(k, created.id); return { id: created.id, label: created.name }; }
-      return { id: null, label: name };
-    };
-
-    let created = 0, updated = 0, skipped = 0, noImage = 0;
-    for (const p of batch) {
-      const cat = await ensureCategory(p.category);
-      const hasVar = Array.isArray(p.variations) && p.variations.length > 0;
-      const pid = (p.code && byCode.get(String(p.code).toLowerCase())) || byName.get(String(p.name).toLowerCase());
-      const codname = (p.codname && String(p.codname).trim()) || codnameOf(p.name, p.size, p.color);
-      const baseDesc: string = p.description ?? "";
-      const pageNote = p.page ? `Página ${p.page} do catálogo.` : "";
-      const description = [baseDesc, pageNote].filter(Boolean).join("\n").trim() || null;
-
-      // catálogo NÃO preenche preço
-      const payload: any = {
-        supplier_id: supplierId,
-        status: "aguardando_tabela_custo",
-        codname,
-        has_variations: hasVar,
-        description,
-        ...(p.code ? { code: p.code } : {}),
-        ...(cat.id ? { category_id: cat.id } : {}),
-        ...(cat.label ? { category: cat.label } : {}),
-        ...(p.measurements ? { measurements: { raw: p.measurements } } : {}),
-        width: num(p.width), height: num(p.height), depth: num(p.depth),
-        length_cm: num(p.length_cm), weight: num(p.weight),
-      };
-
-      let productId: string | null = null;
-      if (pid) {
-        await supabase.from("products").update(payload).eq("id", pid);
-        productId = pid as string;
-        updated++;
-      } else {
-        const { data: ins, error: insErr } = await supabase.from("products")
-          .insert({ user_id: userId, name: p.name, stock: 0, min_stock: 0, ...payload })
-          .select("id").single();
-        if (insErr) { skipped++; continue; }
-        productId = ins?.id ?? null;
-        if (productId) {
-          if (p.code) byCode.set(String(p.code).toLowerCase(), productId);
-          byName.set(String(p.name).toLowerCase(), productId);
+      const isPdf = mime === "application/pdf" || /\.pdf(\?|$)/i.test(storagePath);
+      if (isPdf) {
+        await log("imgs", "Procurando imagens embutidas no PDF.");
+        const dl = await supabase.storage.from("supplier-catalogs").download(storagePath);
+        if (dl.data) {
+          const buf = new Uint8Array(await dl.data.arrayBuffer());
+          // Scan JPEG markers FFD8...FFD9
+          const found: Uint8Array[] = [];
+          let i = 0;
+          const max = buf.length - 4;
+          while (i < max && found.length < 80) {
+            if (buf[i] === 0xff && buf[i + 1] === 0xd8 && buf[i + 2] === 0xff) {
+              let j = i + 2;
+              while (j < max) {
+                if (buf[j] === 0xff && buf[j + 1] === 0xd9) { j += 2; break; }
+                j++;
+              }
+              const size = j - i;
+              if (size > 2048 && size < 4_000_000) {
+                found.push(buf.slice(i, j));
+              }
+              i = j;
+            } else {
+              i++;
+            }
+          }
+          await log("imgs_found", `${found.length} imagem(ns) candidata(s) localizada(s).`);
+          for (let idx = 0; idx < Math.min(found.length, 80); idx++) {
+            const path = `${userId}/${catalogId}/img-${String(idx).padStart(3, "0")}.jpg`;
+            const up = await supabase.storage.from("catalog-images")
+              .upload(path, found[idx], { contentType: "image/jpeg", upsert: true });
+            if (!up.error) {
+              const { data: pub } = supabase.storage.from("catalog-images").getPublicUrl(path);
+              if (pub?.publicUrl) imageUrls.push(pub.publicUrl);
+            }
+          }
         }
-        created++;
       }
-
-      if (!productId) continue;
-      noImage++; // imagens não são extraídas automaticamente do PDF nesta versão
-
-      if (hasVar) {
-        // limpa variações dessa rodada para evitar duplicidade
-        await supabase.from("product_variations").delete().eq("product_id", productId);
-        const rows = p.variations.map((v: any) => ({
-          product_id: productId, user_id: userId, supplier_id: supplierId,
-          name: v.name || [v.size, v.color, v.fabric, v.model, v.finish].filter(Boolean).join(" ") || "Variação",
-          codname: codnameOf(p.name, v.size, v.color),
-          sku: v.sku || null,
-          color: v.color || null, fabric: v.fabric || null, material: v.material || null,
-          size: v.size || null, model: v.model || null, finish: v.finish || null,
-          cost: 0, sale_price: 0, stock: 0, min_stock: 0,
-          width: num(v.width), height: num(v.height), depth: num(v.depth),
-          length_cm: num(v.length_cm), weight: num(v.weight),
-          attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size, model: v.model, finish: v.finish },
-        }));
-        if (rows.length) await supabase.from("product_variations").insert(rows);
-      }
+    } catch (e: any) {
+      await log("imgs_err", `Extração de imagens não disponível: ${e?.message ?? e}.`);
     }
 
-    const finalStatus = created + updated === 0 ? "failed" : "completed";
+    // ---------- Alimenta fila de revisão (staging real — NÃO cria produtos) ----------
+    const { data: existingHashes } = await supabase.from("products")
+      .select("dedup_hash").eq("user_id", userId).not("dedup_hash", "is", null);
+    const known = new Set((existingHashes ?? []).map((r: any) => r.dedup_hash));
+
+    const ordered = [...batch].sort((a: any, b: any) => (num(a.page) ?? 0) - (num(b.page) ?? 0));
+    const reviewRows = ordered.map((p: any, idx: number) => {
+      const hash = `${(p.code ?? "").toString().toLowerCase()}|${p.name.toLowerCase()}|${(p.measurements ?? "").toLowerCase()}`;
+      return {
+        user_id: userId,
+        catalog_id: catalogId,
+        supplier_id: supplierId,
+        source_page: num(p.page),
+        proposed_name: p.name,
+        proposed_code: p.code ?? null,
+        proposed_category: p.category ?? null,
+        proposed_image_url: imageUrls[idx] ?? null,
+        proposed_measurements: {
+          width: num(p.width), height: num(p.height), depth: num(p.depth),
+          length_cm: num(p.length_cm), weight: num(p.weight), raw: p.measurements ?? null,
+        },
+        proposed_variations: p.variations ?? null,
+        dedup_hash: hash,
+        match_status: known.has(hash) ? "duplicate" : "new",
+        review_status: "pending",
+        raw_data: p,
+      };
+    });
+
+    let inserted = 0;
+    for (let k = 0; k < reviewRows.length; k += 200) {
+      const { error: insErr } = await supabase.from("catalog_review_items")
+        .insert(reviewRows.slice(k, k + 200));
+      if (!insErr) inserted += Math.min(200, reviewRows.length - k);
+    }
+
     await setStatus({
-      processing_status: finalStatus,
-      processing_stage: finalStatus === "completed" ? "concluido" : "erro",
-      products_created: created,
-      products_updated: updated,
+      processing_status: inserted === 0 ? "failed" : "completed",
+      processing_stage: inserted === 0 ? "erro" : "concluido",
+      products_created: 0,
+      products_updated: 0,
       products_extracted: batch.length,
       completed_at: new Date().toISOString(),
-      partial_reason: noImage > 0 && finalStatus === "completed"
-        ? `Imagens não identificadas automaticamente em ${noImage} produto(s). Anexe manualmente quando quiser.` : null,
-      error_message: finalStatus === "failed" ? "Não foi possível extrair produtos automaticamente. O catálogo continua salvo." : null,
+      partial_reason: inserted > 0
+        ? `${inserted} item(ns) aguardando revisão. ${imageUrls.length} imagem(ns) anexada(s). Aprove em "Revisão de Importação" para virarem produtos.`
+        : null,
+      error_message: inserted === 0 ? "Não foi possível extrair itens automaticamente. O catálogo continua salvo." : null,
     });
-    await log("done", `Criados ${created}, atualizados ${updated}, ignorados ${skipped}. Tempo: ${Math.round((Date.now() - t0) / 1000)}s.`);
+    await log("done", `Revisão: ${inserted}, imagens: ${imageUrls.length}. Tempo: ${Math.round((Date.now() - t0) / 1000)}s.`);
   } catch (e: any) {
     await supabase.from("supplier_catalogs").update({
       processing_status: "failed",
