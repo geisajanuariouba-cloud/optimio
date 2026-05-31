@@ -1830,6 +1830,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accent_color: string | null
           account_status: string
           border_style: string
           company_name: string | null
@@ -1841,6 +1842,7 @@ export type Database = {
           full_name: string | null
           id: string
           instagram_discount: Json
+          logo_palette: Json
           logo_url: string | null
           niche: string
           onboarding_completed: boolean
@@ -1849,10 +1851,12 @@ export type Database = {
           plan: string
           primary_color: string
           remember_me: boolean | null
+          secondary_color: string | null
           terms: Json
           updated_at: string
         }
         Insert: {
+          accent_color?: string | null
           account_status?: string
           border_style?: string
           company_name?: string | null
@@ -1864,6 +1868,7 @@ export type Database = {
           full_name?: string | null
           id: string
           instagram_discount?: Json
+          logo_palette?: Json
           logo_url?: string | null
           niche?: string
           onboarding_completed?: boolean
@@ -1872,10 +1877,12 @@ export type Database = {
           plan?: string
           primary_color?: string
           remember_me?: boolean | null
+          secondary_color?: string | null
           terms?: Json
           updated_at?: string
         }
         Update: {
+          accent_color?: string | null
           account_status?: string
           border_style?: string
           company_name?: string | null
@@ -1887,6 +1894,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           instagram_discount?: Json
+          logo_palette?: Json
           logo_url?: string | null
           niche?: string
           onboarding_completed?: boolean
@@ -1895,6 +1903,7 @@ export type Database = {
           plan?: string
           primary_color?: string
           remember_me?: boolean | null
+          secondary_color?: string | null
           terms?: Json
           updated_at?: string
         }
