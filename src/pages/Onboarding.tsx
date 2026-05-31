@@ -250,9 +250,47 @@ export default function Onboarding() {
         )}
 
         {step === 4 && (
-          <div className="space-y-4 animate-fade-up">
-            <h2 className="text-3xl font-bold">Personalize o design</h2>
-            <Label>Cor primária</Label>
+          <div className="space-y-5 animate-fade-up">
+            <h2 className="text-3xl font-bold">Identidade visual</h2>
+            <p className="text-muted-foreground">Envie sua logo — vamos extrair as cores automaticamente.</p>
+
+            <div className="flex items-center gap-4">
+              {logoPreview || data.logo_url ? (
+                <div className="relative h-24 w-24 rounded-2xl border-2 border-border overflow-hidden bg-white flex items-center justify-center">
+                  <img src={logoPreview || data.logo_url} alt="Logo" className="max-h-full max-w-full object-contain" />
+                  <button onClick={removeLogo} className="absolute top-1 right-1 h-6 w-6 rounded-full bg-background/90 border flex items-center justify-center">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <label className="h-24 w-24 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/40">
+                  <Upload className="h-5 w-5 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground">Enviar logo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onLogoSelected(e.target.files[0])} />
+                </label>
+              )}
+              <div className="flex-1 text-xs text-muted-foreground">
+                {extracting && <p className="flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Extraindo cores do logo…</p>}
+                {uploading && <p className="flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Enviando logo…</p>}
+                {!extracting && !uploading && (palette || data.logo_url) && <p>Logo aplicada. Você pode ajustar as cores abaixo.</p>}
+                {!logoPreview && !data.logo_url && <p>PNG ou JPG, até 5MB. Sem logo? Escolha uma paleta manualmente abaixo.</p>}
+              </div>
+            </div>
+
+            {palette && (
+              <div>
+                <Label className="block mb-2">Paleta extraída</Label>
+                <div className="flex gap-2">
+                  {palette.all.map((c, i) => (
+                    <button key={i} onClick={() => setData({ ...data, primary_color: c })}
+                      className={`h-10 w-10 rounded-full border-2 ${data.primary_color === c ? "border-foreground" : "border-border"}`}
+                      style={{ background: `hsl(${c})` }} title={c} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Label className="block">Cor primária</Label>
             <div className="grid grid-cols-3 gap-3">
               {COLORS.map(c => (
                 <button key={c.value} onClick={() => setData({ ...data, primary_color: c.value })}
@@ -262,7 +300,23 @@ export default function Onboarding() {
                 </button>
               ))}
             </div>
-            <Label className="pt-4 block">Estilo de borda</Label>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Primária</Label>
+                <div className="h-10 rounded-xl border" style={{ background: `hsl(${data.primary_color})` }} />
+              </div>
+              <div>
+                <Label className="text-xs">Secundária</Label>
+                <div className="h-10 rounded-xl border" style={{ background: `hsl(${data.secondary_color})` }} />
+              </div>
+              <div>
+                <Label className="text-xs">Destaque</Label>
+                <div className="h-10 rounded-xl border" style={{ background: `hsl(${data.accent_color})` }} />
+              </div>
+            </div>
+
+            <Label className="pt-2 block">Estilo de borda</Label>
             <div className="grid grid-cols-2 gap-3">
               {[{ v: "rounded", l: "Arredondado" }, { v: "sharp", l: "Reto" }].map(o => (
                 <button key={o.v} onClick={() => setData({ ...data, border_style: o.v })}
@@ -273,6 +327,7 @@ export default function Onboarding() {
             </div>
           </div>
         )}
+
 
         {step === 5 && (
           <div className="space-y-4 animate-fade-up text-center">
