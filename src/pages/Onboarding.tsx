@@ -11,7 +11,8 @@ import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Upload, Loader2, X } from "lucide-react";
+import { extractPaletteFromFile, Palette } from "@/lib/colorExtract";
 
 const COLORS = [
   { name: "Roxo Optimio", value: "271 91% 65%" },
@@ -27,6 +28,11 @@ export default function Onboarding() {
   const { refresh, profile } = useTenant();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [palette, setPalette] = useState<Palette | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [data, setData] = useState({
     company_name: "",
     phone_number: "",
@@ -35,8 +41,13 @@ export default function Onboarding() {
     produces_own: "resell" as "produce" | "resell" | "none",
     estimated_volume: "low",
     primary_color: "271 91% 65%",
+    secondary_color: "220 15% 25%",
+    accent_color: "174 80% 55%",
     border_style: "rounded",
+    logo_url: "" as string,
+    logo_palette: [] as string[],
   });
+
 
   useEffect(() => {
     if (profile?.onboarding_completed) nav("/app", { replace: true });
