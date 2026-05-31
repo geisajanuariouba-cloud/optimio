@@ -401,7 +401,25 @@ function BillingPanel() {
         </div>
         <div className="grid md:grid-cols-2 gap-3">
           <div><Label>Kiwify Webhook Secret</Label><Input value={getStr("kiwify_webhook_secret")} onChange={(e) => setStr("kiwify_webhook_secret", e.target.value)} placeholder="token compartilhado" /></div>
-          <div><Label>Vídeo demonstração (URL embed)</Label><Input value={getStr("demo_video_url")} onChange={(e) => setStr("demo_video_url", e.target.value)} placeholder="https://www.youtube.com/embed/..." /></div>
+          <div>
+            <Label>Vídeo demonstração (URL embed ou upload .mp4)</Label>
+            <div className="flex gap-2">
+              <Input value={getStr("demo_video_url")} onChange={(e) => setStr("demo_video_url", e.target.value)} placeholder="https://youtube.com/embed/... ou link do MP4" />
+              <input id="demo-video-upload" type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={async (e) => {
+                const f = e.target.files?.[0]; if (!f) return;
+                if (f.size > 80 * 1024 * 1024) return toast.error("Arquivo muito grande (máx 80MB).");
+                try {
+                  const path = `demo/${Date.now()}-${f.name.replace(/[^\w.-]/g,"_")}`;
+                  const up = await supabase.storage.from("landing-assets").upload(path, f, { upsert: true, contentType: f.type });
+                  if (up.error) throw up.error;
+                  const { data: pub } = supabase.storage.from("landing-assets").getPublicUrl(path);
+                  setStr("demo_video_url", pub.publicUrl);
+                  toast.success("Vídeo enviado. Clique em Salvar configurações.");
+                } catch (err: any) { toast.error(friendlyError(err)); }
+              }} />
+              <Button type="button" variant="outline" onClick={() => document.getElementById("demo-video-upload")?.click()}><Upload className="h-4 w-4 mr-1" />Upload</Button>
+            </div>
+          </div>
         </div>
         <div>
           <Label>Mapeamento Kiwify (JSON: product_id → internal_plan)</Label>
