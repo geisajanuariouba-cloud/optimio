@@ -239,7 +239,12 @@ function PlansEditor({ plans, onChange }: { plans: Plan[]; onChange: () => void 
   const [draft, setDraft] = useState<Record<string, Partial<Plan>>>({});
   const save = async (p: Plan) => {
     const patch = draft[p.id]; if (!patch) return;
-    const { error } = await supabase.from("plans").update(patch as any).eq("id", p.id);
+    const clean: any = { ...patch };
+    if (typeof clean.modules === "string") {
+      try { clean.modules = JSON.parse(clean.modules); }
+      catch { return toast.error("Módulos: JSON inválido"); }
+    }
+    const { error } = await supabase.from("plans").update(clean).eq("id", p.id);
     if (error) return toast.error(friendlyError(error));
     toast.success("Plano atualizado"); setDraft(d => { const n = {...d}; delete n[p.id]; return n; }); onChange();
   };
@@ -262,13 +267,28 @@ function PlansEditor({ plans, onChange }: { plans: Plan[]; onChange: () => void 
         {plans.map(p => {
           const d = { ...p, ...draft[p.id] } as Plan;
           const dirty = !!draft[p.id];
-          const set = (k: keyof Plan, v: any) => setDraft(s => ({ ...s, [p.id]: { ...(s[p.id]||{}), [k]: v } }));
+          const set = (k: keyof Plan | "description" | "modules", v: any) => setDraft(s => ({ ...s, [p.id]: { ...(s[p.id]||{}), [k]: v } }));
+          const modulesStr = typeof (d as any).modules === "string"
+            ? (d as any).modules
+            : JSON.stringify(d.modules ?? [], null, 0);
           return (
-            <div key={p.id} className="p-4 grid md:grid-cols-[1fr,1fr,120px,auto] gap-3 items-end">
-              <div><Label className="text-xs">Nome</Label><Input value={d.name} onChange={e => set("name", e.target.value)} /></div>
-              <div><Label className="text-xs">Slug</Label><Input value={d.slug} onChange={e => set("slug", e.target.value)} /></div>
-              <div><Label className="text-xs">Preço (R$)</Label><Input type="number" value={d.price} onChange={e => set("price", Number(e.target.value))} /></div>
-              <div className="flex gap-1">
+            <div key={p.id} className="p-4 space-y-3">
+              <div className="grid md:grid-cols-[1fr,1fr,120px,100px,auto] gap-3 items-end">
+                <div><Label className="text-xs">Nome</Label><Input value={d.name} onChange={e => set("name", e.target.value)} /></div>
+                <div><Label className="text-xs">Slug</Label><Input value={d.slug} onChange={e => set("slug", e.target.value)} /></div>
+                <div><Label className="text-xs">Preço (R$)</Label><Input type="number" value={d.price} onChange={e => set("price", Number(e.target.value))} /></div>
+                <div><Label className="text-xs">Ordem</Label><Input type="number" value={d.sort_order ?? 0} onChange={e => set("sort_order", Number(e.target.value))} /></div>
+                <label className="flex items-center gap-1 text-xs pb-2"><input type="checkbox" checked={d.active} onChange={e => set("active", e.target.checked)} />Ativo</label>
+              </div>
+              <div><Label className="text-xs">Descrição</Label><Input value={(d as any).description ?? ""} onChange={e => set("description", e.target.value)} placeholder="Tagline curta exibida no checkout" /></div>
+              <div>
+                <Label className="text-xs">Módulos (JSON array)</Label>
+                <textarea className="w-full min-h-[60px] rounded-md bg-secondary/40 border border-border px-3 py-2 font-mono text-xs"
+                  value={modulesStr}
+                  onChange={e => set("modules", e.target.value)}
+                  placeholder='["dashboard","clients","financial"]' />
+              </div>
+              <div className="flex gap-1 justify-end">
                 {dirty && <Button size="sm" onClick={() => save(p)} className="bg-emerald-600 hover:bg-emerald-700">Salvar</Button>}
                 <Button size="sm" variant="ghost" onClick={() => del(p.id)}><Trash2 className="h-4 w-4 text-rose-600" /></Button>
               </div>
@@ -381,7 +401,25 @@ function BillingPanel() {
         </div>
         <div className="grid md:grid-cols-2 gap-3">
           <div><Label>Kiwify Webhook Secret</Label><Input value={getStr("kiwify_webhook_secret")} onChange={(e) => setStr("kiwify_webhook_secret", e.target.value)} placeholder="token compartilhado" /></div>
-          <div><Label>Vídeo demonstração (URL embed)</Label><Input value={getStr("demo_video_url")} onChange={(e) => setStr("demo_video_url", e.target.value)} placeholder="https://www.youtube.com/embed/..." /></div>
+          <div>
+            <Label>Vídeo demonstração (URL embed ou upload .mp4)</Label>
+            <div className="flex gap-2">
+              <Input value={getStr("demo_video_url")} onChange={(e) => setStr("demo_video_url", e.target.value)} placeholder="https://youtube.com/embed/... ou link do MP4" />
+              <input id="demo-video-upload" type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={async (e) => {
+                const f = e.target.files?.[0]; if (!f) return;
+                if (f.size > 80 * 1024 * 1024) return toast.error("Arquivo muito grande (máx 80MB).");
+                try {
+                  const path = `demo/${Date.now()}-${f.name.replace(/[^\w.-]/g,"_")}`;
+                  const up = await supabase.storage.from("landing-assets").upload(path, f, { upsert: true, contentType: f.type });
+                  if (up.error) throw up.error;
+                  const { data: pub } = supabase.storage.from("landing-assets").getPublicUrl(path);
+                  setStr("demo_video_url", pub.publicUrl);
+                  toast.success("Vídeo enviado. Clique em Salvar configurações.");
+                } catch (err: any) { toast.error(friendlyError(err)); }
+              }} />
+              <Button type="button" variant="outline" onClick={() => document.getElementById("demo-video-upload")?.click()}><Upload className="h-4 w-4 mr-1" />Upload</Button>
+            </div>
+          </div>
         </div>
         <div>
           <Label>Mapeamento Kiwify (JSON: product_id → internal_plan)</Label>

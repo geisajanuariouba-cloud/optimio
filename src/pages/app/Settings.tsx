@@ -249,21 +249,12 @@ export default function Settings() {
             <h2 className="text-xl font-semibold">Plano atual</h2>
             <div className="flex items-center gap-3">
               <Badge className="text-sm capitalize">{profile?.plan}</Badge>
-              <span className="text-sm text-muted-foreground">
-                {profile?.plan === "basic" && "30 transações/mês"}
-                {profile?.plan === "standard" && "100 transações/mês"}
-                {profile?.plan === "unlimited" && "Transações ilimitadas"}
-              </span>
+              <span className="text-sm text-muted-foreground">Veja todos os planos, compare benefícios e faça upgrade.</span>
             </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {profile?.plan !== "standard" && profile?.plan !== "unlimited" && (
-                <Button onClick={() => goCheckout("Standard")} className="bg-gradient-brand text-white border-0 rounded-2xl gap-2"><ArrowUp className="h-4 w-4" />Upgrade para Standard (R$199)</Button>
-              )}
-              {profile?.plan !== "unlimited" && (
-                <Button onClick={() => goCheckout("Unlimited")} variant="outline" className="rounded-2xl gap-2"><Crown className="h-4 w-4" />Upgrade para Unlimited (R$399)</Button>
-              )}
+            <div className="flex gap-2">
+              <Link to="/app/upgrade"><Button className="bg-gradient-brand text-white border-0 rounded-2xl gap-2"><Crown className="h-4 w-4" />Ver planos e fazer upgrade</Button></Link>
             </div>
-            <p className="text-xs text-muted-foreground">Ao confirmar o upgrade, você será redirecionado para o checkout do gateway de pagamento.</p>
+            <p className="text-xs text-muted-foreground">A página de upgrade carrega seu vencimento, plano atual e os links de checkout configurados pelo administrador.</p>
           </Card>
         </TabsContent>
       </Tabs>
