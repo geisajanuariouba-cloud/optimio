@@ -94,7 +94,11 @@ export default function Landing() {
 
           {videoUrl && (
             <div className="mt-12 max-w-4xl mx-auto rounded-3xl overflow-hidden border border-border/40 glass aspect-video">
-              <iframe src={videoUrl} title="Demo Optimio" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen className="w-full h-full" />
+              {/\.(mp4|webm|mov)(\?|$)/i.test(videoUrl) ? (
+                <video src={videoUrl} controls playsInline className="w-full h-full object-cover" />
+              ) : (
+                <iframe src={videoUrl} title="Demo Optimio" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen className="w-full h-full" />
+              )}
             </div>
           )}
 
