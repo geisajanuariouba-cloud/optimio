@@ -75,11 +75,16 @@ export default function Onboarding() {
       enabled_modules: modules,
       terms: niche.terms,
       primary_color: data.primary_color,
+      secondary_color: data.secondary_color,
+      accent_color: data.accent_color,
+      logo_url: data.logo_url || null,
+      logo_palette: data.logo_palette,
       border_style: data.border_style,
       estimated_volume: data.estimated_volume,
       account_status: accountStatus,
       onboarding_completed: true,
     }).eq("id", user.id);
+
     if (error) return toast.error(friendlyError(error));
 
     // Cria assinatura pending apenas se ainda não tem nenhuma (sem Kiwify)
