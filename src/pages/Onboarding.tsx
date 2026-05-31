@@ -125,6 +125,47 @@ export default function Onboarding() {
   const next = () => setStep(s => Math.min(5, s + 1));
   const back = () => setStep(s => Math.max(0, s - 1));
 
+  const onLogoSelected = async (file: File) => {
+    if (!user) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error("Logo deve ter no máximo 5MB.");
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setExtracting(true);
+    try {
+      const p = await extractPaletteFromFile(file);
+      setPalette(p);
+      setData(d => ({
+        ...d,
+        primary_color: p.primary,
+        secondary_color: p.secondary,
+        accent_color: p.accent,
+        logo_palette: p.all,
+      }));
+      toast.success("Paleta extraída do seu logo!");
+    } catch {
+      toast.error("Não consegui extrair as cores. Use a paleta abaixo.");
+    } finally { setExtracting(false); }
+
+    // Upload em background
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${user.id}/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("tenant-logos").upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("tenant-logos").getPublicUrl(path);
+      setData(d => ({ ...d, logo_url: pub.publicUrl }));
+    } catch (e: any) {
+      toast.error("Falha ao enviar logo: " + friendlyError(e));
+    } finally { setUploading(false); }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null); setLogoPreview(null); setPalette(null);
+    setData(d => ({ ...d, logo_url: "", logo_palette: [] }));
+  };
+
+
   return (
     <div className="min-h-screen bg-background bg-mesh flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl glass border-0 rounded-3xl p-8 md:p-12">
