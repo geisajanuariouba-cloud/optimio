@@ -34,8 +34,11 @@ const PERMISSIONS = [
   { k: "settings.edit", l: "Configurações" },
 ];
 
+import { useTenant } from "@/hooks/useTenant";
+
 export default function Team() {
   const { user } = useAuth();
+  const { isOwner } = useTenant();
   const [members, setMembers] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
   const [plan, setPlan] = useState<{ slug: string; max: number }>({ slug: "basic", max: 1 });
@@ -94,6 +97,16 @@ export default function Team() {
     navigator.clipboard.writeText(`${window.location.origin}/invite/${token}`);
     toast.success("Link copiado!");
   };
+
+  if (!isOwner) {
+    return (
+      <div className="max-w-3xl mx-auto p-8 text-center">
+        <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+        <h1 className="text-2xl font-bold mb-2">Acesso restrito</h1>
+        <p className="text-muted-foreground">Apenas o dono da conta pode gerenciar a equipe.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
