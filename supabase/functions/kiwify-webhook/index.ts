@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
   // Lê segredo configurado (system_settings global kiwify_webhook_secret) OU env
   const url = new URL(req.url);
   const incomingToken = url.searchParams.get("token") || req.headers.get("x-kiwify-token") || "";
+  const incomingSig = url.searchParams.get("signature") || req.headers.get("x-kiwify-signature") || "";
   let expectedToken = Deno.env.get("KIWIFY_WEBHOOK_SECRET") || "";
   if (!expectedToken) {
     const { data } = await supabase
@@ -34,17 +35,34 @@ Deno.serve(async (req) => {
       .eq("scope", "global")
       .eq("key", "kiwify_webhook_secret")
       .maybeSingle();
-    expectedToken = (data?.value as string) || "";
+    const v: any = data?.value;
+    expectedToken = typeof v === "string" ? v : (v?.value ?? "");
   }
   if (!expectedToken) {
     return json(500, { error: "Webhook secret not configured" });
   }
-  if (incomingToken !== expectedToken) {
-    return json(401, { error: "Token inválido" });
+
+  // Lê o corpo como texto para preservar bytes para verificação HMAC
+  const rawBody = await req.text();
+
+  // Aceita: (1) token simples == secret OU (2) HMAC SHA1 do corpo (padrão Kiwify)
+  let authorized = !!incomingToken && incomingToken === expectedToken;
+  if (!authorized && incomingSig) {
+    try {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(expectedToken),
+        { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+      const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(rawBody));
+      const hex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,"0")).join("");
+      authorized = hex.toLowerCase() === incomingSig.toLowerCase();
+    } catch { /* ignore */ }
+  }
+  if (!authorized) {
+    return json(401, { error: "Assinatura/token inválido" });
   }
 
   let payload: any;
-  try { payload = await req.json(); } catch { return json(400, { error: "JSON inválido" }); }
+  try { payload = JSON.parse(rawBody); } catch { return json(400, { error: "JSON inválido" }); }
 
   // Extração resiliente — Kiwify varia layout entre versões
   const eventType: string = payload.webhook_event_type || payload.event || payload.order_status || "unknown";
