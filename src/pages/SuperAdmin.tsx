@@ -383,17 +383,54 @@ function BillingPanel() {
     setBusy(false); load();
   };
 
-  const filtered = events.filter(e =>
-    !filter.trim() ||
-    e.event_type.toLowerCase().includes(filter.toLowerCase()) ||
-    e.event_id.toLowerCase().includes(filter.toLowerCase()) ||
-    (e.user_id ?? "").includes(filter)
-  );
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const filtered = events.filter(e => {
+    if (statusFilter !== "all" && e.status !== statusFilter) return false;
+    if (!filter.trim()) return true;
+    const q = filter.toLowerCase();
+    return e.event_type.toLowerCase().includes(q)
+      || e.event_id.toLowerCase().includes(q)
+      || (e.user_id ?? "").includes(filter)
+      || JSON.stringify(e.raw_payload ?? {}).toLowerCase().includes(q);
+  });
+
+  const stats = {
+    total: events.length,
+    processed: events.filter(e => e.status === "processed").length,
+    errors: events.filter(e => e.status === "error").length,
+    ignored: events.filter(e => e.status === "ignored" || e.status === "rejected").length,
+  };
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const webhookUrl = `https://${projectId}.supabase.co/functions/v1/kiwify-webhook?token=${encodeURIComponent(getStr("kiwify_webhook_secret") || "SEU_TOKEN")}`;
+
+  const reprocess = async (ev: BillingEvent) => {
+    try {
+      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/kiwify-webhook?token=${encodeURIComponent(getStr("kiwify_webhook_secret"))}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...ev.raw_payload, __reprocess_of: ev.event_id, created_at: new Date().toISOString() }),
+      });
+      const txt = await res.text();
+      if (!res.ok) throw new Error(txt);
+      toast.success("Reenviado. Recarregando…");
+      setTimeout(load, 800);
+    } catch (e: any) { toast.error(friendlyError(e)); }
+  };
 
   return (
     <div className="space-y-4">
       <Card className="glass border-0 rounded-3xl p-6 space-y-4">
         <h3 className="font-semibold flex items-center gap-2"><SettingsIcon className="h-4 w-4" /> Configuração Kiwify & Checkout</h3>
+
+        <div className="rounded-2xl bg-secondary/40 border border-border/40 p-4 space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">URL do Webhook (cole na Kiwify)</Label>
+          <div className="flex gap-2">
+            <Input readOnly value={webhookUrl} className="font-mono text-xs" />
+            <Button type="button" variant="outline" onClick={() => { navigator.clipboard.writeText(webhookUrl); toast.success("URL copiada"); }}>Copiar</Button>
+          </div>
+          <p className="text-xs text-muted-foreground">A Kiwify pode validar via <code>?token=</code> (padrão) ou <code>x-kiwify-signature</code> HMAC-SHA1 do corpo. Ambos aceitos.</p>
+        </div>
+
         <div className="grid md:grid-cols-3 gap-3">
           <div><Label>Checkout URL — Basic</Label><Input value={getStr("checkout_basic_url")} onChange={(e) => setStr("checkout_basic_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
           <div><Label>Checkout URL — Pro</Label><Input value={getStr("checkout_pro_url")} onChange={(e) => setStr("checkout_pro_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
@@ -429,14 +466,33 @@ function BillingPanel() {
         <Button onClick={saveAll} disabled={busy} className="bg-gradient-brand text-white border-0 gap-2"><Save className="h-4 w-4" />{busy ? "Salvando…" : "Salvar configurações"}</Button>
       </Card>
 
+      <div className="grid sm:grid-cols-4 gap-3">
+        {[
+          { l: "Total recebidos", v: stats.total, c: "text-foreground" },
+          { l: "Processados", v: stats.processed, c: "text-emerald-600" },
+          { l: "Erros", v: stats.errors, c: "text-rose-600" },
+          { l: "Ignorados/recusados", v: stats.ignored, c: "text-amber-600" },
+        ].map(s => (
+          <Card key={s.l} className="glass border-0 rounded-2xl p-4">
+            <p className="text-xs text-muted-foreground">{s.l}</p>
+            <p className={`text-2xl font-bold ${s.c}`}>{s.v}</p>
+          </Card>
+        ))}
+      </div>
+
       <Card className="glass border-0 rounded-3xl overflow-hidden">
-        <div className="p-5 border-b border-border/40 font-semibold flex items-center justify-between gap-3">
+        <div className="p-5 border-b border-border/40 font-semibold flex flex-wrap items-center justify-between gap-3">
           <span>Eventos de billing (últimos 200)</span>
-          <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filtrar por evento, ID ou user" className="max-w-xs h-9" />
+          <div className="flex gap-2 flex-wrap">
+            {["all","processed","error","ignored","rejected","received"].map(s => (
+              <Button key={s} size="sm" variant={statusFilter === s ? "default" : "outline"} onClick={() => setStatusFilter(s)} className="capitalize h-8">{s === "all" ? "Todos" : s}</Button>
+            ))}
+            <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filtrar…" className="max-w-xs h-9" />
+          </div>
         </div>
         <div className="divide-y divide-border/40 max-h-[500px] overflow-auto">
           {filtered.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">Nenhum evento ainda. Configure a webhook no Kiwify para começar.</div>
+            <div className="p-8 text-center text-muted-foreground text-sm">Nenhum evento. Configure a webhook no Kiwify usando a URL acima.</div>
           ) : filtered.map(e => (
             <details key={e.id} className="p-3 text-sm">
               <summary className="cursor-pointer flex flex-wrap items-center gap-2">
@@ -445,11 +501,14 @@ function BillingPanel() {
                 <Badge className={e.status === "processed" ? "bg-emerald-500/10 text-emerald-600" : e.status === "error" ? "bg-rose-500/10 text-rose-600" : "bg-amber-500/10 text-amber-600"}>{e.status}</Badge>
                 <span className="text-xs text-muted-foreground ml-auto">{new Date(e.created_at).toLocaleString()}</span>
               </summary>
-              <div className="mt-2 space-y-1 text-xs">
+              <div className="mt-2 space-y-2 text-xs">
                 <div><span className="text-muted-foreground">event_id:</span> <code className="font-mono">{e.event_id}</code></div>
                 {e.user_id && <div><span className="text-muted-foreground">user:</span> <code className="font-mono">{e.user_id}</code></div>}
                 {e.error_message && <div className="text-rose-600">{e.error_message}</div>}
                 <pre className="bg-secondary/40 rounded p-2 overflow-auto max-h-48 text-[10px]">{JSON.stringify(e.raw_payload, null, 2)}</pre>
+                {(e.status === "error" || e.status === "ignored") && (
+                  <Button size="sm" variant="outline" onClick={() => reprocess(e)}>Reprocessar</Button>
+                )}
               </div>
             </details>
           ))}
