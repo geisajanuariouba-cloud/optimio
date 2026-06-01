@@ -43,7 +43,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
   const { signOut } = useAuth();
-  const { hasModule, t, isAdmin } = useTenant();
+  const { hasModule, t, isAdmin, isOwner, can } = useTenant();
 
   const { profile } = useTenant();
   const nicheKey = (profile?.niche as NicheKey) ?? "beauty";
@@ -99,13 +99,13 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
               {[
-                { title: "Comece aqui", url: "/app/start", icon: Sparkles },
-                { title: "Equipe", url: "/app/team", icon: UserCog },
-                { title: "Melhorar plano", url: "/app/upgrade", icon: Rocket },
-                { title: "Suporte", url: "/app/support", icon: LifeBuoy },
-                { title: "Lixeira", url: "/app/trash", icon: Trash2 },
-                { title: "Configurações", url: "/app/settings", icon: Settings },
-              ].map(item => (
+                { title: "Comece aqui", url: "/app/start", icon: Sparkles, show: isOwner },
+                { title: "Equipe", url: "/app/team", icon: UserCog, show: isOwner },
+                { title: "Melhorar plano", url: "/app/upgrade", icon: Rocket, show: isOwner },
+                { title: "Suporte", url: "/app/support", icon: LifeBuoy, show: true },
+                { title: "Lixeira", url: "/app/trash", icon: Trash2, show: isOwner || can("settings.edit") },
+                { title: "Configurações", url: "/app/settings", icon: Settings, show: isOwner || can("settings.edit") },
+              ].filter(i => i.show).map(item => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
                     <NavLink to={item.url} className="flex items-center gap-3">
