@@ -62,7 +62,7 @@ export default function Dashboard() {
     const today = new Date().toISOString().slice(0, 10);
     const [fin, prod, svc, deliv, debts, anam, qn] = await Promise.all([
       supabase.from("financial").select("net_amount,type,transaction_date,origin").eq("type", "income").gte("transaction_date", ms),
-      supabase.from("products").select("stock,min_stock").is("deleted_at", null),
+      supabase.from("products").select("stock,min_stock").is("deleted_at", null).eq("status", "active"),
       supabase.from("services").select("id").is("deleted_at", null),
       supabase.from("deliveries").select("id,status,is_pickup").neq("status", "delivered"),
       supabase.from("debts").select("id,total_amount,client_id,status").eq("status", "open"),
