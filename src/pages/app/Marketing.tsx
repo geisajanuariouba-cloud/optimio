@@ -109,7 +109,7 @@ export default function Marketing() {
     setAiLoading(true);
     setAiResult(null);
     try {
-      const { data: prods } = await supabase.from("products").select("name,sale_price").is("deleted_at", null).limit(20);
+      const { data: prods } = await supabase.from("products").select("name,sale_price").is("deleted_at", null).eq("status", "active").limit(20);
       const { data, error } = await supabase.functions.invoke("marketing-ai", {
         body: {
           niche: (profile as any)?.niche ?? "geral",

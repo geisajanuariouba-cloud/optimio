@@ -25,7 +25,7 @@ export default function Stock() {
 
   const load = async () => {
     const [p, m] = await Promise.all([
-      supabase.from("products").select("id,name,stock,min_stock,cost,sale_price,code,category").is("deleted_at", null).order("name"),
+      supabase.from("products").select("id,name,stock,min_stock,cost,sale_price,code,category").is("deleted_at", null).eq("status", "active").order("name"),
       supabase.from("stock_movements").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setProducts((p.data ?? []) as Product[]);

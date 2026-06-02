@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
+import { logAudit } from "@/lib/audit";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { ClipboardCheck, Check, X, Eye } from "lucide-react";
@@ -17,6 +18,7 @@ type Item = {
   id: string; catalog_id: string | null; supplier_id: string | null; source_page: number | null;
   proposed_name: string | null; proposed_code: string | null; proposed_category: string | null;
   proposed_image_url: string | null; review_status: string; match_status: string; dedup_hash: string | null;
+  match_product_id: string | null;
   proposed_measurements: any; proposed_variations: any; raw_data: any;
 };
 
@@ -57,47 +59,63 @@ export default function ImportReview() {
     .filter(i => filter === "all" ? true : i.review_status === filter)
     .filter(i => !search || (i.proposed_name ?? "").toLowerCase().includes(search.toLowerCase()) || (i.proposed_code ?? "").toLowerCase().includes(search.toLowerCase()));
 
-  const approve = async (i: Item) => {
-    if (!user) return;
+  const approve = async (i: Item): Promise<boolean> => {
+    if (!user) return false;
+    // Idempotência: se já foi aprovado e linkado a produto, não recria
+    if (i.review_status === "approved" && i.match_product_id) return true;
+
     const m = (i.proposed_measurements ?? {}) as any;
     const raw = (i.raw_data ?? {}) as any;
     const vars: any[] = Array.isArray(i.proposed_variations) ? i.proposed_variations : [];
     const categoryId = await ensureCategoryId(user.id, i.proposed_category);
     const codname = (raw.codname && String(raw.codname).trim()) || codnameOf(i.proposed_name ?? "", raw.size, raw.color);
-    const { data: ins, error: pErr } = await supabase.from("products").insert({
-      user_id: user.id,
-      name: i.proposed_name ?? "Produto sem nome",
-      code: i.proposed_code,
-      category: i.proposed_category,
-      category_id: categoryId,
-      supplier_id: i.supplier_id,
-      image_url: i.proposed_image_url,
-      description: raw.description ?? null,
-      codname,
-      has_variations: vars.length > 0,
-      width: m.width ?? null, height: m.height ?? null, depth: m.depth ?? null,
-      length_cm: m.length_cm ?? null, weight: m.weight ?? null,
-      measurements: m.raw ? { raw: m.raw } : null,
-      sale_price: 0,
-      cost: 0,
-      stock: 0,
-      min_stock: 0,
-      source_catalog_id: i.catalog_id,
-      dedup_hash: i.dedup_hash,
-      review_status: "approved",
-      status: "aguardando_tabela_custo",
-    }).select("id").single();
-    if (pErr || !ins) return toast.error(friendlyError(pErr));
+
+    // Dedup por hash: se já existe produto com mesmo dedup_hash, reaproveita
+    let productId: string | null = null;
+    if (i.dedup_hash) {
+      const { data: existing } = await supabase.from("products")
+        .select("id").eq("user_id", user.id).eq("dedup_hash", i.dedup_hash).is("deleted_at", null).maybeSingle();
+      if (existing?.id) productId = existing.id;
+    }
+
+    if (!productId) {
+      const { data: ins, error: pErr } = await supabase.from("products").insert({
+        user_id: user.id,
+        name: i.proposed_name ?? "Produto sem nome",
+        code: i.proposed_code,
+        category: i.proposed_category,
+        category_id: categoryId,
+        supplier_id: i.supplier_id,
+        image_url: i.proposed_image_url,
+        description: raw.description ?? null,
+        codname,
+        has_variations: vars.length > 0,
+        width: m.width ?? null, height: m.height ?? null, depth: m.depth ?? null,
+        length_cm: m.length_cm ?? null, weight: m.weight ?? null,
+        measurements: m.raw ? { raw: m.raw } : null,
+        sale_price: 0,
+        cost: 0,
+        stock: 0,
+        min_stock: 0,
+        source_catalog_id: i.catalog_id,
+        dedup_hash: i.dedup_hash,
+        review_status: "approved",
+        status: "active",
+      }).select("id").single();
+      if (pErr || !ins) { toast.error(friendlyError(pErr)); return false; }
+      productId = ins.id;
+    }
 
     if (vars.length > 0) {
       const rows = vars.map((v: any) => ({
-        product_id: ins.id, user_id: user.id, supplier_id: i.supplier_id,
+        product_id: productId!, user_id: user.id, supplier_id: i.supplier_id,
         name: v.name || [v.size, v.color, v.fabric, v.model, v.finish].filter(Boolean).join(" ") || "Variação",
         codname: codnameOf(i.proposed_name ?? "", v.size, v.color),
         sku: v.sku || null,
         color: v.color || null, fabric: v.fabric || null, material: v.material || null,
         size: v.size || null, model: v.model || null, finish: v.finish || null,
         cost: 0, sale_price: 0, stock: 0, min_stock: 0,
+        status: "active",
         width: v.width ?? null, height: v.height ?? null, depth: v.depth ?? null,
         length_cm: v.length_cm ?? null, weight: v.weight ?? null,
         attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size, model: v.model, finish: v.finish },
@@ -107,12 +125,20 @@ export default function ImportReview() {
     }
 
     await supabase.from("catalog_review_items")
-      .update({ review_status: "approved", match_product_id: ins.id }).eq("id", i.id);
-    toast.success("Produto criado"); load();
+      .update({ review_status: "approved", match_product_id: productId }).eq("id", i.id);
+
+    await logAudit({ action: "product.approve", module: "import_review", entity_id: productId, metadata: { review_item_id: i.id, name: i.proposed_name } });
+    return true;
+  };
+
+  const approveOne = async (i: Item) => {
+    const ok = await approve(i);
+    if (ok) { toast.success("Produto publicado"); load(); }
   };
 
   const reject = async (i: Item) => {
     await supabase.from("catalog_review_items").update({ review_status: "rejected" }).eq("id", i.id);
+    await logAudit({ action: "product.reject", module: "import_review", entity_id: i.id, metadata: { name: i.proposed_name } });
     load();
   };
 
@@ -120,8 +146,14 @@ export default function ImportReview() {
     const pending = filtered.filter(i => i.review_status === "pending");
     if (pending.length === 0) return;
     if (!confirm(`Aprovar ${pending.length} itens em lote?`)) return;
-    for (const i of pending.slice(0, 50)) await approve(i);
-    toast.success("Lote aprovado");
+    let ok = 0, fail = 0;
+    for (const i of pending.slice(0, 50)) {
+      const r = await approve(i);
+      if (r) ok++; else fail++;
+    }
+    await logAudit({ action: "product.bulk_approve", module: "import_review", metadata: { ok, fail, total: pending.length } });
+    toast.success(`Lote concluído: ${ok} publicados${fail ? `, ${fail} falharam` : ""}`);
+    load();
   };
 
   return (
@@ -175,7 +207,7 @@ export default function ImportReview() {
                 </div>
                 {i.review_status === "pending" && (
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" onClick={() => approve(i)} className="flex-1 rounded-2xl gap-1"><Check className="h-3.5 w-3.5" />Aprovar</Button>
+                    <Button size="sm" onClick={() => approveOne(i)} className="flex-1 rounded-2xl gap-1"><Check className="h-3.5 w-3.5" />Aprovar</Button>
                     <Button size="sm" variant="outline" onClick={() => reject(i)} className="flex-1 rounded-2xl gap-1 text-rose-600"><X className="h-3.5 w-3.5" />Rejeitar</Button>
                   </div>
                 )}

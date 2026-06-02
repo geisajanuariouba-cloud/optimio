@@ -101,8 +101,8 @@ export default function Quotes() {
     const [{ data: q }, { data: qi }, { data: p }, { data: v }, { data: c }, { data: m }] = await Promise.all([
       supabase.from("quotes").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("quote_items").select("*"),
-      supabase.from("products").select("id,name,codname,code,sale_price,cost,image_url,supplier_id").is("deleted_at", null),
-      supabase.from("product_variations").select("*"),
+      supabase.from("products").select("id,name,codname,code,sale_price,cost,image_url,supplier_id").is("deleted_at", null).eq("status", "active"),
+      supabase.from("product_variations").select("*").eq("status", "active"),
       supabase.from("clients").select("id,full_name").is("deleted_at", null),
       supabase.from("payment_methods").select("*").eq("active", true),
     ]);

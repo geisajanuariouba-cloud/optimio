@@ -1,62 +1,96 @@
-# Etapa 2 — Kiwify, Landing, Conta Automática, Multiusuário e Onboarding
+# Correção Crítica Pré-Lançamento
 
-Escopo grande e créditos limitados. Vou priorizar **infraestrutura sólida + fluxos críticos** primeiro, deixando refinamentos visuais para iterações curtas depois.
+São 14 frentes. Para evitar uma mega-migração arriscada num único disparo, proponho dividir em **3 sub-ondas** entregues em sequência, cada uma testável isoladamente.
 
-## Ordem de execução (uma resposta por bloco para economizar créditos)
+---
 
-### Bloco 1 — Banco de dados (1 migration única)
-- `subscriptions` (ajustar): adicionar `provider`, `provider_customer_id`, `provider_subscription_id`, `provider_product_id`, `provider_plan_name`, `internal_plan`, `current_period_start`.
-- `billing_events` (nova): id, user_id, provider, event_type, event_id (UNIQUE p/ idempotência), raw_payload jsonb, status, error_message.
-- `team_members` (nova): id, owner_user_id (tenant=dono), member_user_id, name, email, role, status, permissions jsonb, invited_by.
-- `team_invites` (nova): id, owner_user_id, email, role, permissions, token (UNIQUE), status, expires_at, created_by.
-- `audit_logs` (nova): id, owner_user_id, actor_user_id, action, module, metadata jsonb.
-- `onboarding_status` (nova): id, user_id UNIQUE, completed bool, current_step, niche, checklist jsonb.
-- `system_settings` (nova): id, scope ('global'|'tenant'), owner_user_id null se global, key, value jsonb, UNIQUE(scope,owner_user_id,key). Serve para guardar `checkout_basic_url`, `checkout_pro_url`, `checkout_advanced_url`, `kiwify_webhook_secret` (admin).
-- RLS em todas: somente dono (owner_user_id) ou membro vinculado (via team_members ativo) acessa.
-- Função SECURITY DEFINER `public.current_tenant_owner()` que retorna o `owner_user_id` para o usuário logado (próprio ou via team_members.status='active'). Usar em policies de tabelas existentes nos próximos passos (não tocar agora para não quebrar).
-- Função `has_permission(_user_id uuid, _key text)` consultando role+permissions.
-- Plans seed: basic/pro/advanced com limites de usuários (1/3/9999).
+## SUB-ONDA A — Dados, RLS e Storage (fundação segura)
 
-### Bloco 2 — Webhook Kiwify (Edge Function pública)
-- `supabase/functions/kiwify-webhook/index.ts` — `verify_jwt = false`.
-- Valida `x-kiwify-signature` ou query `?token=` contra `kiwify_webhook_secret` salvo em `system_settings` (global).
-- Idempotência via `billing_events.event_id` (UNIQUE).
-- Eventos:
-  - `order_approved` / `subscription_approved` → cria/reaproveita user via `auth.admin.createUser` (service role) + envia magic link de definição de senha; cria/atualiza `subscriptions` ativa; `onboarding_status.completed=false`.
-  - `subscription_renewed` → atualiza period_end e status=active.
-  - `subscription_canceled` → status=canceled.
-  - `order_refunded` / `chargeback` → status=suspended.
-  - `order_rejected` → log only.
-- Mapeia produto/plano Kiwify → `internal_plan` via `system_settings` (`kiwify_product_map`).
-- Loga tudo em `billing_events` (mesmo erros).
-- CORS + responses em JSON.
+Bloqueia o sistema de ficar inconsistente. Tudo backend + filtros de leitura.
 
-### Bloco 3 — Landing page nova (`src/pages/Landing.tsx`)
-- Hero, vídeo placeholder (`<iframe>` configurável via settings), benefícios por nicho (tabs Beauty/Retail), "Como funciona" 5 passos, 3 planos com CTA → links Kiwify lidos de `system_settings` (fallback hardcoded vazio). WhatsApp vira link de suporte no rodapé.
-- Mantém design system existente (tokens HSL).
+1. **Filtro global de produtos ativos** (item 2)
+   - Helper `isProductActive(status)` + view `products_active` ou filtro `.in("status", ["ativo","approved"])` em **toda** query de:
+     Estoque, Vendas, Orçamentos, Combos, Logística, Busca, seletores de venda.
+   - Produtos em `aguardando_revisao / em_revisao / rejeitado / processando / erro / aguardando_tabela_custo` ficam **só** em ImportReview, SupplierDetail e SuperAdmin.
 
-### Bloco 4 — Onboarding + "Comece Aqui"
-- `Onboarding.tsx` já existe — adicionar gravação em `onboarding_status` (nicho, checklist inicial por nicho).
-- Novo `src/pages/app/StartHere.tsx` com checklist por nicho (beauty/retail), progresso (lê tabelas reais: clients/services/products/financial/deliveries), atalhos.
-- Botão fixo "Comece Aqui" na sidebar enquanto `onboarding_status.completed=false`.
+2. **Aprovação publica produto corretamente** (item 3)
+   - Em `ImportReview.approve` e `bulkApprove`: ao criar produto, definir `status='ativo'`, `review_status='approved'`, `published_at=now()`. Idempotência via `dedup_hash` para não duplicar em reaprovação.
+   - Variações herdam `status='ativo'`.
+   - Atualizar `catalog_review_items.match_product_id` para evitar reaprovação.
 
-### Bloco 5 — Equipe / Multiusuário
-- Nova página `src/pages/app/Team.tsx`: lista membros + convites; botão "Convidar usuário" (email, role, permissions). Cria registro em `team_invites` e gera link `/invite/:token`.
-- Página pública `src/pages/InviteAccept.tsx`: aceita token, força login/cadastro, insere em `team_members` com `owner_user_id` do convite, marca convite usado.
-- `useTenant` passa a expor `tenantOwnerId` (próprio user.id ou owner via team_members) + `role` + `permissions`. Todas queries existentes continuam funcionando para admin master (owner = self).
-- `<RequirePermission perm="...">` wrapper e helper `can(perm)` para esconder botões.
-- Limite de usuários por plano: ao convidar, checa subscriptions.internal_plan vs `plans.limits.max_users`.
+3. **Storage seguro** (item 9)
+   - Tornar **privados**: `catalog-images`, `tenant-logos` (ou manter público só se a landing exigir — verificar uso).
+   - Manter público apenas: `product-images` (usado no app cliente), `landing-assets`.
+   - Adicionar políticas RLS em `storage.objects` por bucket usando `(storage.foldername(name))[1] = auth.uid()::text OR membership`.
+   - Para buckets que viram privados, expor via signed URL nos componentes que consomem.
 
-### Bloco 6 — Admin: logs de billing + config checkout
-- `SuperAdmin.tsx`: nova aba "Billing" lista `billing_events` (todos, admin) + form para editar `checkout_*_url`, `kiwify_webhook_secret`, `kiwify_product_map` em `system_settings` (scope=global).
+4. **Validação de imagens extraídas** (item 1 — parte backend)
+   - Coluna `catalog_review_items.image_status` enum: `extracted / pending / manual / invalid / placeholder`.
+   - Edge function de import marca `pending` se a confiança da extração < threshold, ou se a imagem for menor que 200×200, aspect < 0.4 ou > 3.0, ou hash duplicado de outro item.
+   - Approve **não** copia imagem para `products.image_url` quando `image_status='invalid'` — usa placeholder.
 
-### Fora do escopo (confirmado)
-OCR, catálogo, produtos, logística, montagem, redesign profundo de módulos internos.
+5. **Audit log** (item 13)
+   - Tabela `audit_logs` (já pode existir — verificar). Inserir em: approve product, bulk approve, status change, price edit, sale create, upgrade manual, payment method change, storage config change.
 
-## Riscos / decisões
-- **Tenant model:** não existe coluna `tenant_id` hoje — tudo usa `user_id` como dono. Para não quebrar, **tenant = user_id do admin master**. Membros acessam via função `current_tenant_owner()` que injeta o owner correto. Migração futura para `tenant_id` real fica como dívida.
-- **Senha do novo usuário:** criar via service role + enviar `generateLink({type:'recovery'})` por email Supabase. Sem custo extra.
-- **RLS tabelas existentes:** não vou ampliar agora para incluir membros — fica como TODO marcado. Admin master segue funcionando 100%. Multiusuário real de dados compartilhados precisa de uma 2ª passada nas policies (avisarei explicitamente).
+---
 
-## Confirmação
-Posso começar pelo **Bloco 1 (migration)**? Cada bloco vai numa resposta separada para você acompanhar e cortar onde quiser.
+## SUB-ONDA B — Fluxo de Venda completo
+
+Resolve o bug central: não dá pra vender. Tudo UI + lógica de cálculo.
+
+6. **Lançamento permite escolher produto/serviço** (item 4)
+   - Em `Sales.tsx` e `Financial.tsx`, quando `kind='income'` e categoria for `venda*`: exigir cliente + produto/serviço + variação + qty + método de pagamento.
+   - Novo componente `<ProductPicker>` reusável (busca, filtra `status=ativo`, mostra imagem/SKU/preço).
+
+7. **Auto-preencher dados ao selecionar** (item 5)
+   - Ao escolher produto/variação: preencher imagem, nome, code/SKU, custo, sale_price, margin_percent, extra_fee_percent, medidas, categoria. Variação tem prioridade sobre produto.
+
+8. **Margem/taxa editáveis por venda + recálculo** (item 6)
+   - Inputs de `margin_percent` e `extra_fee_percent` no item; recálculo via fórmula:
+     `final = cost_final * (1+m/100) * (1+f/100)` (já existe `engine_compute_sale` — espelhar no client).
+   - Não persiste no produto; só no snapshot.
+
+9. **Snapshot do item vendido** (item 7)
+   - Tabela `sale_items` (ou similar) precisa colunas snapshot: `product_name, variation_name, image_url, sku, cost_table_price, discount_percent, final_cost_price, margin_percent, extra_fee_percent, sale_price, quantity, total, measurements_snapshot jsonb`.
+   - Migration adiciona o que faltar.
+
+10. **Consistência financeira** (item 11)
+    - Venda criada → entrada em `financial_entries` + `cash_drawer` se aplicável.
+    - Baixa de estoque **só** se `product.status='ativo'`.
+    - Aplica taxa do método de pagamento.
+
+---
+
+## SUB-ONDA C — UI, Admin, Métodos de Pagamento e Polimento
+
+11. **Imagens pendentes na ImportReview** (item 1 — parte UI)
+    - Cards mostram badge `Imagem pendente / inválida / manual / extraída`.
+    - Botões: Trocar imagem (upload), Remover, Marcar como inválida.
+    - Aprovação bloqueada com aviso suave se `image_status='pending'` (permite aprovar mesmo assim, mas avisa).
+
+12. **Upgrade manual no SuperAdmin** (item 8)
+    - Em `SuperAdmin.tsx`, drawer/modal "Upgrade manual" por tenant:
+      plano, ciclo (mensal/trimestral/semestral/anual), data início, vencimento, marcar pago, anexo de comprovante (upload em `payment-proofs`), observação.
+    - Atualiza `subscriptions`, libera módulos, audit_log.
+
+13. **Métodos de Pagamento volta ao menu** (item 10)
+    - Já existe `src/pages/app/PaymentMethods.tsx`. Verificar rota em `App.tsx` e link em `AppSidebar.tsx`. Re-adicionar entrada do menu (Configurações ou Financeiro).
+    - Garantir CRUD funcional + uso em Sales/Quotes/Financial/Cash.
+
+14. **Erros em PT-BR** (item 12)
+    - Auditar `toast.error(...)` que ainda passam erro técnico cru e envolver em `friendlyError()`.
+
+---
+
+## Técnica resumida
+
+- Tudo respeita `current_tenant_owner()` que já existe.
+- Sem `find /`, sem comandos paralelos perigosos.
+- Cada sub-onda termina com build verde e teste manual rápido.
+- Migrations separadas por sub-onda para facilitar rollback.
+
+---
+
+## O que eu preciso de você
+
+Começo pela **Sub-onda A** (a mais crítica — bloqueia vazamento de dados e produtos fantasmas no estoque), ou prefere outra ordem? Confirmando, eu disparo a Sub-onda A inteira de uma vez.
