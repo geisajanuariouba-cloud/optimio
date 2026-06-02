@@ -97,7 +97,7 @@ export default function Dashboard() {
     const t = setTimeout(async () => {
       const like = `%${search}%`;
       const { data } = await supabase.from("products").select("id,name,sale_price,image_url,category")
-        .is("deleted_at", null).ilike("name", like).limit(8);
+        .is("deleted_at", null).eq("status", "active").ilike("name", like).limit(8);
       setSearchHits(data ?? []);
     }, 250);
     return () => clearTimeout(t);
