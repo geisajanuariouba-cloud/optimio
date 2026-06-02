@@ -18,6 +18,7 @@ type Item = {
   id: string; catalog_id: string | null; supplier_id: string | null; source_page: number | null;
   proposed_name: string | null; proposed_code: string | null; proposed_category: string | null;
   proposed_image_url: string | null; review_status: string; match_status: string; dedup_hash: string | null;
+  match_product_id: string | null;
   proposed_measurements: any; proposed_variations: any; raw_data: any;
 };
 
