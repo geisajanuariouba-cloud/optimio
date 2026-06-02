@@ -27,7 +27,7 @@ export default function AppLayout() {
       const like = `%${q}%`;
       const [c, p, s] = await Promise.all([
         supabase.from("clients").select("id, full_name, phone").is("deleted_at", null).ilike("full_name", like).limit(5),
-        supabase.from("products").select("id, name, category").is("deleted_at", null).ilike("name", like).limit(5),
+        supabase.from("products").select("id, name, category").is("deleted_at", null).eq("status", "active").ilike("name", like).limit(5),
         supabase.from("services").select("id, name, category").is("deleted_at", null).ilike("name", like).limit(5),
       ]);
       const h: Hit[] = [
