@@ -207,7 +207,7 @@ export default function ImportReview() {
                 </div>
                 {i.review_status === "pending" && (
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" onClick={() => approve(i)} className="flex-1 rounded-2xl gap-1"><Check className="h-3.5 w-3.5" />Aprovar</Button>
+                    <Button size="sm" onClick={() => approveOne(i)} className="flex-1 rounded-2xl gap-1"><Check className="h-3.5 w-3.5" />Aprovar</Button>
                     <Button size="sm" variant="outline" onClick={() => reject(i)} className="flex-1 rounded-2xl gap-1 text-rose-600"><X className="h-3.5 w-3.5" />Rejeitar</Button>
                   </div>
                 )}
