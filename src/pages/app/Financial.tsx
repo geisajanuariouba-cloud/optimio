@@ -19,6 +19,7 @@ import PromoChat from "@/components/app/PromoChat";
 import { CategorySelect } from "@/components/app/CategorySelect";
 import { PromissoriaFields, PromissoriaData, createPromissoria } from "@/components/app/PromissoriaFields";
 import { AddressFields, fullAddress } from "@/components/app/AddressFields";
+import ProductPicker, { SaleItem } from "@/components/app/ProductPicker";
 
 type Tx = { id: string; type: string; gross_amount: number; net_amount: number; fee_percent: number | null; description: string | null; payment_method: string | null; category: string | null; transaction_date: string; client_id: string | null; needs_delivery: boolean | null };
 type Client = any;
