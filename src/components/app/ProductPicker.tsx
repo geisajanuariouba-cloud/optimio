@@ -69,7 +69,7 @@ export default function ProductPicker({
         supabase.from("product_variations").select("id,product_id,name,image_url,cost,sale_price,stock,supplier_id")
           .eq("status", "active").limit(200),
         includeServices
-          ? supabase.from("services").select("id,name,price,cost").is("deleted_at", null).limit(200)
+          ? supabase.from("services").select("id,name,starting_price,cost").is("deleted_at", null).limit(200)
           : Promise.resolve({ data: [] as any[] }),
         supabase.from("suppliers").select("id,cost_fee_percent,default_margin_percent,default_markup_percent"),
       ]);
