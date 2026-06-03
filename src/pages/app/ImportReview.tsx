@@ -212,9 +212,20 @@ export default function ImportReview() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(i => (
             <Card key={i.id} className="rounded-3xl border-0 shadow-sm overflow-hidden">
-              <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+              <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden relative group">
                 {i.proposed_image_url ? <img src={i.proposed_image_url} alt={i.proposed_name ?? ""} className="w-full h-full object-cover" />
-                  : <Eye className="h-10 w-10 text-muted-foreground/50" />}
+                  : <div className="flex flex-col items-center gap-1 text-muted-foreground/60"><ImageOff className="h-10 w-10" /><span className="text-xs">Sem imagem</span></div>}
+                {i.review_status === "pending" && (
+                  <div className="absolute inset-x-0 bottom-0 p-2 flex gap-2 bg-background/85 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    <label className="flex-1">
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) changeImage(i, f); e.currentTarget.value = ""; }} />
+                      <span className="inline-flex w-full items-center justify-center gap-1 text-xs px-2 py-1.5 rounded-xl bg-primary text-primary-foreground cursor-pointer hover:opacity-90"><ImagePlus className="h-3 w-3" />Trocar</span>
+                    </label>
+                    {i.proposed_image_url && (
+                      <button type="button" onClick={() => removeImage(i)} className="text-xs px-2 py-1.5 rounded-xl bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 inline-flex items-center gap-1"><ImageOff className="h-3 w-3" />Remover</button>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="p-3 space-y-2">
                 <div className="font-medium text-sm line-clamp-2">{i.proposed_name ?? "Sem nome"}</div>
@@ -225,6 +236,7 @@ export default function ImportReview() {
                 <div className="flex flex-wrap gap-1">
                   <Badge variant="outline" className="text-[10px]">Pág {i.source_page ?? "?"}</Badge>
                   {i.match_status === "duplicate" && <Badge variant="outline" className="text-[10px] text-amber-600">Possível duplicado</Badge>}
+                  {!i.proposed_image_url && <Badge variant="outline" className="text-[10px] text-amber-600">Sem imagem</Badge>}
                 </div>
                 {i.review_status === "pending" && (
                   <div className="flex gap-2 pt-2">
