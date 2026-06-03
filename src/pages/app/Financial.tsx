@@ -68,20 +68,40 @@ export default function Financial() {
 
   const selectedClient = clients.find(c => c.id === form.client_id);
 
+  // Sincroniza gross_amount com soma dos itens (quando há itens)
+  const itemsTotal = useMemo(() => items.reduce((a, it) => a + it.unit_price * it.quantity, 0), [items]);
+  useEffect(() => {
+    if (isVendaServico && items.length > 0) {
+      const total = Math.round(itemsTotal * 100) / 100;
+      if (Math.abs(Number(form.gross_amount) - total) > 0.005) {
+        setForm((f: any) => ({ ...f, gross_amount: total }));
+      }
+    }
+  }, [itemsTotal, isVendaServico, items.length]);
+
   const save = async () => {
-    if (!user || !form.gross_amount) return toast.error("Valor obrigatório");
-    if (isVendaServico && !form.client_id) return toast.error("Selecione um cliente para Venda/Serviço");
+    if (!user || !form.gross_amount) return toast.error("Informe o valor do lançamento.");
+    if (isVendaServico && !form.client_id) return toast.error("Selecione um cliente para Venda/Serviço.");
+    if (isVendaServico && items.length === 0) return toast.error("Adicione pelo menos 1 produto ou serviço à venda.");
     if (isPromissoria && !form.client_id) return toast.error("Promissória requer cliente cadastrado.");
-    if (isCash && form.cash_received < form.gross_amount) return toast.error("Valor recebido menor que o total");
+    if (isCash && form.cash_received < form.gross_amount) return toast.error("Valor recebido é menor que o total da venda.");
 
     const fee_percent = isPromissoria ? 0 : (selectedPM ? Number(selectedPM.fee_percent) : 0);
     const fee_amount = isIncome ? (form.gross_amount * fee_percent) / 100 + (selectedPM ? Number(selectedPM.fee_fixed) : 0) : 0;
     const net_amount = isIncome ? Math.max(0, form.gross_amount - fee_amount) : form.gross_amount;
 
-    // edit address if needed
     if (isVendaServico && form.edit_address && form.client_id && form.delivery_address) {
       await supabase.from("clients").update(form.delivery_address).eq("id", form.client_id);
     }
+
+    const snapshotItems = isVendaServico ? items.map(it => ({
+      kind: it.kind, ref_id: it.ref_id, product_id: it.product_id ?? null,
+      name: it.name, image_url: it.image_url ?? null,
+      quantity: it.quantity, cost: it.cost,
+      margin_percent: it.margin_percent, markup_percent: it.markup_percent, fee_percent: it.fee_percent,
+      unit_price: it.unit_price, subtotal: Math.round(it.unit_price * it.quantity * 100) / 100,
+      supplier_id: it.supplier_id ?? null,
+    })) : [];
 
     const { data: tx, error } = await supabase.from("financial").insert({
       user_id: user.id, type: form.type, gross_amount: form.gross_amount, net_amount, fee_percent, fee_amount,
@@ -93,16 +113,29 @@ export default function Financial() {
       transaction_date: form.transaction_date,
       client_id: form.client_id || null,
       needs_delivery: !!form.needs_delivery,
+      items: snapshotItems,
     }).select().single();
     if (error) return toast.error(friendlyError(error));
+
+    // Baixa de estoque (produtos e variações)
+    if (isVendaServico && tx) {
+      for (const it of items) {
+        if (it.kind === "service") continue;
+        const table = it.kind === "variation" ? "product_variations" : "products";
+        const { data: cur } = await supabase.from(table).select("stock").eq("id", it.ref_id).maybeSingle();
+        if (cur && typeof (cur as any).stock === "number") {
+          const newStock = Math.max(0, Number((cur as any).stock) - it.quantity);
+          await supabase.from(table).update({ stock: newStock }).eq("id", it.ref_id);
+        }
+      }
+    }
 
     if (isPromissoria && tx) {
       try {
         await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: form.gross_amount, data: promo, appointment_id: null, notes: form.description });
-      } catch (e: any) { return toast.error(friendlyError(e, "Falha ao criar promissória: ".replace(/:\s*$/, ""))); }
+      } catch (e: any) { return toast.error(friendlyError(e, "Falha ao criar promissória.")); }
     }
 
-    // Cash drawer for cash sales (and subtract change)
     if (isIncome && isCash && tx) {
       const cashRows = [
         { user_id: user.id, type: "in", amount: Number(form.gross_amount), reason: "venda_dinheiro", description: form.description || null, financial_id: tx.id },
@@ -111,7 +144,6 @@ export default function Financial() {
       await supabase.from("cash_drawer_transactions").insert(cashRows);
     }
 
-    // Delivery
     if (isVendaServico && form.needs_delivery && tx) {
       const cli = selectedClient;
       const addr = form.edit_address && form.delivery_address ? form.delivery_address : cli;
@@ -126,6 +158,7 @@ export default function Financial() {
 
     toast.success("Lançamento salvo"); setOpen(false);
     setForm({ ...form, gross_amount: 0, description: "", category: "", client_id: "", cash_received: 0, needs_delivery: false });
+    setItems([]);
     load();
   };
 
