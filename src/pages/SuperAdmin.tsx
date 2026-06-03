@@ -142,7 +142,7 @@ export default function SuperAdmin() {
                         {days < 0 ? `${Math.abs(days)}d em atraso` : `vence em ${days}d`}
                       </Badge>
                       {t.phone_number && <a href={`https://wa.me/${t.phone_number.replace(/\D/g,"")}`} target="_blank" rel="noopener"><Button size="sm" variant="outline">WhatsApp</Button></a>}
-                      <ProofDialog tenant={t} sub={s} adminId={user!.id} onDone={load} />
+                      <ProofDialog tenant={t} sub={s} adminId={user!.id} plans={plans} onDone={load} />
                     </div>
                   );
                 })}
