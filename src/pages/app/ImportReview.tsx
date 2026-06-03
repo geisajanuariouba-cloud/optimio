@@ -142,6 +142,27 @@ export default function ImportReview() {
     load();
   };
 
+  const changeImage = async (i: Item, file: File) => {
+    if (!user) return;
+    const path = `${user.id}/review/${i.id}-${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
+    const up = await supabase.storage.from("product-images").upload(path, file, { upsert: true });
+    if (up.error) return toast.error(friendlyError(up.error, "Falha ao enviar imagem."));
+    const { data: pub } = supabase.storage.from("product-images").getPublicUrl(path);
+    const { error } = await supabase.from("catalog_review_items")
+      .update({ proposed_image_url: pub.publicUrl }).eq("id", i.id);
+    if (error) return toast.error(friendlyError(error));
+    toast.success("Imagem atualizada");
+    load();
+  };
+
+  const removeImage = async (i: Item) => {
+    const { error } = await supabase.from("catalog_review_items")
+      .update({ proposed_image_url: null }).eq("id", i.id);
+    if (error) return toast.error(friendlyError(error));
+    toast.success("Imagem removida");
+    load();
+  };
+
   const bulkApprove = async () => {
     const pending = filtered.filter(i => i.review_status === "pending");
     if (pending.length === 0) return;
