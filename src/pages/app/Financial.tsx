@@ -238,7 +238,7 @@ export default function Financial() {
               <div><Label>Data</Label><Input type="date" value={form.transaction_date} onChange={(e) => setForm({ ...form, transaction_date: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={form.gross_amount} onChange={(e) => setForm({ ...form, gross_amount: +e.target.value })} /></div>
+              <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={form.gross_amount} onChange={(e) => setForm({ ...form, gross_amount: +e.target.value })} disabled={isVendaServico && items.length > 0} /></div>
               <div><Label>Método de pagamento</Label>
                 <Select value={form.payment_method_id} onValueChange={(v) => { setForm({ ...form, payment_method_id: v, cash_received: 0 }); if (v === "promissoria") setPromo(p => ({ ...p, total_amount: form.gross_amount })); }}>
                   <SelectTrigger><SelectValue placeholder={pms.length === 0 ? "Cadastre em Métodos" : "Selecione…"} /></SelectTrigger>
