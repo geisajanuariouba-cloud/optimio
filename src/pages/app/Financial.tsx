@@ -37,6 +37,7 @@ export default function Financial() {
     transaction_date: today, client_id: "", cash_received: 0, needs_delivery: false,
     delivery_address: null, edit_address: false,
   });
+  const [items, setItems] = useState<SaleItem[]>([]);
   const [promo, setPromo] = useState<PromissoriaData>({ total_amount: 0, installments_count: 1, first_due: today });
 
   const load = async () => {
