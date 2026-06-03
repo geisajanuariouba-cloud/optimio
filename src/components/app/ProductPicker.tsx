@@ -85,7 +85,7 @@ export default function ProductPicker({
         list.push({ id: x.id, kind: "variation", product_id: x.product_id, name: x.name, image_url: x.image_url, cost: Number(x.cost ?? 0), sale_price: Number(x.sale_price ?? 0), stock: x.stock, supplier_id: x.supplier_id });
       });
       (s.data ?? []).forEach((x: any) => {
-        list.push({ id: x.id, kind: "service", name: x.name, cost: Number(x.cost ?? 0), sale_price: Number(x.price ?? 0) });
+        list.push({ id: x.id, kind: "service", name: x.name, cost: Number(x.cost ?? 0), sale_price: Number(x.starting_price ?? 0) });
       });
       setRows(list);
     })();
