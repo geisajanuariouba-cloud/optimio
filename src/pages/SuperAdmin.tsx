@@ -115,7 +115,7 @@ export default function SuperAdmin() {
                         {t.account_status !== "active" && <Button size="sm" variant="ghost" onClick={() => setStatus(t.id,"active")}><Power className="h-4 w-4 text-emerald-600" /></Button>}
                         {t.account_status === "active" && <Button size="sm" variant="ghost" onClick={() => setStatus(t.id,"disabled")}><Power className="h-4 w-4 text-amber-600" /></Button>}
                         <Button size="sm" variant="ghost" onClick={() => setStatus(t.id,"banned")}><Ban className="h-4 w-4 text-rose-600" /></Button>
-                        {sub && <ProofDialog tenant={t} sub={sub} adminId={user!.id} onDone={load} />}
+                        {sub && <ProofDialog tenant={t} sub={sub} adminId={user!.id} plans={plans} onDone={load} />}
                       </div>
                     </div>
                   );
