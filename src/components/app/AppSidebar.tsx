@@ -101,6 +101,7 @@ export function AppSidebar() {
               {[
                 { title: "Comece aqui", url: "/app/start", icon: Sparkles, show: isOwner },
                 { title: "Equipe", url: "/app/team", icon: UserCog, show: isOwner },
+                { title: "Métodos de Pagamento", url: "/app/payment-methods", icon: CreditCard, show: isOwner || can("settings.edit") },
                 { title: "Melhorar plano", url: "/app/upgrade", icon: Rocket, show: isOwner },
                 { title: "Suporte", url: "/app/support", icon: LifeBuoy, show: true },
                 { title: "Lixeira", url: "/app/trash", icon: Trash2, show: isOwner || can("settings.edit") },
