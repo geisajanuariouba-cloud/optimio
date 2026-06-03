@@ -115,7 +115,7 @@ export default function SuperAdmin() {
                         {t.account_status !== "active" && <Button size="sm" variant="ghost" onClick={() => setStatus(t.id,"active")}><Power className="h-4 w-4 text-emerald-600" /></Button>}
                         {t.account_status === "active" && <Button size="sm" variant="ghost" onClick={() => setStatus(t.id,"disabled")}><Power className="h-4 w-4 text-amber-600" /></Button>}
                         <Button size="sm" variant="ghost" onClick={() => setStatus(t.id,"banned")}><Ban className="h-4 w-4 text-rose-600" /></Button>
-                        {sub && <ProofDialog tenant={t} sub={sub} adminId={user!.id} onDone={load} />}
+                        {sub && <ProofDialog tenant={t} sub={sub} adminId={user!.id} plans={plans} onDone={load} />}
                       </div>
                     </div>
                   );
@@ -142,7 +142,7 @@ export default function SuperAdmin() {
                         {days < 0 ? `${Math.abs(days)}d em atraso` : `vence em ${days}d`}
                       </Badge>
                       {t.phone_number && <a href={`https://wa.me/${t.phone_number.replace(/\D/g,"")}`} target="_blank" rel="noopener"><Button size="sm" variant="outline">WhatsApp</Button></a>}
-                      <ProofDialog tenant={t} sub={s} adminId={user!.id} onDone={load} />
+                      <ProofDialog tenant={t} sub={s} adminId={user!.id} plans={plans} onDone={load} />
                     </div>
                   );
                 })}
@@ -183,33 +183,43 @@ export default function SuperAdmin() {
   );
 }
 
-function ProofDialog({ tenant, sub, adminId, onDone }: { tenant: Tenant; sub: Sub; adminId: string; onDone: () => void }) {
+function ProofDialog({ tenant, sub, adminId, plans, onDone }: { tenant: Tenant; sub: Sub; adminId: string; plans: Plan[]; onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("pix");
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [planSlug, setPlanSlug] = useState<string>(sub.plan_slug || tenant.plan || "");
+  const [cycleMonths, setCycleMonths] = useState<number>(1);
   const [busy, setBusy] = useState(false);
 
+  const selectedPlan = plans.find(p => p.slug === planSlug);
+  const suggested = selectedPlan ? (Number(selectedPlan.price) * cycleMonths).toFixed(2) : "";
+
   const submit = async () => {
-    if (!file) return toast.error("Anexe o comprovante (PDF/Imagem).");
-    if (!amount) return toast.error("Informe o valor.");
+    if (!file) return toast.error("Anexe o comprovante (PDF ou imagem).");
+    if (!amount) return toast.error("Informe o valor pago.");
+    if (!planSlug) return toast.error("Selecione o plano.");
     setBusy(true);
     try {
       const path = `${tenant.id}/${Date.now()}-${file.name.replace(/[^\w.-]/g,"_")}`;
       const up = await supabase.storage.from("payment-proofs").upload(path, file);
       if (up.error) throw up.error;
       const { error: e1 } = await supabase.from("payment_proofs").insert({
-        user_id: tenant.id, subscription_id: sub.id, amount: Number(amount), method, notes, file_path: path, created_by: adminId,
+        user_id: tenant.id, subscription_id: sub.id, amount: Number(amount), method,
+        notes: `${notes ? notes + " · " : ""}Plano ${planSlug} · ${cycleMonths}m`,
+        file_path: path, created_by: adminId,
       });
       if (e1) throw e1;
-      const newEnd = new Date(Math.max(Date.now(), new Date(sub.current_period_end).getTime()) + 30*86400000).toISOString();
+      const baseTs = Math.max(Date.now(), new Date(sub.current_period_end).getTime());
+      const newEnd = new Date(baseTs + cycleMonths * 30 * 86400000).toISOString();
       const { error: e2 } = await supabase.from("subscriptions").update({
-        status: "active", last_paid_at: new Date().toISOString(), current_period_end: newEnd,
+        status: "active", last_paid_at: new Date().toISOString(),
+        current_period_end: newEnd, plan_slug: planSlug,
       }).eq("id", sub.id);
       if (e2) throw e2;
-      await supabase.from("profiles").update({ account_status: "active" }).eq("id", tenant.id);
-      toast.success("Pagamento registrado. Assinatura renovada por 30 dias.");
+      await supabase.from("profiles").update({ account_status: "active", plan: planSlug }).eq("id", tenant.id);
+      toast.success(`Pagamento registrado. Plano ${planSlug} renovado por ${cycleMonths * 30} dias.`);
       setOpen(false); onDone();
     } catch (e: any) { toast.error(friendlyError(e)); } finally { setBusy(false); }
   };
@@ -217,18 +227,35 @@ function ProofDialog({ tenant, sub, adminId, onDone }: { tenant: Tenant; sub: Su
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button size="sm" variant="outline"><Receipt className="h-4 w-4 mr-1" />Pagamento</Button></DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-auto">
         <DialogHeader><DialogTitle>Registrar pagamento — {tenant.company_name}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Valor (R$)</Label><Input type="number" value={amount} onChange={e => setAmount(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Plano</Label>
+              <select className="w-full h-10 rounded-md bg-secondary/40 border border-border px-3" value={planSlug} onChange={e => setPlanSlug(e.target.value)}>
+                <option value="">Selecionar…</option>
+                {plans.filter(p => p.active).map(p => <option key={p.id} value={p.slug}>{p.name} — R$ {Number(p.price).toFixed(2)}/mês</option>)}
+              </select>
+            </div>
+            <div><Label>Ciclo (meses)</Label>
+              <select className="w-full h-10 rounded-md bg-secondary/40 border border-border px-3" value={cycleMonths} onChange={e => setCycleMonths(Number(e.target.value))}>
+                {[1, 3, 6, 12].map(n => <option key={n} value={n}>{n}m</option>)}
+              </select>
+            </div>
+          </div>
+          <div><Label>Valor pago (R$) {suggested && <span className="text-xs text-muted-foreground">— sugerido R$ {suggested}</span>}</Label>
+            <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder={suggested} />
+          </div>
           <div><Label>Método</Label>
             <select className="w-full h-10 rounded-md bg-secondary/40 border border-border px-3" value={method} onChange={e => setMethod(e.target.value)}>
               <option value="pix">PIX</option><option value="boleto">Boleto</option><option value="cartao">Cartão</option><option value="transferencia">Transferência</option>
             </select>
           </div>
-          <div><Label>Comprovante (PDF/Imagem)</Label><Input type="file" accept="image/*,application/pdf" onChange={e => setFile(e.target.files?.[0] ?? null)} /></div>
+          <div><Label>Comprovante (PDF ou imagem)</Label><Input type="file" accept="image/*,application/pdf" onChange={e => setFile(e.target.files?.[0] ?? null)} /></div>
           <div><Label>Observações</Label><Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="opcional" /></div>
-          <Button onClick={submit} disabled={busy} className="w-full bg-gradient-brand text-white border-0"><Upload className="h-4 w-4 mr-2" />{busy ? "Salvando..." : "Salvar e renovar +30d"}</Button>
+          <Button onClick={submit} disabled={busy} className="w-full bg-gradient-brand text-white border-0">
+            <Upload className="h-4 w-4 mr-2" />{busy ? "Salvando…" : `Renovar +${cycleMonths * 30} dias`}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
