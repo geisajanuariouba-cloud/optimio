@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { ClipboardCheck, Check, X, Eye } from "lucide-react";
+import { ClipboardCheck, Check, X, Eye, ImagePlus, ImageOff, Loader2 } from "lucide-react";
 
 type Item = {
   id: string; catalog_id: string | null; supplier_id: string | null; source_page: number | null;
