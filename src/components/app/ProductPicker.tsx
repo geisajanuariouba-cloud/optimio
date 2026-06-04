@@ -158,7 +158,7 @@ export default function ProductPicker({
             <Card key={idx} className="p-3 rounded-2xl">
               <div className="flex gap-3">
                 <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden shrink-0">
-                  {it.image_url ? <img src={it.image_url} alt={it.name} className="w-full h-full object-cover" />
+                  {it.image_url ? <LazyImage src={it.image_url} alt={it.name} className="w-full h-full object-cover" />
                     : it.kind === "service" ? <Wrench className="h-5 w-5 text-muted-foreground" />
                     : <ImageIcon className="h-5 w-5 text-muted-foreground" />}
                 </div>
