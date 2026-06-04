@@ -49,16 +49,21 @@ export default function ProductPicker({
   items,
   onChange,
   includeServices = true,
+  mode = "both",
 }: {
   items: SaleItem[];
   onChange: (items: SaleItem[]) => void;
   includeServices?: boolean;
+  /** "product" só produtos/variações; "service" só serviços; "both" tudo */
+  mode?: "product" | "service" | "both";
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [suppliers, setSuppliers] = useState<Record<string, { cost_fee_percent: number; default_margin_percent: number; default_markup_percent: number }>>({});
+  const wantProducts = mode !== "service";
+  const wantServices = (mode !== "product") && includeServices;
 
   useEffect(() => {
     if (!open || !user) return;
