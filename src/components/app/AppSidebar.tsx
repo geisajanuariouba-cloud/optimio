@@ -51,6 +51,8 @@ const GROUPS: Group[] = [
       { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },
       { mod: "financial", title: "Montadores", url: "/app/assemblers", icon: Wrench },
       { mod: "products", title: "Produção", url: "/app/production", icon: Factory },
+      { mod: "products", title: "Compras Inteligentes", url: "/app/smart-purchases", icon: ShoppingBag },
+      { mod: "products", title: "Marketplaces", url: "/app/marketplaces", icon: ShoppingBag },
     ],
   },
   {
@@ -60,6 +62,7 @@ const GROUPS: Group[] = [
       { mod: "financial", title: "Caixa do Dia", url: "/app/cash-drawer", icon: Banknote },
       { mod: "financial", title: "Promissórias", url: "/app/debts", icon: Receipt },
       { mod: "financial", title: "Cobrança Inteligente", url: "/app/collections", icon: Banknote },
+      { mod: "financial", title: "Maquininhas", url: "/app/card-machines", icon: CreditCard },
     ],
   },
   {

@@ -53,6 +53,9 @@ import Knowledge from "./pages/app/Knowledge";
 import Audit from "./pages/app/Audit";
 import Suggestions from "./pages/app/Suggestions";
 import Production from "./pages/app/Production";
+import CardMachines from "./pages/app/CardMachines";
+import Marketplaces from "./pages/app/Marketplaces";
+import SmartPurchases from "./pages/app/SmartPurchases";
 
 import Campaigns from "./pages/app/Campaigns";
 import Meetings from "./pages/app/Meetings";
@@ -130,6 +133,9 @@ const App = () => (
                 <Route path="audit" element={<Audit />} />
                 <Route path="suggestions" element={<Suggestions />} />
                 <Route path="production" element={<Production />} />
+                <Route path="card-machines" element={<CardMachines />} />
+                <Route path="marketplaces" element={<Marketplaces />} />
+                <Route path="smart-purchases" element={<SmartPurchases />} />
                 
                 <Route path="campaigns" element={<Campaigns />} />
                 <Route path="meetings" element={<Meetings />} />
