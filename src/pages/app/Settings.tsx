@@ -13,7 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
 
 const COLORS = [
