@@ -52,6 +52,7 @@ import Alerts from "./pages/app/Alerts";
 import Knowledge from "./pages/app/Knowledge";
 import Audit from "./pages/app/Audit";
 import Suggestions from "./pages/app/Suggestions";
+import Production from "./pages/app/Production";
 
 import Campaigns from "./pages/app/Campaigns";
 import Meetings from "./pages/app/Meetings";
@@ -128,6 +129,7 @@ const App = () => (
                 <Route path="knowledge" element={<Knowledge />} />
                 <Route path="audit" element={<Audit />} />
                 <Route path="suggestions" element={<Suggestions />} />
+                <Route path="production" element={<Production />} />
                 
                 <Route path="campaigns" element={<Campaigns />} />
                 <Route path="meetings" element={<Meetings />} />
