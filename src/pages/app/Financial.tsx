@@ -323,9 +323,45 @@ export default function Financial() {
               </div>
             )}
 
+            {isIncome && (
+              <div className="rounded-2xl bg-amber-500/5 border border-amber-500/20 p-3 space-y-2">
+                <Label className="text-sm font-medium">Juros / Acréscimos</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Select value={form.interest_type} onValueChange={(v) => setForm({ ...form, interest_type: v })}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem juros</SelectItem>
+                      <SelectItem value="percent">% sobre valor</SelectItem>
+                      <SelectItem value="fixed">Valor fixo R$</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.interest_type === "percent" && (
+                    <Input type="number" step="0.01" value={form.interest_percent} onChange={(e) => setForm({ ...form, interest_percent: +e.target.value })} placeholder="%" className="h-9" />
+                  )}
+                  {form.interest_type === "fixed" && (
+                    <Input type="number" step="0.01" value={form.interest_amount} onChange={(e) => setForm({ ...form, interest_amount: +e.target.value })} placeholder="R$" className="h-9" />
+                  )}
+                  <div className="text-xs flex items-center justify-end text-muted-foreground col-span-1">
+                    + R$ <strong className="text-foreground ml-1">{interestAmount.toFixed(2)}</strong>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-2 border-t">
+                  <label className="flex items-center gap-2 text-xs">
+                    <Switch checked={!!form.total_manual} onCheckedChange={(v) => setForm({ ...form, total_manual: v, total_override: v ? totalWithInterest : 0 })} />
+                    Editar total manualmente
+                  </label>
+                  {form.total_manual ? (
+                    <Input type="number" step="0.01" value={form.total_override} onChange={(e) => setForm({ ...form, total_override: +e.target.value })} className="h-9 w-32 text-right font-semibold" />
+                  ) : (
+                    <div className="text-sm">Total: <strong className="text-primary">R$ {totalWithInterest.toFixed(2)}</strong></div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {(selectedPM || isPromissoria) && isIncome && (
               <div className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-2">
-                Líquido: <strong className="text-primary text-sm">R$ {calcNet().toFixed(2)}</strong>{isPromissoria ? ` · Promissória ${promo.installments_count}×` : ` · Taxa ${selectedPM?.fee_percent}% ${selectedPM && selectedPM.installments > 1 ? `· ${selectedPM.installments}×` : ""}`}
+                Total: <strong className="text-foreground">R$ {effectiveTotal.toFixed(2)}</strong> · Líquido: <strong className="text-primary text-sm">R$ {calcNet().toFixed(2)}</strong>{isPromissoria ? ` · Promissória ${promo.installments_count}×` : ` · Taxa ${selectedPM?.fee_percent}% ${selectedPM && selectedPM.installments > 1 ? `· ${selectedPM.installments}×` : ""}`}
               </div>
             )}
 
