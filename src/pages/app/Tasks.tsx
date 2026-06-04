@@ -18,8 +18,10 @@ import { CheckSquare, Plus, Sparkles, Calendar, Flag, Trash2 } from "lucide-reac
 
 type Task = {
   id: string; title: string; description: string | null; status: string; priority: string;
-  due_date: string | null; tags: string[]; ai_generated: boolean; completed_at: string | null; created_at: string;
+  due_date: string | null; tags: string[]; ai_generated: boolean; completed_at: string | null;
+  created_at: string; assignee_user_id: string | null;
 };
+type Member = { member_user_id: string; name: string | null; email: string | null };
 
 const STATUS = [
   { key: "todo", label: "A fazer", tone: "bg-slate-500/10 text-slate-600" },
@@ -34,11 +36,12 @@ const PRIORITY: Record<string, { label: string; tone: string }> = {
   urgent: { label: "Urgente", tone: "bg-rose-500/10 text-rose-600" },
 };
 
-const empty = { title: "", description: "", priority: "medium", due_date: "", tags: "" };
+const empty = { title: "", description: "", priority: "medium", due_date: "", tags: "", assignee_user_id: "" };
 
 export default function Tasks() {
   const { user } = useAuth();
   const [list, setList] = useState<Task[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(empty);
   const [view, setView] = useState<"kanban" | "list">("kanban");
