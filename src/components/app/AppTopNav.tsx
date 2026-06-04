@@ -107,7 +107,10 @@ const AREAS: Area[] = [
 ];
 
 export function AppTopNav() {
-  const { hasModule, isAdmin, isOwner, can } = useTenant();
+  const { hasModule, isAdmin, isOwner, can, profile } = useTenant();
+  const { devMode } = useDevMode();
+  const adminMaster = !!(profile as any)?.is_admin_master;
+  const showSoonBadge = !(adminMaster && devMode);
   const { pathname } = useLocation();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -145,21 +148,30 @@ export function AppTopNav() {
               <ChevronDown className="h-3.5 w-3.5 opacity-60" />
             </button>
             {open && (
-              <div className="absolute left-0 top-full mt-1 min-w-[200px] rounded-xl border border-border/60 bg-popover shadow-elegant p-1 z-50">
-                {items.map(it => (
-                  <NavLink
-                    key={it.url}
-                    to={it.url}
-                    end={it.url === "/app"}
-                    onClick={() => setOpenIdx(null)}
-                    className={({ isActive: a }) => cn(
-                      "block px-3 py-2 rounded-lg text-sm hover:bg-secondary/70",
-                      a && "bg-primary/10 text-primary font-medium"
-                    )}
-                  >
-                    {it.title}
-                  </NavLink>
-                ))}
+              <div className="absolute left-0 top-full mt-1 min-w-[220px] rounded-xl border border-border/60 bg-popover shadow-elegant p-1 z-50">
+                {items.map(it => {
+                  const soon = isComingSoon(it.url) && showSoonBadge;
+                  return (
+                    <NavLink
+                      key={it.url}
+                      to={it.url}
+                      end={it.url === "/app"}
+                      onClick={() => setOpenIdx(null)}
+                      className={({ isActive: a }) => cn(
+                        "flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm hover:bg-secondary/70",
+                        a && "bg-primary/10 text-primary font-medium",
+                        soon && "opacity-80"
+                      )}
+                    >
+                      <span className="truncate">{it.title}</span>
+                      {soon && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 shrink-0">
+                          Em breve
+                        </span>
+                      )}
+                    </NavLink>
+                  );
+                })}
               </div>
             )}
           </div>
