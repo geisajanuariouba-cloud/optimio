@@ -73,12 +73,17 @@ export default function Appointments() {
   }, [date, view]);
 
   const load = async () => {
-    const [{ data: a }, { data: c }, { data: s }] = await Promise.all([
+    const [{ data: a }, { data: c }, { data: s }, { data: pm }] = await Promise.all([
       supabase.from("appointments").select("*").gte("appointment_date", range.start).lte("appointment_date", range.end).is("deleted_at", null).order("appointment_date").order("appointment_time"),
       supabase.from("clients").select("id, full_name").is("deleted_at", null).order("full_name"),
       supabase.from("services").select("id, name, starting_price").is("deleted_at", null).order("name"),
+      supabase.from("payment_methods").select("code,label,active").eq("active", true).order("label"),
     ]);
     setAppts((a ?? []) as Appt[]); setClients((c ?? []) as Mini[]); setServices((s ?? []) as Mini[]);
+    const dyn = (pm ?? []).map((m: any) => ({ v: m.code, l: m.label }));
+    const merged: PayMethod[] = [{ v: "nao_escolhido", l: "Não escolhido" }, ...dyn];
+    if (!merged.some(x => x.v === "promissoria")) merged.push({ v: "promissoria", l: "Promissória" });
+    setPayMethods(dyn.length > 0 ? merged : DEFAULT_PAY);
   };
   useEffect(() => { if (user) load(); }, [user, range.start, range.end]);
 
