@@ -209,7 +209,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border/60 p-2 space-y-1">
         <NavLink
-          to="/app/plan-upgrade"
+          to="/app/upgrade"
           className={cn(
             "flex items-center gap-2.5 h-10 px-3 rounded-xl text-sm font-medium transition-colors",
             "bg-gradient-to-r from-primary/90 to-primary text-primary-foreground hover:shadow-elegant"
