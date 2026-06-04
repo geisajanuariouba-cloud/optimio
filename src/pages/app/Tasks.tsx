@@ -50,7 +50,13 @@ export default function Tasks() {
     const { data } = await supabase.from("tasks").select("*").is("deleted_at", null).order("created_at", { ascending: false });
     setList((data ?? []) as Task[]);
   };
-  useEffect(() => { if (user) load(); }, [user]);
+  const loadMembers = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("team_members")
+      .select("member_user_id,name,email").eq("status", "active");
+    setMembers((data ?? []) as Member[]);
+  };
+  useEffect(() => { if (user) { load(); loadMembers(); } }, [user]);
 
   const save = async () => {
     if (!user || !form.title.trim()) return toast.error("Título obrigatório");
@@ -58,6 +64,7 @@ export default function Tasks() {
     const { error } = await supabase.from("tasks").insert({
       user_id: user.id, title: form.title, description: form.description || null,
       priority: form.priority, due_date: form.due_date || null, tags, status: "todo",
+      assignee_user_id: form.assignee_user_id || null,
     });
     if (error) return toast.error(friendlyError(error));
     toast.success("Tarefa criada"); setOpen(false); setForm(empty); load();
