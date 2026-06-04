@@ -14,6 +14,7 @@ const ALL = [
   { mod: "dashboard", title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
   { mod: "appointments", title: "Agenda", url: "/app/appointments", icon: Calendar },
   { mod: "clients", title: "termClients", url: "/app/clients", icon: Users },
+  { mod: "clients", title: "Funil Comercial", url: "/app/funnel", icon: KanbanSquare },
   { mod: "packages", title: "Recorrência", url: "/app/packages", icon: Package },
   { mod: "anamnesis", title: "Anamnese", url: "/app/anamnesis", icon: ClipboardList, anamnesisOnly: true },
   { mod: "services", title: "termServices", url: "/app/services", icon: Scissors },
