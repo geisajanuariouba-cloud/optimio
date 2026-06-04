@@ -151,6 +151,60 @@ export type Database = {
         }
         Relationships: []
       }
+      appointment_services: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          duration_min: number
+          id: string
+          name: string | null
+          price: number
+          qty: number
+          service_id: string | null
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          duration_min?: number
+          id?: string
+          name?: string | null
+          price?: number
+          qty?: number
+          service_id?: string | null
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          duration_min?: number
+          id?: string
+          name?: string | null
+          price?: number
+          qty?: number
+          service_id?: string | null
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_services_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           amount: number
@@ -2024,10 +2078,12 @@ export type Database = {
           full_name: string | null
           id: string
           instagram_discount: Json
+          is_admin_master: boolean
           logo_palette: Json
           logo_url: string | null
           niche: string
           onboarding_completed: boolean
+          operational_cycle_start_day: number
           payment_fees: Json
           phone_number: string | null
           plan: string
@@ -2052,10 +2108,12 @@ export type Database = {
           full_name?: string | null
           id: string
           instagram_discount?: Json
+          is_admin_master?: boolean
           logo_palette?: Json
           logo_url?: string | null
           niche?: string
           onboarding_completed?: boolean
+          operational_cycle_start_day?: number
           payment_fees?: Json
           phone_number?: string | null
           plan?: string
@@ -2080,10 +2138,12 @@ export type Database = {
           full_name?: string | null
           id?: string
           instagram_discount?: Json
+          is_admin_master?: boolean
           logo_palette?: Json
           logo_url?: string | null
           niche?: string
           onboarding_completed?: boolean
+          operational_cycle_start_day?: number
           payment_fees?: Json
           phone_number?: string | null
           plan?: string
@@ -3285,6 +3345,7 @@ export type Database = {
       }
       normalize_match: { Args: { _s: string }; Returns: string }
       recover_stuck_catalogs: { Args: { _user_id: string }; Returns: number }
+      restore_tenant_data: { Args: never; Returns: Json }
       seed_default_categories: {
         Args: { _niche: string; _user_id: string }
         Returns: undefined
