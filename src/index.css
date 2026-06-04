@@ -115,36 +115,41 @@
     --shadow-elegant: 0 20px 60px -20px hsl(22 100% 30% / 0.4);
   }
 
-  /* Light mode variant */
+  /* Light mode variant — high-contrast premium */
   .theme-skillset.light {
     --background: 0 0% 98%;
-    --foreground: 0 0% 6%;
+    --foreground: 0 0% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 6%;
+    --card-foreground: 0 0% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 6%;
-    --primary: 22 100% 50%;
+    --popover-foreground: 0 0% 8%;
+    --primary: 22 100% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 95%;
-    --secondary-foreground: 0 0% 6%;
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 22 100% 57%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 32%;
+    --accent: 22 100% 55%;
     --accent-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 22 100% 50%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 22 100% 48%;
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 25%;
-    --sidebar-primary: 22 100% 50%;
+    --sidebar-foreground: 0 0% 18%;
+    --sidebar-primary: 22 100% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 22 100% 45%;
-    --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 22 100% 50%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 22 100% 42%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 22 100% 48%;
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
     --shadow-elegant: 0 20px 60px -20px hsl(0 0% 0% / 0.12);
   }
+  /* Force titles to use full foreground in light mode (overrides washed-out tokens) */
+  .theme-skillset.light h1,
+  .theme-skillset.light h2,
+  .theme-skillset.light h3,
+  .theme-skillset.light h4 { color: hsl(var(--foreground)); }
 
   .theme-jewelry {
     --background: var(--jewel-bg);
