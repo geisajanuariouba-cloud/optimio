@@ -61,11 +61,27 @@ export default function Financial() {
   const isCash = selectedPM?.code === "dinheiro";
   const change = isCash && form.cash_received ? Math.max(0, Number(form.cash_received) - Number(form.gross_amount)) : 0;
 
+  const pickerMode: "product" | "service" | "both" =
+    form.category === "Serviço" ? "service"
+    : form.category === "Venda" ? "product"
+    : "both";
+
+  // Juros / Acréscimos
+  const interestAmount = useMemo(() => {
+    if (!isIncome) return 0;
+    if (form.interest_type === "percent") return Math.round((Number(form.gross_amount) * Number(form.interest_percent || 0)) / 100 * 100) / 100;
+    if (form.interest_type === "fixed") return Math.round(Number(form.interest_amount || 0) * 100) / 100;
+    return 0;
+  }, [isIncome, form.interest_type, form.interest_percent, form.interest_amount, form.gross_amount]);
+
+  const totalWithInterest = useMemo(() => Math.round((Number(form.gross_amount) + interestAmount) * 100) / 100, [form.gross_amount, interestAmount]);
+  const effectiveTotal = form.total_manual ? Number(form.total_override || 0) : totalWithInterest;
+
   const calcNet = () => {
-    if (isPromissoria) return form.gross_amount;
-    if (!isIncome || !selectedPM) return form.gross_amount;
-    const fee = (form.gross_amount * Number(selectedPM.fee_percent)) / 100 + Number(selectedPM.fee_fixed);
-    return Math.max(0, form.gross_amount - fee);
+    if (isPromissoria) return effectiveTotal;
+    if (!isIncome || !selectedPM) return effectiveTotal;
+    const fee = (effectiveTotal * Number(selectedPM.fee_percent)) / 100 + Number(selectedPM.fee_fixed);
+    return Math.max(0, effectiveTotal - fee);
   };
 
   const selectedClient = clients.find(c => c.id === form.client_id);
@@ -73,13 +89,13 @@ export default function Financial() {
   // Sincroniza gross_amount com soma dos itens (quando há itens)
   const itemsTotal = useMemo(() => items.reduce((a, it) => a + it.unit_price * it.quantity, 0), [items]);
   useEffect(() => {
-    if (isVendaServico && items.length > 0) {
+    if (isVendaServico && items.length > 0 && !form.total_manual) {
       const total = Math.round(itemsTotal * 100) / 100;
       if (Math.abs(Number(form.gross_amount) - total) > 0.005) {
         setForm((f: any) => ({ ...f, gross_amount: total }));
       }
     }
-  }, [itemsTotal, isVendaServico, items.length]);
+  }, [itemsTotal, isVendaServico, items.length, form.total_manual]);
 
   const save = async () => {
     if (!user || !form.gross_amount) return toast.error("Informe o valor do lançamento.");
