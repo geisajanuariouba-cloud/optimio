@@ -57,6 +57,8 @@ export default function Appointments() {
   const [appts, setAppts] = useState<Appt[]>([]);
   const [clients, setClients] = useState<Mini[]>([]);
   const [services, setServices] = useState<Mini[]>([]);
+  const [payMethods, setPayMethods] = useState<PayMethod[]>(DEFAULT_PAY);
+  const [items, setItems] = useState<Item[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Appt | null>(null);
   const [form, setForm] = useState(emptyForm());
