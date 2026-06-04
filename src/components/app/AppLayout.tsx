@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import AIChat from "@/components/AIChat";
+import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { NavLink } from "react-router-dom";
 
 type Hit = { kind: string; id: string; label: string; sub?: string };
