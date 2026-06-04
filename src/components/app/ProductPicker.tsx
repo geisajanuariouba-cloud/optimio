@@ -89,11 +89,15 @@ export default function ProductPicker({
       (sup.data ?? []).forEach((x: any) => { supMap[x.id] = x; });
       setSuppliers(supMap);
       const list: Row[] = [];
+      const validProductIds = new Set<string>();
       (p.data ?? []).forEach((x: any) => {
+        validProductIds.add(x.id);
         if (x.has_variations) return;
         list.push({ id: x.id, kind: "product", name: x.name, image_url: x.image_url, cost: Number(x.cost ?? 0), sale_price: Number(x.sale_price ?? 0), stock: x.stock, supplier_id: x.supplier_id });
       });
       (v.data ?? []).forEach((x: any) => {
+        // só inclui variações cujo produto pai esteja ativo/visível
+        if (!validProductIds.has(x.product_id)) return;
         list.push({ id: x.id, kind: "variation", product_id: x.product_id, name: x.name, image_url: x.image_url, cost: Number(x.cost ?? 0), sale_price: Number(x.sale_price ?? 0), stock: x.stock, supplier_id: x.supplier_id });
       });
       (s.data ?? []).forEach((x: any) => {
