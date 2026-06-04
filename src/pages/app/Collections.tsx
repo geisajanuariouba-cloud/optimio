@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { Receipt, Phone, Copy, MessageCircle, Search } from "lucide-react";
 
 type Inst = { id: string; debt_id: string; number: number; amount: number; amount_paid: number; due_date: string; status: string; paid_at: string | null };
-type Debt = { id: string; client_id: string | null; total_amount: number; installments_count: number; description: string | null };
+type Debt = { id: string; client_id: string | null; total_amount: number; installments_count: number; notes: string | null };
 type Client = { id: string; full_name: string; phone: string | null };
 
 function daysLate(date: string) {
