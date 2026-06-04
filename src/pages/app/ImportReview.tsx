@@ -52,7 +52,10 @@ function codnameOf(name: string, size?: string | null, color?: string | null): s
 export default function ImportReview() {
   const { user } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [filter, setFilter] = useState("pending");
+  const [supplierFilter, setSupplierFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
@@ -61,18 +64,30 @@ export default function ImportReview() {
   const [zoomUrl, setZoomUrl] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("catalog_review_items").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: sup }] = await Promise.all([
+      supabase.from("catalog_review_items").select("*").order("created_at", { ascending: false }),
+      supabase.from("suppliers").select("id,name").is("deleted_at", null).order("name"),
+    ]);
     setItems((data ?? []) as Item[]);
+    setSuppliers((sup ?? []) as any);
     setSelected(new Set());
   };
   useEffect(() => { if (user) load(); }, [user]);
 
+  const categories = useMemo(() => {
+    const s = new Set<string>();
+    items.forEach(i => { if (i.proposed_category) s.add(i.proposed_category); });
+    return Array.from(s).sort();
+  }, [items]);
+
   const filtered = useMemo(() => items
     .filter(i => filter === "all" ? true : i.review_status === filter)
+    .filter(i => supplierFilter === "all" ? true : i.supplier_id === supplierFilter)
+    .filter(i => categoryFilter === "all" ? true : i.proposed_category === categoryFilter)
     .filter(i => !search ||
       (i.proposed_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (i.proposed_code ?? "").toLowerCase().includes(search.toLowerCase())),
-    [items, filter, search]);
+    [items, filter, supplierFilter, categoryFilter, search]);
 
   const toggleOne = (id: string) => {
     const s = new Set(selected); s.has(id) ? s.delete(id) : s.add(id); setSelected(s);
