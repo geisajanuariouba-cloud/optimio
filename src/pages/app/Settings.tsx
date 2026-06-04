@@ -13,9 +13,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy, Shield, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
+import { getCycleLabel } from "@/lib/operationalCycle";
+
 
 const COLORS = [
   { name: "Roxo", value: "271 91% 65%" },
@@ -37,15 +39,24 @@ export default function Settings() {
   const [niche, setNiche] = useState<NicheKey>("beauty");
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
+  const [cycleDay, setCycleDay] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [supportVisible, setSupportVisible] = useState(true);
   const [supportPosition, setSupportPosition] = useState<"bottom-right" | "bottom-left" | "top-right" | "top-left">("bottom-right");
+
+  // Restaurar conta
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [restoreEmail, setRestoreEmail] = useState("");
+  const [restorePassword, setRestorePassword] = useState("");
+  const [restoreConfirm, setRestoreConfirm] = useState("");
+  const [restoring, setRestoring] = useState(false);
 
   const [cats, setCats] = useState<Cat[]>([]);
   const [newCat, setNewCat] = useState<{ kind: Cat["kind"]; name: string }>({ kind: "income", name: "" });
 
   const [questions, setQuestions] = useState<Q[]>([]);
   const [savingAnam, setSavingAnam] = useState(false);
+
 
   useEffect(() => {
     if (!profile) return;
