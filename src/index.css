@@ -115,7 +115,10 @@
     --shadow-elegant: 0 20px 60px -20px hsl(22 100% 30% / 0.4);
   }
 
-  /* Light mode variant — high-contrast premium */
+  /* Light mode variant — high-contrast premium.
+     `.light` is applied on <html>, while `.theme-skillset` lives on an inner
+     wrapper, so we need a descendant selector (not `.theme-skillset.light`). */
+  .light .theme-skillset,
   .theme-skillset.light {
     --background: 0 0% 98%;
     --foreground: 0 0% 8%;
@@ -146,6 +149,10 @@
     --shadow-elegant: 0 20px 60px -20px hsl(0 0% 0% / 0.12);
   }
   /* Force titles to use full foreground in light mode (overrides washed-out tokens) */
+  .light .theme-skillset h1,
+  .light .theme-skillset h2,
+  .light .theme-skillset h3,
+  .light .theme-skillset h4,
   .theme-skillset.light h1,
   .theme-skillset.light h2,
   .theme-skillset.light h3,
@@ -217,10 +224,21 @@
     border-color: hsl(22 100% 50% / 0.35);
     box-shadow: 0 1px 0 hsl(0 0% 100% / 0.05) inset, 0 30px 80px -30px hsl(22 100% 30% / 0.45);
   }
+  .light .theme-skillset .premium-card,
   .theme-skillset.light .premium-card {
     background: linear-gradient(180deg, #ffffff, #fafafa);
     border: 1px solid hsl(0 0% 92%);
     box-shadow: 0 1px 0 hsl(0 0% 100%) inset, 0 12px 40px -20px hsl(0 0% 0% / 0.08);
+    color: hsl(var(--foreground));
+  }
+  .light .theme-skillset .premium-feature,
+  .theme-skillset.light .premium-feature {
+    background:
+      radial-gradient(120% 80% at 0% 0%, hsl(22 100% 50% / 0.10), transparent 55%),
+      radial-gradient(100% 80% at 100% 100%, hsl(28 100% 60% / 0.08), transparent 55%),
+      linear-gradient(180deg, #ffffff, #fafafa);
+    border: 1px solid hsl(22 100% 50% / 0.25);
+    color: hsl(var(--foreground));
   }
   .theme-skillset .premium-feature {
     background:
@@ -234,6 +252,7 @@
     background: hsl(0 0% 100% / 0.04);
     border: 1px solid hsl(0 0% 100% / 0.08);
   }
+  .light .theme-skillset .pill,
   .theme-skillset.light .pill {
     background: hsl(0 0% 100%);
     border: 1px solid hsl(0 0% 90%);
