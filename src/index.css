@@ -115,7 +115,10 @@
     --shadow-elegant: 0 20px 60px -20px hsl(22 100% 30% / 0.4);
   }
 
-  /* Light mode variant — high-contrast premium */
+  /* Light mode variant — high-contrast premium.
+     `.light` is applied on <html>, while `.theme-skillset` lives on an inner
+     wrapper, so we need a descendant selector (not `.theme-skillset.light`). */
+  .light .theme-skillset,
   .theme-skillset.light {
     --background: 0 0% 98%;
     --foreground: 0 0% 8%;
@@ -146,6 +149,10 @@
     --shadow-elegant: 0 20px 60px -20px hsl(0 0% 0% / 0.12);
   }
   /* Force titles to use full foreground in light mode (overrides washed-out tokens) */
+  .light .theme-skillset h1,
+  .light .theme-skillset h2,
+  .light .theme-skillset h3,
+  .light .theme-skillset h4,
   .theme-skillset.light h1,
   .theme-skillset.light h2,
   .theme-skillset.light h3,
