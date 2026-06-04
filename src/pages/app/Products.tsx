@@ -214,6 +214,14 @@ export default function Products() {
     load();
   };
 
+  const markImageReviewed = async (p: Product) => {
+    const { error } = await supabase.from("products").update({ image_review_required: false }).eq("id", p.id);
+    if (error) return toast.error(friendlyError(error));
+    await logAudit("product.image_reviewed", "product", p.id, { name: p.name });
+    toast.success("Imagem marcada como revisada");
+    load();
+  };
+
   const variationsByProduct = useMemo(() => {
     const m = new Map<string, VarRow[]>();
     for (const v of allVariations) {
