@@ -157,13 +157,13 @@ export default function Financial() {
 
     if (isPromissoria && tx) {
       try {
-        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: form.gross_amount, data: promo, appointment_id: null, notes: form.description });
+        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: effectiveTotal, data: promo, appointment_id: null, notes: form.description });
       } catch (e: any) { return toast.error(friendlyError(e, "Falha ao criar promissória.")); }
     }
 
     if (isIncome && isCash && tx) {
       const cashRows = [
-        { user_id: user.id, type: "in", amount: Number(form.gross_amount), reason: "venda_dinheiro", description: form.description || null, financial_id: tx.id },
+        { user_id: user.id, type: "in", amount: Number(effectiveTotal), reason: "venda_dinheiro", description: form.description || null, financial_id: tx.id },
       ];
       if (change > 0) cashRows.push({ user_id: user.id, type: "out", amount: change, reason: "troco", description: `Troco venda ${tx.id.slice(0, 8)}`, financial_id: tx.id });
       await supabase.from("cash_drawer_transactions").insert(cashRows);
