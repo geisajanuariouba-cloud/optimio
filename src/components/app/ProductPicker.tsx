@@ -210,7 +210,7 @@ export default function ProductPicker({
               <button key={`${r.kind}-${r.id}`} type="button" onClick={() => add(r)}
                 className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-secondary text-left">
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden shrink-0">
-                  {r.image_url ? <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
+                  {r.image_url ? <LazyImage src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
                     : r.kind === "service" ? <Wrench className="h-4 w-4 text-muted-foreground" />
                     : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
                 </div>
