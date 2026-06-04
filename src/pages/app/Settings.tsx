@@ -170,12 +170,17 @@ export default function Settings() {
       <Tabs defaultValue="general">
         <TabsList className="bg-secondary/40 flex-wrap h-auto">
           <TabsTrigger value="general"><SettingsIcon className="h-4 w-4 mr-1" />Geral</TabsTrigger>
+          <TabsTrigger value="modules"><Puzzle className="h-4 w-4 mr-1" />Módulos</TabsTrigger>
           <TabsTrigger value="categories"><Tags className="h-4 w-4 mr-1" />Categorias</TabsTrigger>
           <TabsTrigger value="anamnesis"><ClipboardList className="h-4 w-4 mr-1" />Anamnese</TabsTrigger>
           <TabsTrigger value="support"><LifeBuoy className="h-4 w-4 mr-1" />Suporte</TabsTrigger>
           <TabsTrigger value="security"><Shield className="h-4 w-4 mr-1" />Segurança</TabsTrigger>
           <TabsTrigger value="plan"><Crown className="h-4 w-4 mr-1" />Plano</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="modules" className="space-y-6 mt-4">
+          <ModulesSettings />
+        </TabsContent>
 
         <TabsContent value="general" className="space-y-6 mt-4">
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
