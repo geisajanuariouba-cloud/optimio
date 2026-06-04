@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Plus, X, ImageIcon, Trash2, Wrench } from "lucide-react";
+import { LazyImage } from "@/components/ui/lazy-image";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export type SaleItem = {
   kind: "product" | "variation" | "service";
@@ -102,11 +104,12 @@ export default function ProductPicker({
   }, [open, user, wantProducts, wantServices]);
 
 
+  const debouncedQ = useDebouncedValue(q, 200);
   const filtered = useMemo(() => {
-    if (!q.trim()) return rows.slice(0, 80);
-    const s = q.toLowerCase();
+    if (!debouncedQ.trim()) return rows.slice(0, 80);
+    const s = debouncedQ.toLowerCase();
     return rows.filter(r => r.name.toLowerCase().includes(s)).slice(0, 80);
-  }, [rows, q]);
+  }, [rows, debouncedQ]);
 
   const add = (r: Row) => {
     const sup = r.supplier_id ? suppliers[r.supplier_id] : null;
@@ -157,7 +160,7 @@ export default function ProductPicker({
             <Card key={idx} className="p-3 rounded-2xl">
               <div className="flex gap-3">
                 <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden shrink-0">
-                  {it.image_url ? <img src={it.image_url} alt={it.name} className="w-full h-full object-cover" />
+                  {it.image_url ? <LazyImage src={it.image_url} alt={it.name} className="w-full h-full object-cover" />
                     : it.kind === "service" ? <Wrench className="h-5 w-5 text-muted-foreground" />
                     : <ImageIcon className="h-5 w-5 text-muted-foreground" />}
                 </div>
@@ -209,7 +212,7 @@ export default function ProductPicker({
               <button key={`${r.kind}-${r.id}`} type="button" onClick={() => add(r)}
                 className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-secondary text-left">
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden shrink-0">
-                  {r.image_url ? <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
+                  {r.image_url ? <LazyImage src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
                     : r.kind === "service" ? <Wrench className="h-4 w-4 text-muted-foreground" />
                     : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
                 </div>

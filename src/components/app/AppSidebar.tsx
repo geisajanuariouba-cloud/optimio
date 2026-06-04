@@ -181,8 +181,7 @@ export function AppSidebar() {
                     return (
                       <SidebarMenuItem key={it.title + (it.url ?? "")}>
                         <SidebarMenuButton
-                          asChild={!!it.url}
-                          onClick={it.onClick}
+                          asChild
                           isActive={active}
                           tooltip={collapsed ? it.title : undefined}
                           className={cn(
@@ -194,7 +193,7 @@ export function AppSidebar() {
                           {it.url ? (
                             <NavLink to={it.url}>{Inner}</NavLink>
                           ) : (
-                            <button className="w-full text-left">{Inner}</button>
+                            <button type="button" onClick={it.onClick} className="w-full text-left">{Inner}</button>
                           )}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
