@@ -47,16 +47,21 @@ export default function Team() {
 
   const load = async () => {
     if (!user) return;
-    const [m, i, sub] = await Promise.all([
+    const [m, i, sub, prof] = await Promise.all([
       supabase.from("team_members").select("*").eq("owner_user_id", user.id).order("created_at"),
       supabase.from("team_invites").select("*").eq("owner_user_id", user.id).eq("status","pending").order("created_at"),
       supabase.from("subscriptions").select("internal_plan,plan_slug").eq("user_id", user.id).order("created_at",{ ascending: false }).limit(1).maybeSingle(),
+      supabase.from("profiles").select("plan,is_admin_master").eq("id", user.id).maybeSingle(),
     ]);
     setMembers(m.data ?? []);
     setInvites(i.data ?? []);
-    const slug = (sub.data?.internal_plan || sub.data?.plan_slug || "basic") as string;
-    const limits: Record<string, number> = { basic: 1, pro: 3, advanced: 9999 };
-    setPlan({ slug, max: limits[slug] ?? 1 });
+    // Prioridade: subscription → profile.plan → basic
+    const slug = (sub.data?.internal_plan || sub.data?.plan_slug || prof.data?.plan || "basic") as string;
+    const limits: Record<string, number> = {
+      basic: 1, standard: 3, pro: 3, advanced: 9999, unlimited: 9999,
+    };
+    const max = prof.data?.is_admin_master ? 9999 : (limits[slug] ?? 1);
+    setPlan({ slug, max });
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
