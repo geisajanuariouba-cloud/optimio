@@ -11,18 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Calendar, ChevronLeft, ChevronRight, Trash2, Check, Clock, Undo2, Zap } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Trash2, Check, Clock, Undo2, Zap, Plus, X } from "lucide-react";
 import { PromissoriaFields, createPromissoria, type PromissoriaData } from "@/components/app/PromissoriaFields";
 
 type Appt = { id: string; appointment_date: string; appointment_time: string; client_id: string | null; service_id: string | null; status: string; amount: number; is_walk_in: boolean; notes: string | null; package_id: string | null; professional: string | null; payment_method: string | null };
 type Mini = { id: string; name?: string; full_name?: string; starting_price?: number };
+type PayMethod = { v: string; l: string };
+type Item = { service_id: string; name: string; price: number; qty: number };
 type View = "day" | "week" | "month";
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
 const STATUS = ["confirmed", "pending", "completed", "no_show", "cancelled"];
 const STATUS_LABEL: Record<string, string> = { confirmed: "Confirmado", pending: "Pendente", completed: "Concluído", no_show: "Faltou", cancelled: "Cancelado" };
 const STATUS_COLOR: Record<string, string> = { confirmed: "bg-emerald-500/10 text-emerald-600", pending: "bg-amber-500/10 text-amber-600", completed: "bg-primary/10 text-primary", no_show: "bg-rose-500/10 text-rose-600", cancelled: "bg-muted text-muted-foreground" };
-const PAY_METHODS = [
+const DEFAULT_PAY: PayMethod[] = [
   { v: "nao_escolhido", l: "Não escolhido" },
   { v: "dinheiro", l: "Dinheiro" },
   { v: "pix", l: "PIX" },
@@ -55,6 +57,8 @@ export default function Appointments() {
   const [appts, setAppts] = useState<Appt[]>([]);
   const [clients, setClients] = useState<Mini[]>([]);
   const [services, setServices] = useState<Mini[]>([]);
+  const [payMethods, setPayMethods] = useState<PayMethod[]>(DEFAULT_PAY);
+  const [items, setItems] = useState<Item[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Appt | null>(null);
   const [form, setForm] = useState(emptyForm());
@@ -69,18 +73,23 @@ export default function Appointments() {
   }, [date, view]);
 
   const load = async () => {
-    const [{ data: a }, { data: c }, { data: s }] = await Promise.all([
+    const [{ data: a }, { data: c }, { data: s }, { data: pm }] = await Promise.all([
       supabase.from("appointments").select("*").gte("appointment_date", range.start).lte("appointment_date", range.end).is("deleted_at", null).order("appointment_date").order("appointment_time"),
       supabase.from("clients").select("id, full_name").is("deleted_at", null).order("full_name"),
       supabase.from("services").select("id, name, starting_price").is("deleted_at", null).order("name"),
+      supabase.from("payment_methods").select("code,label,active").eq("active", true).order("label"),
     ]);
     setAppts((a ?? []) as Appt[]); setClients((c ?? []) as Mini[]); setServices((s ?? []) as Mini[]);
+    const dyn = (pm ?? []).map((m: any) => ({ v: m.code, l: m.label }));
+    const merged: PayMethod[] = [{ v: "nao_escolhido", l: "Não escolhido" }, ...dyn];
+    if (!merged.some(x => x.v === "promissoria")) merged.push({ v: "promissoria", l: "Promissória" });
+    setPayMethods(dyn.length > 0 ? merged : DEFAULT_PAY);
   };
   useEffect(() => { if (user) load(); }, [user, range.start, range.end]);
 
-  const openNew = (d?: Date) => { setEditing(null); setForm(emptyForm(d ?? date)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(d ?? date) }); setOpen(true); };
-  const openQuickSale = () => { setEditing(null); setForm(emptyForm(date, true)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(date) }); setOpen(true); };
-  const openEdit = (a: Appt) => {
+  const openNew = (d?: Date) => { setEditing(null); setItems([]); setForm(emptyForm(d ?? date)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(d ?? date) }); setOpen(true); };
+  const openQuickSale = () => { setEditing(null); setItems([]); setForm(emptyForm(date, true)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(date) }); setOpen(true); };
+  const openEdit = async (a: Appt) => {
     setEditing(a);
     setForm({
       appointment_time: a.appointment_time?.slice(0, 5) ?? "09:00",
@@ -96,20 +105,27 @@ export default function Appointments() {
     });
     setPromissoria({ total_amount: Number(a.amount) || 0, installments_count: 2, first_due: a.appointment_date });
     setOpen(true);
+    const { data } = await supabase.from("appointment_services").select("service_id,name,price,qty").eq("appointment_id", a.id).order("sort_order");
+    setItems((data ?? []).map((x: any) => ({ service_id: x.service_id ?? "", name: x.name ?? "", price: Number(x.price) || 0, qty: Number(x.qty) || 1 })));
   };
+
+  const addItem = () => setItems(it => [...it, { service_id: "", name: "", price: 0, qty: 1 }]);
+  const updateItem = (i: number, patch: Partial<Item>) => setItems(it => it.map((x, idx) => idx === i ? { ...x, ...patch } : x));
+  const removeItem = (i: number) => setItems(it => it.filter((_, idx) => idx !== i));
+  const itemsTotal = items.reduce((s, x) => s + Number(x.price || 0) * Number(x.qty || 1), 0);
 
   const save = async () => {
     if (!user) return;
     const svc = services.find(s => s.id === form.service_id);
-    const amount = form.amount || svc?.starting_price || 0;
+    const baseAmount = items.length > 0 ? itemsTotal : (form.amount || svc?.starting_price || 0);
     const payload = {
       user_id: user.id,
       appointment_date: form.appointment_date,
       appointment_time: form.appointment_time,
       client_id: form.client_id ? form.client_id : null,
-      service_id: form.service_id ? form.service_id : null,
+      service_id: form.service_id ? form.service_id : (items[0]?.service_id || null),
       status: form.status,
-      amount,
+      amount: baseAmount,
       is_walk_in: false,
       notes: form.notes || null,
       professional: form.professional || null,
@@ -124,10 +140,23 @@ export default function Appointments() {
       if (error) return toast.error(friendlyError(error));
       apptId = data.id;
     }
+    // Sincroniza serviços do agendamento (multi-procedimento)
+    if (apptId) {
+      await supabase.from("appointment_services").delete().eq("appointment_id", apptId);
+      if (items.length > 0) {
+        const rows = items.map((it, idx) => ({
+          user_id: user.id, appointment_id: apptId!,
+          service_id: it.service_id || null,
+          name: it.name || services.find(s => s.id === it.service_id)?.name || null,
+          qty: it.qty || 1, price: it.price || 0, sort_order: idx,
+        }));
+        await supabase.from("appointment_services").insert(rows);
+      }
+    }
     if (form.payment_method === "promissoria") {
       if (!form.client_id) return toast.error("Promissória requer cliente cadastrado.");
       try {
-        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: amount, data: promissoria, appointment_id: apptId, notes: form.notes });
+        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: baseAmount, data: promissoria, appointment_id: apptId, notes: form.notes });
       } catch (e: any) { return toast.error(friendlyError(e, "Falha promissória: ".replace(/:\s*$/, ""))); }
     }
     toast.success(editing ? "Agendamento atualizado" : "Agendamento criado");
@@ -287,7 +316,7 @@ export default function Appointments() {
               </label>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Serviço</Label>
+              <div><Label>Serviço principal</Label>
                 <Select value={form.service_id} onValueChange={(v) => { const s = services.find(x => x.id === v); setForm({ ...form, service_id: v, amount: s?.starting_price ?? form.amount }); }}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — R$ {s.starting_price?.toFixed(2)}</SelectItem>)}</SelectContent>
@@ -295,12 +324,33 @@ export default function Appointments() {
               </div>
               <div><Label>Profissional</Label><Input value={form.professional} onChange={(e) => setForm({ ...form, professional: e.target.value })} placeholder="Nome" /></div>
             </div>
+
+            <div className="rounded-2xl border border-border/60 p-3 space-y-2 bg-secondary/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Procedimentos adicionais</Label>
+                <Button type="button" size="sm" variant="ghost" onClick={addItem} className="h-7 gap-1"><Plus className="h-3.5 w-3.5" />Adicionar</Button>
+              </div>
+              {items.length === 0 && <p className="text-xs text-muted-foreground">Use para combinar 2+ procedimentos no mesmo atendimento.</p>}
+              {items.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_60px_90px_28px] gap-2 items-center">
+                  <Select value={it.service_id} onValueChange={(v) => { const s = services.find(x => x.id === v); updateItem(i, { service_id: v, name: s?.name || "", price: it.price || s?.starting_price || 0 }); }}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Procedimento" /></SelectTrigger>
+                    <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Input type="number" min={1} value={it.qty} onChange={(e) => updateItem(i, { qty: +e.target.value || 1 })} className="h-9" />
+                  <Input type="number" step="0.01" value={it.price} onChange={(e) => updateItem(i, { price: +e.target.value })} className="h-9" placeholder="R$" />
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i)} className="h-8 w-8"><X className="h-3.5 w-3.5" /></Button>
+                </div>
+              ))}
+              {items.length > 0 && <div className="text-xs text-right text-muted-foreground">Total procedimentos: <strong className="text-foreground">R$ {itemsTotal.toFixed(2)}</strong></div>}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: +e.target.value })} /></div>
+              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={items.length > 0 ? itemsTotal : form.amount} disabled={items.length > 0} onChange={(e) => setForm({ ...form, amount: +e.target.value })} /></div>
               <div><Label>Pagamento</Label>
-                <Select value={form.payment_method} onValueChange={(v) => { setForm({ ...form, payment_method: v }); if (v === "promissoria") setPromissoria(p => ({ ...p, total_amount: form.amount })); }}>
+                <Select value={form.payment_method} onValueChange={(v) => { setForm({ ...form, payment_method: v }); if (v === "promissoria") setPromissoria(p => ({ ...p, total_amount: items.length > 0 ? itemsTotal : form.amount })); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{PAY_METHODS.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}</SelectContent>
+                  <SelectContent>{payMethods.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
