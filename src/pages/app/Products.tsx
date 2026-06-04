@@ -254,7 +254,8 @@ export default function Products() {
       });
     }
     return r;
-  }, [list, filter, statusFilter, search, suppliers, variationsByProduct]);
+  }, [list, filter, statusFilter, imagePendingOnly, search, suppliers, variationsByProduct]);
+  const pendingImageCount = list.filter(p => !!p.image_review_required).length;
   const lowStock = filtered.filter(isLowStock).length;
   const allCats = Array.from(new Set(list.map(p => p.category).filter(Boolean) as string[]));
 
