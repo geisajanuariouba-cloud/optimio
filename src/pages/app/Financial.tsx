@@ -36,6 +36,8 @@ export default function Financial() {
     type: "income", gross_amount: 0, payment_method_id: "", category: "", description: "",
     transaction_date: today, client_id: "", cash_received: 0, needs_delivery: false,
     delivery_address: null, edit_address: false,
+    interest_type: "none", interest_percent: 0, interest_amount: 0,
+    total_manual: false, total_override: 0,
   });
   const [items, setItems] = useState<SaleItem[]>([]);
   const [promo, setPromo] = useState<PromissoriaData>({ total_amount: 0, installments_count: 1, first_due: today });
@@ -57,13 +59,30 @@ export default function Financial() {
   const isVendaServico = isIncome && (form.category === "Venda" || form.category === "Serviço");
   const isPromissoria = form.payment_method_id === "promissoria";
   const isCash = selectedPM?.code === "dinheiro";
-  const change = isCash && form.cash_received ? Math.max(0, Number(form.cash_received) - Number(form.gross_amount)) : 0;
+  // change recalculado abaixo após effectiveTotal
+
+  const pickerMode: "product" | "service" | "both" =
+    form.category === "Serviço" ? "service"
+    : form.category === "Venda" ? "product"
+    : "both";
+
+  // Juros / Acréscimos
+  const interestAmount = useMemo(() => {
+    if (!isIncome) return 0;
+    if (form.interest_type === "percent") return Math.round((Number(form.gross_amount) * Number(form.interest_percent || 0)) / 100 * 100) / 100;
+    if (form.interest_type === "fixed") return Math.round(Number(form.interest_amount || 0) * 100) / 100;
+    return 0;
+  }, [isIncome, form.interest_type, form.interest_percent, form.interest_amount, form.gross_amount]);
+
+  const totalWithInterest = useMemo(() => Math.round((Number(form.gross_amount) + interestAmount) * 100) / 100, [form.gross_amount, interestAmount]);
+  const effectiveTotal = form.total_manual ? Number(form.total_override || 0) : totalWithInterest;
+  const change = isCash && form.cash_received ? Math.max(0, Number(form.cash_received) - Number(effectiveTotal || form.gross_amount)) : 0;
 
   const calcNet = () => {
-    if (isPromissoria) return form.gross_amount;
-    if (!isIncome || !selectedPM) return form.gross_amount;
-    const fee = (form.gross_amount * Number(selectedPM.fee_percent)) / 100 + Number(selectedPM.fee_fixed);
-    return Math.max(0, form.gross_amount - fee);
+    if (isPromissoria) return effectiveTotal;
+    if (!isIncome || !selectedPM) return effectiveTotal;
+    const fee = (effectiveTotal * Number(selectedPM.fee_percent)) / 100 + Number(selectedPM.fee_fixed);
+    return Math.max(0, effectiveTotal - fee);
   };
 
   const selectedClient = clients.find(c => c.id === form.client_id);
@@ -71,24 +90,25 @@ export default function Financial() {
   // Sincroniza gross_amount com soma dos itens (quando há itens)
   const itemsTotal = useMemo(() => items.reduce((a, it) => a + it.unit_price * it.quantity, 0), [items]);
   useEffect(() => {
-    if (isVendaServico && items.length > 0) {
+    if (isVendaServico && items.length > 0 && !form.total_manual) {
       const total = Math.round(itemsTotal * 100) / 100;
       if (Math.abs(Number(form.gross_amount) - total) > 0.005) {
         setForm((f: any) => ({ ...f, gross_amount: total }));
       }
     }
-  }, [itemsTotal, isVendaServico, items.length]);
+  }, [itemsTotal, isVendaServico, items.length, form.total_manual]);
 
   const save = async () => {
     if (!user || !form.gross_amount) return toast.error("Informe o valor do lançamento.");
     if (isVendaServico && !form.client_id) return toast.error("Selecione um cliente para Venda/Serviço.");
     if (isVendaServico && items.length === 0) return toast.error("Adicione pelo menos 1 produto ou serviço à venda.");
     if (isPromissoria && !form.client_id) return toast.error("Promissória requer cliente cadastrado.");
-    if (isCash && form.cash_received < form.gross_amount) return toast.error("Valor recebido é menor que o total da venda.");
+    if (isCash && form.cash_received < effectiveTotal) return toast.error("Valor recebido é menor que o total da venda.");
 
+    const baseTotal = effectiveTotal;
     const fee_percent = isPromissoria ? 0 : (selectedPM ? Number(selectedPM.fee_percent) : 0);
-    const fee_amount = isIncome ? (form.gross_amount * fee_percent) / 100 + (selectedPM ? Number(selectedPM.fee_fixed) : 0) : 0;
-    const net_amount = isIncome ? Math.max(0, form.gross_amount - fee_amount) : form.gross_amount;
+    const fee_amount = isIncome ? (baseTotal * fee_percent) / 100 + (selectedPM ? Number(selectedPM.fee_fixed) : 0) : 0;
+    const net_amount = isIncome ? Math.max(0, baseTotal - fee_amount) : baseTotal;
 
     if (isVendaServico && form.edit_address && form.client_id && form.delivery_address) {
       await supabase.from("clients").update(form.delivery_address).eq("id", form.client_id);
@@ -104,7 +124,13 @@ export default function Financial() {
     })) : [];
 
     const { data: tx, error } = await supabase.from("financial").insert({
-      user_id: user.id, type: form.type, gross_amount: form.gross_amount, net_amount, fee_percent, fee_amount,
+      user_id: user.id, type: form.type,
+      gross_amount: baseTotal, net_amount, fee_percent, fee_amount,
+      interest_type: isIncome ? form.interest_type : "none",
+      interest_percent: isIncome && form.interest_type === "percent" ? Number(form.interest_percent || 0) : 0,
+      interest_amount: isIncome ? interestAmount : 0,
+      total_with_interest: isIncome ? totalWithInterest : baseTotal,
+      total_manual: !!form.total_manual,
       payment_method: isPromissoria ? "promissoria" : (selectedPM?.code ?? null), payment_method_id: isPromissoria ? null : (form.payment_method_id || null),
       installments: isPromissoria ? promo.installments_count : (selectedPM?.installments ?? 1),
       cash_received: isCash ? form.cash_received : null,
@@ -132,13 +158,13 @@ export default function Financial() {
 
     if (isPromissoria && tx) {
       try {
-        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: form.gross_amount, data: promo, appointment_id: null, notes: form.description });
+        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: effectiveTotal, data: promo, appointment_id: null, notes: form.description });
       } catch (e: any) { return toast.error(friendlyError(e, "Falha ao criar promissória.")); }
     }
 
     if (isIncome && isCash && tx) {
       const cashRows = [
-        { user_id: user.id, type: "in", amount: Number(form.gross_amount), reason: "venda_dinheiro", description: form.description || null, financial_id: tx.id },
+        { user_id: user.id, type: "in", amount: Number(effectiveTotal), reason: "venda_dinheiro", description: form.description || null, financial_id: tx.id },
       ];
       if (change > 0) cashRows.push({ user_id: user.id, type: "out", amount: change, reason: "troco", description: `Troco venda ${tx.id.slice(0, 8)}`, financial_id: tx.id });
       await supabase.from("cash_drawer_transactions").insert(cashRows);
@@ -259,7 +285,7 @@ export default function Financial() {
 
             {isVendaServico && (
               <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3 space-y-3">
-                <ProductPicker items={items} onChange={setItems} includeServices={form.category === "Serviço"} />
+                <ProductPicker items={items} onChange={setItems} mode={pickerMode} includeServices={pickerMode !== "product"} />
                 <div>
                   <Label>Cliente *</Label>
                   <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
@@ -298,9 +324,45 @@ export default function Financial() {
               </div>
             )}
 
+            {isIncome && (
+              <div className="rounded-2xl bg-amber-500/5 border border-amber-500/20 p-3 space-y-2">
+                <Label className="text-sm font-medium">Juros / Acréscimos</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Select value={form.interest_type} onValueChange={(v) => setForm({ ...form, interest_type: v })}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem juros</SelectItem>
+                      <SelectItem value="percent">% sobre valor</SelectItem>
+                      <SelectItem value="fixed">Valor fixo R$</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.interest_type === "percent" && (
+                    <Input type="number" step="0.01" value={form.interest_percent} onChange={(e) => setForm({ ...form, interest_percent: +e.target.value })} placeholder="%" className="h-9" />
+                  )}
+                  {form.interest_type === "fixed" && (
+                    <Input type="number" step="0.01" value={form.interest_amount} onChange={(e) => setForm({ ...form, interest_amount: +e.target.value })} placeholder="R$" className="h-9" />
+                  )}
+                  <div className="text-xs flex items-center justify-end text-muted-foreground col-span-1">
+                    + R$ <strong className="text-foreground ml-1">{interestAmount.toFixed(2)}</strong>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-2 border-t">
+                  <label className="flex items-center gap-2 text-xs">
+                    <Switch checked={!!form.total_manual} onCheckedChange={(v) => setForm({ ...form, total_manual: v, total_override: v ? totalWithInterest : 0 })} />
+                    Editar total manualmente
+                  </label>
+                  {form.total_manual ? (
+                    <Input type="number" step="0.01" value={form.total_override} onChange={(e) => setForm({ ...form, total_override: +e.target.value })} className="h-9 w-32 text-right font-semibold" />
+                  ) : (
+                    <div className="text-sm">Total: <strong className="text-primary">R$ {totalWithInterest.toFixed(2)}</strong></div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {(selectedPM || isPromissoria) && isIncome && (
               <div className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-2">
-                Líquido: <strong className="text-primary text-sm">R$ {calcNet().toFixed(2)}</strong>{isPromissoria ? ` · Promissória ${promo.installments_count}×` : ` · Taxa ${selectedPM?.fee_percent}% ${selectedPM && selectedPM.installments > 1 ? `· ${selectedPM.installments}×` : ""}`}
+                Total: <strong className="text-foreground">R$ {effectiveTotal.toFixed(2)}</strong> · Líquido: <strong className="text-primary text-sm">R$ {calcNet().toFixed(2)}</strong>{isPromissoria ? ` · Promissória ${promo.installments_count}×` : ` · Taxa ${selectedPM?.fee_percent}% ${selectedPM && selectedPM.installments > 1 ? `· ${selectedPM.installments}×` : ""}`}
               </div>
             )}
 

@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Boxes, Pencil, Trash2, AlertTriangle, Trophy, Settings2, Search, Wand2, Layers } from "lucide-react";
+import { Boxes, Pencil, Trash2, AlertTriangle, Trophy, Settings2, Search, Wand2, Layers, ImageOff, CheckCircle2 } from "lucide-react";
+import { logAudit } from "@/lib/audit";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategorySelect } from "@/components/app/CategorySelect";
 import { VariationEditor, type Variation, emptyVariation } from "@/components/products/VariationEditor";
@@ -63,6 +64,7 @@ export default function Products() {
 
   const [filter, setFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [imagePendingOnly, setImagePendingOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<string>("30");
   const [bestSeller, setBestSeller] = useState<{ name: string; count: number } | null>(null);
@@ -212,6 +214,14 @@ export default function Products() {
     load();
   };
 
+  const markImageReviewed = async (p: Product) => {
+    const { error } = await supabase.from("products").update({ image_review_required: false }).eq("id", p.id);
+    if (error) return toast.error(friendlyError(error));
+    await logAudit({ action: "product.status_change", module: "products", entity_id: p.id, metadata: { name: p.name, kind: "image_reviewed" } });
+    toast.success("Imagem marcada como revisada");
+    load();
+  };
+
   const variationsByProduct = useMemo(() => {
     const m = new Map<string, VarRow[]>();
     for (const v of allVariations) {
@@ -225,6 +235,7 @@ export default function Products() {
     let r = list;
     if (statusFilter !== "all") r = r.filter(p => p.status === statusFilter);
     if (filter !== "all") r = r.filter(p => (p.category ?? "") === filter);
+    if (imagePendingOnly) r = r.filter(p => !!p.image_review_required);
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       const supMap = new Map(suppliers.map(s => [s.id, s.name.toLowerCase()]));
@@ -251,7 +262,8 @@ export default function Products() {
       });
     }
     return r;
-  }, [list, filter, statusFilter, search, suppliers, variationsByProduct]);
+  }, [list, filter, statusFilter, imagePendingOnly, search, suppliers, variationsByProduct]);
+  const pendingImageCount = list.filter(p => !!p.image_review_required).length;
   const lowStock = filtered.filter(isLowStock).length;
   const allCats = Array.from(new Set(list.map(p => p.category).filter(Boolean) as string[]));
 
@@ -322,6 +334,17 @@ export default function Products() {
             {allCats.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          type="button"
+          variant={imagePendingOnly ? "default" : "outline"}
+          size="sm"
+          className="h-9 rounded-xl gap-1"
+          onClick={() => setImagePendingOnly(v => !v)}
+          title="Mostrar apenas produtos com imagem pendente de revisão"
+        >
+          <ImageOff className="h-3.5 w-3.5" />
+          Imagem pendente {pendingImageCount > 0 && <Badge className="ml-1 bg-amber-500/20 text-amber-700 text-[10px]">{pendingImageCount}</Badge>}
+        </Button>
       </div>
 
       <MetricsRow items={[
@@ -373,6 +396,21 @@ export default function Products() {
                           {bestSeller?.name === p.name && <Trophy className="h-3 w-3 text-amber-500" />}
                           {p.status === "discontinued" && <Badge className="bg-amber-500/15 text-amber-600 text-[10px]">fora de linha</Badge>}
                           {p.is_ingredient_residue && <Badge className="bg-cyan-500/10 text-cyan-600 text-[10px]">ingrediente</Badge>}
+                          {p.image_review_required && (
+                            <span className="inline-flex items-center gap-1">
+                              <Badge className="bg-amber-500/15 text-amber-700 text-[10px] gap-1"><ImageOff className="h-3 w-3" />imagem pendente</Badge>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[10px] text-emerald-600 gap-1"
+                                onClick={() => markImageReviewed(p)}
+                                title="Marcar imagem como revisada"
+                              >
+                                <CheckCircle2 className="h-3 w-3" /> revisada
+                              </Button>
+                            </span>
+                          )}
                         </div>
                         {p.has_variations && (variationsByProduct.get(p.id) ?? []).length > 0 && (
                           <div className="flex items-center gap-1 flex-wrap mt-1">
