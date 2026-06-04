@@ -28,6 +28,7 @@ const ALL = [
   { mod: "financial", title: "Financeiro", url: "/app/financial", icon: Wallet },
   { mod: "financial", title: "Caixa do Dia", url: "/app/cash-drawer", icon: Banknote },
   { mod: "financial", title: "Dívidas", url: "/app/debts", icon: Receipt },
+  { mod: "financial", title: "Cobrança Inteligente", url: "/app/collections", icon: Banknote },
   { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },
   { mod: "financial", title: "Montadores", url: "/app/assemblers", icon: Wrench },
   { mod: "marketing", title: "Marketing", url: "/app/marketing", icon: Megaphone },
