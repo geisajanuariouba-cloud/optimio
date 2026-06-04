@@ -133,6 +133,7 @@ export default function Settings() {
           <TabsTrigger value="general"><SettingsIcon className="h-4 w-4 mr-1" />Geral</TabsTrigger>
           <TabsTrigger value="categories"><Tags className="h-4 w-4 mr-1" />Categorias</TabsTrigger>
           <TabsTrigger value="anamnesis"><ClipboardList className="h-4 w-4 mr-1" />Anamnese</TabsTrigger>
+          <TabsTrigger value="support"><LifeBuoy className="h-4 w-4 mr-1" />Suporte</TabsTrigger>
           <TabsTrigger value="plan"><Crown className="h-4 w-4 mr-1" />Plano</TabsTrigger>
         </TabsList>
 
