@@ -71,19 +71,24 @@ export default function Alerts() {
       const today = new Date().toISOString().slice(0, 10);
       const newAlerts: any[] = [];
 
-      // Estoque abaixo do mínimo
+      // Estoque abaixo (ou igual) ao mínimo — exclui o caso degenerado de min=0/stock=0
       const { data: lowStockProducts } = await supabase
-        .from("products").select("id,name,min_stock")
+        .from("products").select("id,name,stock,min_stock")
         .eq("user_id", tenantOwnerId).eq("status", "active").eq("out_of_line", false)
-        .is("deleted_at", null).gt("min_stock", 0).limit(200);
-      for (const p of lowStockProducts ?? []) {
-        newAlerts.push({
-          user_id: tenantOwnerId, kind: "low_stock", severity: "warn",
-          title: `Estoque baixo: ${p.name}`,
-          description: `Estoque mínimo: ${p.min_stock}`,
-          entity_table: "products", entity_id: p.id, status: "open",
-        });
+        .is("deleted_at", null).limit(500);
+      for (const p of (lowStockProducts ?? []) as any[]) {
+        const stock = Number(p.stock ?? 0);
+        const min = Number(p.min_stock ?? 0);
+        if (stock <= min && !(stock === 0 && min === 0)) {
+          newAlerts.push({
+            user_id: tenantOwnerId, kind: "low_stock", severity: stock <= 0 ? "high" : "warn",
+            title: `Estoque baixo: ${p.name}`,
+            description: `Atual: ${stock} • Mínimo: ${min}`,
+            entity_table: "products", entity_id: p.id, status: "open",
+          });
+        }
       }
+
 
       // Produto sem custo
       const { data: noCost } = await supabase

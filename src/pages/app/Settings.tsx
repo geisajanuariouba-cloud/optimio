@@ -13,9 +13,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy, Shield, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
+import { getCycleLabel } from "@/lib/operationalCycle";
+
 
 const COLORS = [
   { name: "Roxo", value: "271 91% 65%" },
@@ -37,15 +39,24 @@ export default function Settings() {
   const [niche, setNiche] = useState<NicheKey>("beauty");
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
+  const [cycleDay, setCycleDay] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [supportVisible, setSupportVisible] = useState(true);
   const [supportPosition, setSupportPosition] = useState<"bottom-right" | "bottom-left" | "top-right" | "top-left">("bottom-right");
+
+  // Restaurar conta
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [restoreEmail, setRestoreEmail] = useState("");
+  const [restorePassword, setRestorePassword] = useState("");
+  const [restoreConfirm, setRestoreConfirm] = useState("");
+  const [restoring, setRestoring] = useState(false);
 
   const [cats, setCats] = useState<Cat[]>([]);
   const [newCat, setNewCat] = useState<{ kind: Cat["kind"]; name: string }>({ kind: "income", name: "" });
 
   const [questions, setQuestions] = useState<Q[]>([]);
   const [savingAnam, setSavingAnam] = useState(false);
+
 
   useEffect(() => {
     if (!profile) return;
@@ -54,6 +65,7 @@ export default function Settings() {
     setNiche((profile.niche as NicheKey) ?? "beauty");
     setPrimaryColor(profile.primary_color);
     setBorderStyle(profile.border_style);
+    setCycleDay(Number((profile as any).operational_cycle_start_day ?? 1));
     setSupportVisible((profile as any).support_button_visible !== false);
     setSupportPosition(((profile as any).support_button_position ?? "bottom-right") as any);
   }, [profile]);
@@ -72,13 +84,32 @@ export default function Settings() {
   const save = async () => {
     if (!user) return;
     setLoading(true);
+    const safeDay = Math.min(28, Math.max(1, Number(cycleDay) || 1));
     const { error } = await supabase.from("profiles").update({
       company_name: companyName, full_name: fullName,
       primary_color: primaryColor, border_style: borderStyle,
-    }).eq("id", user.id);
+      operational_cycle_start_day: safeDay,
+    } as any).eq("id", user.id);
     setLoading(false);
     if (error) toast.error(friendlyError(error)); else { toast.success("Configurações salvas!"); refresh(); }
   };
+
+  const doRestore = async () => {
+    if (!user) return;
+    if (restoreConfirm.trim().toUpperCase() !== "CONFIRMAR") return toast.error('Digite "CONFIRMAR" para prosseguir.');
+    if (!restoreEmail || !restorePassword) return toast.error("Informe email e senha.");
+    setRestoring(true);
+    const { error: authErr } = await supabase.auth.signInWithPassword({ email: restoreEmail, password: restorePassword });
+    if (authErr) { setRestoring(false); return toast.error("Email ou senha inválidos."); }
+    const { data, error } = await supabase.rpc("restore_tenant_data" as any);
+    setRestoring(false);
+    if (error) return toast.error(friendlyError(error));
+    toast.success("Conta restaurada. Dados operacionais apagados.");
+    setRestoreOpen(false); setRestoreEmail(""); setRestorePassword(""); setRestoreConfirm("");
+    refresh();
+    setTimeout(() => { window.location.href = "/app"; }, 800);
+  };
+
 
   const resetNiche = async () => {
     if (!user) return;
@@ -123,9 +154,16 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold mb-1">Configurações</h1>
-        <p className="text-muted-foreground">Personalize empresa, nicho, design, plano, categorias e anamnese.</p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Configurações</h1>
+          <p className="text-muted-foreground">Personalize empresa, nicho, design, plano, categorias e anamnese.</p>
+        </div>
+        {(profile as any)?.is_admin_master && (
+          <div className="pill px-3 py-1.5 inline-flex items-center gap-2 text-xs font-semibold text-primary">
+            <ShieldCheck className="h-3.5 w-3.5" /> Administrador Master
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="general">
@@ -134,6 +172,7 @@ export default function Settings() {
           <TabsTrigger value="categories"><Tags className="h-4 w-4 mr-1" />Categorias</TabsTrigger>
           <TabsTrigger value="anamnesis"><ClipboardList className="h-4 w-4 mr-1" />Anamnese</TabsTrigger>
           <TabsTrigger value="support"><LifeBuoy className="h-4 w-4 mr-1" />Suporte</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="h-4 w-4 mr-1" />Segurança</TabsTrigger>
           <TabsTrigger value="plan"><Crown className="h-4 w-4 mr-1" />Plano</TabsTrigger>
         </TabsList>
 
@@ -144,8 +183,18 @@ export default function Settings() {
               <div><Label>Nome completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-secondary/50 border-0 h-11" /></div>
               <div><Label>Nome da empresa (whitelabel)</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="bg-secondary/50 border-0 h-11" /></div>
             </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Dia de início do mês operacional</Label>
+                <Input type="number" min={1} max={28} value={cycleDay}
+                  onChange={(e) => setCycleDay(Number(e.target.value))}
+                  className="bg-secondary/50 border-0 h-11" />
+                <p className="text-xs text-muted-foreground mt-1">Ciclo atual: <strong>{getCycleLabel(cycleDay)}</strong></p>
+              </div>
+            </div>
             <Button onClick={save} disabled={loading} className="rounded-2xl">{loading ? "Salvando…" : "Salvar"}</Button>
           </Card>
+
 
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
             <div className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary" /><h2 className="text-xl font-semibold">Aparência</h2></div>
