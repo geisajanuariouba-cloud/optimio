@@ -486,7 +486,7 @@ function SideList({
       ) : (
         <div className="space-y-1">
           {items.map(it => (
-            <Link key={it.id} to={to} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/40 dark:bg-white/[0.03] transition">
+            <Link key={it.id} to={to} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/40 dark:hover:bg-white/[0.03] transition">
               <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 dark:bg-white/[0.04] ${it.tint}`}>
                 <it.icon className="h-4 w-4" />
               </div>
