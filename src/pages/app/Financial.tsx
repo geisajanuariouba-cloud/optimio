@@ -59,7 +59,7 @@ export default function Financial() {
   const isVendaServico = isIncome && (form.category === "Venda" || form.category === "Serviço");
   const isPromissoria = form.payment_method_id === "promissoria";
   const isCash = selectedPM?.code === "dinheiro";
-  const change = isCash && form.cash_received ? Math.max(0, Number(form.cash_received) - Number(effectiveTotal || form.gross_amount)) : 0;
+  // change recalculado abaixo após effectiveTotal
 
   const pickerMode: "product" | "service" | "both" =
     form.category === "Serviço" ? "service"
