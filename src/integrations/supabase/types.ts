@@ -406,10 +406,12 @@ export type Database = {
       }
       catalog_review_items: {
         Row: {
+          approve_with_image_pending: boolean | null
           catalog_id: string | null
           created_at: string
           dedup_hash: string | null
           id: string
+          image_flagged: boolean | null
           match_product_id: string | null
           match_status: string
           proposed_category: string | null
@@ -419,6 +421,7 @@ export type Database = {
           proposed_name: string | null
           proposed_variations: Json | null
           raw_data: Json
+          rejection_reason: string | null
           review_status: string
           reviewer_notes: string | null
           source_page: number | null
@@ -427,10 +430,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approve_with_image_pending?: boolean | null
           catalog_id?: string | null
           created_at?: string
           dedup_hash?: string | null
           id?: string
+          image_flagged?: boolean | null
           match_product_id?: string | null
           match_status?: string
           proposed_category?: string | null
@@ -440,6 +445,7 @@ export type Database = {
           proposed_name?: string | null
           proposed_variations?: Json | null
           raw_data?: Json
+          rejection_reason?: string | null
           review_status?: string
           reviewer_notes?: string | null
           source_page?: number | null
@@ -448,10 +454,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approve_with_image_pending?: boolean | null
           catalog_id?: string | null
           created_at?: string
           dedup_hash?: string | null
           id?: string
+          image_flagged?: boolean | null
           match_product_id?: string | null
           match_status?: string
           proposed_category?: string | null
@@ -461,6 +469,7 @@ export type Database = {
           proposed_name?: string | null
           proposed_variations?: Json | null
           raw_data?: Json
+          rejection_reason?: string | null
           review_status?: string
           reviewer_notes?: string | null
           source_page?: number | null
@@ -941,6 +950,9 @@ export type Database = {
           has_local_stock: boolean | null
           id: string
           installments: number | null
+          interest_amount: number | null
+          interest_percent: number | null
+          interest_type: string | null
           is_duplicate: boolean
           items: Json
           needs_assembly: boolean
@@ -953,6 +965,8 @@ export type Database = {
           production_status: string | null
           quote_id: string | null
           supplier_id: string | null
+          total_manual: boolean | null
+          total_with_interest: number | null
           transaction_date: string
           type: string
           user_id: string
@@ -972,6 +986,9 @@ export type Database = {
           has_local_stock?: boolean | null
           id?: string
           installments?: number | null
+          interest_amount?: number | null
+          interest_percent?: number | null
+          interest_type?: string | null
           is_duplicate?: boolean
           items?: Json
           needs_assembly?: boolean
@@ -984,6 +1001,8 @@ export type Database = {
           production_status?: string | null
           quote_id?: string | null
           supplier_id?: string | null
+          total_manual?: boolean | null
+          total_with_interest?: number | null
           transaction_date?: string
           type: string
           user_id: string
@@ -1003,6 +1022,9 @@ export type Database = {
           has_local_stock?: boolean | null
           id?: string
           installments?: number | null
+          interest_amount?: number | null
+          interest_percent?: number | null
+          interest_type?: string | null
           is_duplicate?: boolean
           items?: Json
           needs_assembly?: boolean
@@ -1015,6 +1037,8 @@ export type Database = {
           production_status?: string | null
           quote_id?: string | null
           supplier_id?: string | null
+          total_manual?: boolean | null
+          total_with_interest?: number | null
           transaction_date?: string
           type?: string
           user_id?: string
@@ -1708,6 +1732,7 @@ export type Database = {
           has_variations: boolean
           height: number | null
           id: string
+          image_review_required: boolean
           image_url: string | null
           is_ingredient_residue: boolean
           last_cost_synced_at: string | null
@@ -1753,6 +1778,7 @@ export type Database = {
           has_variations?: boolean
           height?: number | null
           id?: string
+          image_review_required?: boolean
           image_url?: string | null
           is_ingredient_residue?: boolean
           last_cost_synced_at?: string | null
@@ -1798,6 +1824,7 @@ export type Database = {
           has_variations?: boolean
           height?: number | null
           id?: string
+          image_review_required?: boolean
           image_url?: string | null
           is_ingredient_residue?: boolean
           last_cost_synced_at?: string | null
@@ -1852,6 +1879,8 @@ export type Database = {
           primary_color: string
           remember_me: boolean | null
           secondary_color: string | null
+          support_button_position: string | null
+          support_button_visible: boolean | null
           terms: Json
           updated_at: string
         }
@@ -1878,6 +1907,8 @@ export type Database = {
           primary_color?: string
           remember_me?: boolean | null
           secondary_color?: string | null
+          support_button_position?: string | null
+          support_button_visible?: boolean | null
           terms?: Json
           updated_at?: string
         }
@@ -1904,6 +1935,8 @@ export type Database = {
           primary_color?: string
           remember_me?: boolean | null
           secondary_color?: string | null
+          support_button_position?: string | null
+          support_button_visible?: boolean | null
           terms?: Json
           updated_at?: string
         }
@@ -1965,39 +1998,78 @@ export type Database = {
       }
       quote_items: {
         Row: {
+          category: string | null
           created_at: string
+          extra_fee_percent: number | null
+          final_cost: number | null
           id: string
+          image_url: string | null
+          item_type: string | null
           margin_percent: number
+          markup_percent: number | null
+          measurements_snapshot: Json | null
+          name: string | null
           notes: string | null
           product_id: string | null
           quantity: number
           quote_id: string
+          service_id: string | null
+          sku: string | null
+          subtotal: number | null
+          supplier_id: string | null
+          supplier_name: string | null
           unit_cost: number
           unit_price: number
           user_id: string
           variation_id: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
+          extra_fee_percent?: number | null
+          final_cost?: number | null
           id?: string
+          image_url?: string | null
+          item_type?: string | null
           margin_percent?: number
+          markup_percent?: number | null
+          measurements_snapshot?: Json | null
+          name?: string | null
           notes?: string | null
           product_id?: string | null
           quantity?: number
           quote_id: string
+          service_id?: string | null
+          sku?: string | null
+          subtotal?: number | null
+          supplier_id?: string | null
+          supplier_name?: string | null
           unit_cost?: number
           unit_price?: number
           user_id: string
           variation_id?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string
+          extra_fee_percent?: number | null
+          final_cost?: number | null
           id?: string
+          image_url?: string | null
+          item_type?: string | null
           margin_percent?: number
+          markup_percent?: number | null
+          measurements_snapshot?: Json | null
+          name?: string | null
           notes?: string | null
           product_id?: string | null
           quantity?: number
           quote_id?: string
+          service_id?: string | null
+          sku?: string | null
+          subtotal?: number | null
+          supplier_id?: string | null
+          supplier_name?: string | null
           unit_cost?: number
           unit_price?: number
           user_id?: string

@@ -1,96 +1,89 @@
-# Correção Crítica Pré-Lançamento
+# Plano — Execução em ondas
 
-São 14 frentes. Para evitar uma mega-migração arriscada num único disparo, proponho dividir em **3 sub-ondas** entregues em sequência, cada uma testável isoladamente.
-
----
-
-## SUB-ONDA A — Dados, RLS e Storage (fundação segura)
-
-Bloqueia o sistema de ficar inconsistente. Tudo backend + filtros de leitura.
-
-1. **Filtro global de produtos ativos** (item 2)
-   - Helper `isProductActive(status)` + view `products_active` ou filtro `.in("status", ["ativo","approved"])` em **toda** query de:
-     Estoque, Vendas, Orçamentos, Combos, Logística, Busca, seletores de venda.
-   - Produtos em `aguardando_revisao / em_revisao / rejeitado / processando / erro / aguardando_tabela_custo` ficam **só** em ImportReview, SupplierDetail e SuperAdmin.
-
-2. **Aprovação publica produto corretamente** (item 3)
-   - Em `ImportReview.approve` e `bulkApprove`: ao criar produto, definir `status='ativo'`, `review_status='approved'`, `published_at=now()`. Idempotência via `dedup_hash` para não duplicar em reaprovação.
-   - Variações herdam `status='ativo'`.
-   - Atualizar `catalog_review_items.match_product_id` para evitar reaprovação.
-
-3. **Storage seguro** (item 9)
-   - Tornar **privados**: `catalog-images`, `tenant-logos` (ou manter público só se a landing exigir — verificar uso).
-   - Manter público apenas: `product-images` (usado no app cliente), `landing-assets`.
-   - Adicionar políticas RLS em `storage.objects` por bucket usando `(storage.foldername(name))[1] = auth.uid()::text OR membership`.
-   - Para buckets que viram privados, expor via signed URL nos componentes que consomem.
-
-4. **Validação de imagens extraídas** (item 1 — parte backend)
-   - Coluna `catalog_review_items.image_status` enum: `extracted / pending / manual / invalid / placeholder`.
-   - Edge function de import marca `pending` se a confiança da extração < threshold, ou se a imagem for menor que 200×200, aspect < 0.4 ou > 3.0, ou hash duplicado de outro item.
-   - Approve **não** copia imagem para `products.image_url` quando `image_status='invalid'` — usa placeholder.
-
-5. **Audit log** (item 13)
-   - Tabela `audit_logs` (já pode existir — verificar). Inserir em: approve product, bulk approve, status change, price edit, sale create, upgrade manual, payment method change, storage config change.
+O prompt mistura **correções críticas urgentes** com **30+ módulos novos**. Tentar tudo numa tacada quebraria o sistema. Vou propor 3 ondas e começar a executar a Onda 1 imediatamente após sua aprovação. Ondas 2 e 3 só depois que você validar a 1.
 
 ---
 
-## SUB-ONDA B — Fluxo de Venda completo
+## Onda 1 — CRÍTICO (faço agora, ~1 mensagem)
 
-Resolve o bug central: não dá pra vender. Tudo UI + lógica de cálculo.
+Resolve os bloqueios de lançamento que você relatou nas seções "Correção crítica venda/orçamento" e "Melhorias revisão de importação".
 
-6. **Lançamento permite escolher produto/serviço** (item 4)
-   - Em `Sales.tsx` e `Financial.tsx`, quando `kind='income'` e categoria for `venda*`: exigir cliente + produto/serviço + variação + qty + método de pagamento.
-   - Novo componente `<ProductPicker>` reusável (busca, filtra `status=ativo`, mostra imagem/SKU/preço).
+### 1.1 Migração de banco (única, idempotente)
+- `products.image_review_required boolean default false`
+- `financial.interest_amount`, `financial.interest_percent`, `financial.total_manual boolean`, `financial.total_with_interest numeric`
+- `quotes`/`quote_items`: adicionar `image_url`, `measurements_snapshot jsonb`, `margin_percent`, `extra_fee_percent`, `cost_snapshot`, `final_cost_snapshot`, `supplier_id`, `category`
+- `app_settings`: chave `support_button` (visível, posição) por user
+- `catalog_review_items.rejection_reason text`
 
-7. **Auto-preencher dados ao selecionar** (item 5)
-   - Ao escolher produto/variação: preencher imagem, nome, code/SKU, custo, sale_price, margin_percent, extra_fee_percent, medidas, categoria. Variação tem prioridade sobre produto.
+### 1.2 Revisão de Importação (`ImportReview.tsx`)
+- Botão **"Rejeitar selecionados"** + modal PT-BR com motivo opcional
+- Botão **"Ver detalhes"** por card → drawer com TODOS os campos editáveis (nome, código, SKU, categoria, fornecedor, custo/desconto/custo final, margem, taxa, preço venda, variações, medidas, peso, página origem, confiança IA, duplicados)
+- Visualização melhor da imagem: clique abre modal com zoom; botões trocar/remover/upload; badge "imagem incorreta"
+- Checkbox **"Aprovar com imagem pendente"** → grava `image_review_required=true`
+- Logs em `audit_logs` para todas as ações
 
-8. **Margem/taxa editáveis por venda + recálculo** (item 6)
-   - Inputs de `margin_percent` e `extra_fee_percent` no item; recálculo via fórmula:
-     `final = cost_final * (1+m/100) * (1+f/100)` (já existe `engine_compute_sale` — espelhar no client).
-   - Não persiste no produto; só no snapshot.
+### 1.3 Produtos (`Products.tsx`)
+- Filtro **"Imagem pendente de revisão"** (toggle)
+- Badge "*Imagem pendente" no card
+- Botão **"Marcar imagem como revisada"** → zera flag + log
 
-9. **Snapshot do item vendido** (item 7)
-   - Tabela `sale_items` (ou similar) precisa colunas snapshot: `product_name, variation_name, image_url, sku, cost_table_price, discount_percent, final_cost_price, margin_percent, extra_fee_percent, sale_price, quantity, total, measurements_snapshot jsonb`.
-   - Migration adiciona o que faltar.
+### 1.4 Vendas/Lançamentos (`Financial.tsx` + `ProductPicker.tsx`)
+- Picker filtra por categoria: se transação="Serviço" → só serviços; se "Venda"/"Produto" → só produtos ativos
+- Garantir filtros: `status=active`, `deleted_at IS NULL`, `out_of_line=false`
+- Resolver preço com cascata: variação → produto → fornecedor → motor; nunca permitir 0 sem confirmação
+- Snapshot completo no `items` jsonb (já parcialmente feito)
+- Seção separada **"Juros / Acréscimos"** (% ou valor fixo) → calcula `total_with_interest`
+- Campo **Total editável** com flag `total_manual`; ao mudar item depois, pergunta se recalcula
 
-10. **Consistência financeira** (item 11)
-    - Venda criada → entrada em `financial_entries` + `cash_drawer` se aplicável.
-    - Baixa de estoque **só** se `product.status='ativo'`.
-    - Aplica taxa do método de pagamento.
+### 1.5 Orçamentos (`Quotes.tsx`)
+- Integrar `ProductPicker` (produtos + serviços + variações)
+- Card grande com imagem, medidas visíveis ("160cm L x 120cm A x 45cm P"), modal de zoom
+- Margem e taxa extra editáveis por item (snapshot, não altera produto)
 
----
-
-## SUB-ONDA C — UI, Admin, Métodos de Pagamento e Polimento
-
-11. **Imagens pendentes na ImportReview** (item 1 — parte UI)
-    - Cards mostram badge `Imagem pendente / inválida / manual / extraída`.
-    - Botões: Trocar imagem (upload), Remover, Marcar como inválida.
-    - Aprovação bloqueada com aviso suave se `image_status='pending'` (permite aprovar mesmo assim, mas avisa).
-
-12. **Upgrade manual no SuperAdmin** (item 8)
-    - Em `SuperAdmin.tsx`, drawer/modal "Upgrade manual" por tenant:
-      plano, ciclo (mensal/trimestral/semestral/anual), data início, vencimento, marcar pago, anexo de comprovante (upload em `payment-proofs`), observação.
-    - Atualiza `subscriptions`, libera módulos, audit_log.
-
-13. **Métodos de Pagamento volta ao menu** (item 10)
-    - Já existe `src/pages/app/PaymentMethods.tsx`. Verificar rota em `App.tsx` e link em `AppSidebar.tsx`. Re-adicionar entrada do menu (Configurações ou Financeiro).
-    - Garantir CRUD funcional + uso em Sales/Quotes/Financial/Cash.
-
-14. **Erros em PT-BR** (item 12)
-    - Auditar `toast.error(...)` que ainda passam erro técnico cru e envolver em `friendlyError()`.
+### 1.6 Suporte movível (`AppLayout.tsx` + `Settings.tsx`)
+- Página Configurações → seção **Suporte**: mostrar sim/não + 4 posições
+- Salva em `app_settings` por user
+- Botão flutuante respeita config
 
 ---
 
-## Técnica resumida
+## Onda 2 — MÓDULOS NOVOS (precisa aprovação separada)
 
-- Tudo respeita `current_tenant_owner()` que já existe.
-- Sem `find /`, sem comandos paralelos perigosos.
-- Cada sub-onda termina com build verde e teste manual rápido.
-- Migrations separadas por sub-onda para facilitar rollback.
+Cada item abaixo é uma feature inteira. Tentar tudo de uma vez quebra. Sugestão de ordem por impacto:
+
+1. **Central Operacional do Dia** (dashboard novo com alertas acionáveis)
+2. **CRM 360** (painel completo do cliente em `ClientDetail`)
+3. **Funil Comercial** (Kanban de leads)
+4. **Cobrança Inteligente** (lista inadimplentes + msg WhatsApp copy)
+5. **Estoque Inteligente** (mínimo, parados, sugestão compra)
+6. **Compras/Pedidos a fornecedor** (novo módulo)
+7. **Financeiro completo** (DRE, fluxo caixa, centro custo)
+8. **Marketing Hub + calendário posts**
+9. **Combos com ROI**
+10. **Base de Conhecimento + Suporte tickets**
+11. **Relatórios exportáveis**
+12. **Auditoria UI** (visualizador de `audit_logs`)
+13. **Lixeira melhorada** (multi-select, restaurar em lote)
+14. **PWA instalável** (manifest-only, sem service worker)
+15. **Configurações por nicho** (toggle módulos)
+16. **Dashboard por nicho**
+17. **Onboarding guiado** melhorado
+18. **IA Operacional** (cards de sugestões)
+19. **Escritório virtual MVP**, **Ponto básico**, **Equipe avançada**, **Tarefas Kanban**, **Logística mapa Leaflet**, **Montadores**
+
+## Onda 3 — POLIMENTO
+
+- Responsividade mobile geral (menu, tabelas, filtros transparentes)
+- Remover busca do dashboard
+- i18n PT-BR de todos os erros restantes
+- Stubs preparados (botões desabilitados) para NF-e, bancos, mobile nativo
 
 ---
 
-## O que eu preciso de você
+## Por que faseado
 
-Começo pela **Sub-onda A** (a mais crítica — bloqueia vazamento de dados e produtos fantasmas no estoque), ou prefere outra ordem? Confirmando, eu disparo a Sub-onda A inteira de uma vez.
+- O prompt pede ~30 módulos. Cada um leva 1-3 mensagens bem feitas. Tentar tudo de uma vez = código não testado, schema quebrado, regressões em venda/financeiro (justamente o que você pediu para **não** quebrar).
+- A Onda 1 entrega o que **trava lançamento hoje**: vender, orçar, importar, suporte.
+- Você valida a Onda 1 em produção, depois escolhemos quais itens da Onda 2 priorizar.
+
+**Posso começar pela Onda 1 agora?** Se quiser reordenar ou cortar algo da Onda 2, me diga antes.

@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-export default function AIChat({ context = "visitor", floating = true, onEscalate }: { context?: "visitor" | "app"; floating?: boolean; onEscalate?: () => void }) {
+export default function AIChat({ context = "visitor", floating = true, onEscalate, position = "bottom-right", visible = true }: { context?: "visitor" | "app"; floating?: boolean; onEscalate?: () => void; position?: "bottom-right" | "bottom-left" | "top-right" | "top-left"; visible?: boolean }) {
   const [open, setOpen] = useState(!floating);
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: context === "visitor" ? "Olá! Sou o assistente do Optimio 👋 Como posso ajudar?" : "Oi! Posso ajudar com qualquer dúvida do app. Se não resolver, clique em 'Chamar humano'." },
@@ -56,15 +56,22 @@ export default function AIChat({ context = "visitor", floating = true, onEscalat
   );
 
   if (!floating) return Body;
+  if (!visible) return null;
+
+  const posCls =
+    position === "bottom-left" ? "bottom-6 left-6" :
+    position === "top-right"   ? "top-6 right-6" :
+    position === "top-left"    ? "top-6 left-6" :
+                                 "bottom-6 right-6";
 
   return (
     <>
       {!open && (
-        <button onClick={() => setOpen(true)} className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-brand text-white shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition">
+        <button onClick={() => setOpen(true)} className={`fixed ${posCls} h-14 w-14 rounded-full bg-gradient-brand text-white shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition`}>
           <MessageCircle className="h-6 w-6" />
         </button>
       )}
-      {open && <div className="fixed bottom-6 right-6 w-[380px] h-[560px] z-50">{Body}</div>}
+      {open && <div className={`fixed ${posCls} w-[380px] max-w-[calc(100vw-1.5rem)] h-[560px] max-h-[calc(100vh-3rem)] z-50`}>{Body}</div>}
     </>
   );
 }

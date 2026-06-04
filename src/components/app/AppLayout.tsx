@@ -99,7 +99,7 @@ export default function AppLayout() {
               <Outlet />
             </main>
           </div>
-          <AIChat context="app" />
+          <AIChat context="app" visible={(profile as any)?.support_button_visible !== false} position={((profile as any)?.support_button_position ?? "bottom-right") as any} />
         </div>
       </SidebarProvider>
     </div>

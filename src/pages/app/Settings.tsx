@@ -13,7 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
 
 const COLORS = [
@@ -37,6 +38,8 @@ export default function Settings() {
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [loading, setLoading] = useState(false);
+  const [supportVisible, setSupportVisible] = useState(true);
+  const [supportPosition, setSupportPosition] = useState<"bottom-right" | "bottom-left" | "top-right" | "top-left">("bottom-right");
 
   const [cats, setCats] = useState<Cat[]>([]);
   const [newCat, setNewCat] = useState<{ kind: Cat["kind"]; name: string }>({ kind: "income", name: "" });
@@ -51,6 +54,8 @@ export default function Settings() {
     setNiche((profile.niche as NicheKey) ?? "beauty");
     setPrimaryColor(profile.primary_color);
     setBorderStyle(profile.border_style);
+    setSupportVisible((profile as any).support_button_visible !== false);
+    setSupportPosition(((profile as any).support_button_position ?? "bottom-right") as any);
   }, [profile]);
 
   const loadExtras = async () => {
@@ -128,6 +133,7 @@ export default function Settings() {
           <TabsTrigger value="general"><SettingsIcon className="h-4 w-4 mr-1" />Geral</TabsTrigger>
           <TabsTrigger value="categories"><Tags className="h-4 w-4 mr-1" />Categorias</TabsTrigger>
           <TabsTrigger value="anamnesis"><ClipboardList className="h-4 w-4 mr-1" />Anamnese</TabsTrigger>
+          <TabsTrigger value="support"><LifeBuoy className="h-4 w-4 mr-1" />Suporte</TabsTrigger>
           <TabsTrigger value="plan"><Crown className="h-4 w-4 mr-1" />Plano</TabsTrigger>
         </TabsList>
 
@@ -243,6 +249,42 @@ export default function Settings() {
             </div>
           </Card>
         </TabsContent>
+
+        <TabsContent value="support" className="space-y-6 mt-4">
+          <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
+            <div className="flex items-center gap-2"><LifeBuoy className="h-5 w-5 text-primary" /><h2 className="text-xl font-semibold">Botão de suporte</h2></div>
+            <p className="text-sm text-muted-foreground">Mostre, esconda ou reposicione o botão flutuante de suporte. Se esconder, continue acessando pelo menu lateral.</p>
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/40">
+              <div>
+                <Label className="text-sm font-medium">Mostrar botão flutuante</Label>
+                <p className="text-xs text-muted-foreground">Aparece em todas as telas do app.</p>
+              </div>
+              <Switch checked={supportVisible} onCheckedChange={setSupportVisible} />
+            </div>
+            <div>
+              <Label>Posição</Label>
+              <Select value={supportPosition} onValueChange={(v) => setSupportPosition(v as any)} disabled={!supportVisible}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
+                  <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
+                  <SelectItem value="top-right">Canto superior direito</SelectItem>
+                  <SelectItem value="top-left">Canto superior esquerdo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="rounded-2xl" onClick={async () => {
+              if (!user) return;
+              const { error } = await supabase.from("profiles").update({
+                support_button_visible: supportVisible,
+                support_button_position: supportPosition,
+              } as any).eq("id", user.id);
+              if (error) toast.error(friendlyError(error));
+              else { toast.success("Preferências de suporte salvas"); refresh(); }
+            }}>Salvar preferências</Button>
+          </Card>
+        </TabsContent>
+
 
         <TabsContent value="plan" className="space-y-6 mt-4">
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">

@@ -49,28 +49,38 @@ export default function ProductPicker({
   items,
   onChange,
   includeServices = true,
+  mode = "both",
 }: {
   items: SaleItem[];
   onChange: (items: SaleItem[]) => void;
   includeServices?: boolean;
+  /** "product" só produtos/variações; "service" só serviços; "both" tudo */
+  mode?: "product" | "service" | "both";
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [suppliers, setSuppliers] = useState<Record<string, { cost_fee_percent: number; default_margin_percent: number; default_markup_percent: number }>>({});
+  const wantProducts = mode !== "service";
+  const wantServices = (mode !== "product") && includeServices;
 
   useEffect(() => {
     if (!open || !user) return;
     (async () => {
+      const empty = Promise.resolve({ data: [] as any[] });
       const [p, v, s, sup] = await Promise.all([
-        supabase.from("products").select("id,name,image_url,cost,sale_price,stock,supplier_id,has_variations,margin_percent,markup_percent")
-          .eq("status", "active").is("deleted_at", null).limit(200),
-        supabase.from("product_variations").select("id,product_id,name,image_url,cost,sale_price,stock,supplier_id")
-          .eq("status", "active").limit(200),
-        includeServices
+        wantProducts
+          ? supabase.from("products").select("id,name,image_url,cost,sale_price,stock,supplier_id,has_variations,margin_percent,markup_percent")
+              .eq("status", "active").is("deleted_at", null).eq("out_of_line", false).limit(300)
+          : empty,
+        wantProducts
+          ? supabase.from("product_variations").select("id,product_id,name,image_url,cost,sale_price,stock,supplier_id")
+              .eq("status", "active").limit(300)
+          : empty,
+        wantServices
           ? supabase.from("services").select("id,name,starting_price,cost").is("deleted_at", null).limit(200)
-          : Promise.resolve({ data: [] as any[] }),
+          : empty,
         supabase.from("suppliers").select("id,cost_fee_percent,default_margin_percent,default_markup_percent"),
       ]);
       const supMap: any = {};
@@ -78,7 +88,7 @@ export default function ProductPicker({
       setSuppliers(supMap);
       const list: Row[] = [];
       (p.data ?? []).forEach((x: any) => {
-        if (x.has_variations) return; // só variações entram
+        if (x.has_variations) return;
         list.push({ id: x.id, kind: "product", name: x.name, image_url: x.image_url, cost: Number(x.cost ?? 0), sale_price: Number(x.sale_price ?? 0), stock: x.stock, supplier_id: x.supplier_id });
       });
       (v.data ?? []).forEach((x: any) => {
@@ -89,7 +99,8 @@ export default function ProductPicker({
       });
       setRows(list);
     })();
-  }, [open, user, includeServices]);
+  }, [open, user, wantProducts, wantServices]);
+
 
   const filtered = useMemo(() => {
     if (!q.trim()) return rows.slice(0, 80);
