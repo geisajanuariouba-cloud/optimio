@@ -54,6 +54,8 @@ export default function Settings() {
     setNiche((profile.niche as NicheKey) ?? "beauty");
     setPrimaryColor(profile.primary_color);
     setBorderStyle(profile.border_style);
+    setSupportVisible((profile as any).support_button_visible !== false);
+    setSupportPosition(((profile as any).support_button_position ?? "bottom-right") as any);
   }, [profile]);
 
   const loadExtras = async () => {
