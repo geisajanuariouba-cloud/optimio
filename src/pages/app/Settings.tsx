@@ -250,6 +250,42 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="support" className="space-y-6 mt-4">
+          <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
+            <div className="flex items-center gap-2"><LifeBuoy className="h-5 w-5 text-primary" /><h2 className="text-xl font-semibold">Botão de suporte</h2></div>
+            <p className="text-sm text-muted-foreground">Mostre, esconda ou reposicione o botão flutuante de suporte. Se esconder, continue acessando pelo menu lateral.</p>
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/40">
+              <div>
+                <Label className="text-sm font-medium">Mostrar botão flutuante</Label>
+                <p className="text-xs text-muted-foreground">Aparece em todas as telas do app.</p>
+              </div>
+              <Switch checked={supportVisible} onCheckedChange={setSupportVisible} />
+            </div>
+            <div>
+              <Label>Posição</Label>
+              <Select value={supportPosition} onValueChange={(v) => setSupportPosition(v as any)} disabled={!supportVisible}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
+                  <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
+                  <SelectItem value="top-right">Canto superior direito</SelectItem>
+                  <SelectItem value="top-left">Canto superior esquerdo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="rounded-2xl" onClick={async () => {
+              if (!user) return;
+              const { error } = await supabase.from("profiles").update({
+                support_button_visible: supportVisible,
+                support_button_position: supportPosition,
+              } as any).eq("id", user.id);
+              if (error) toast.error(friendlyError(error));
+              else { toast.success("Preferências de suporte salvas"); refresh(); }
+            }}>Salvar preferências</Button>
+          </Card>
+        </TabsContent>
+
+
         <TabsContent value="plan" className="space-y-6 mt-4">
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
             <h2 className="text-xl font-semibold">Plano atual</h2>
