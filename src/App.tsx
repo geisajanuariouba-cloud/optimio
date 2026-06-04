@@ -45,6 +45,8 @@ import InviteAccept from "./pages/InviteAccept";
 import Tasks from "./pages/app/Tasks";
 import Stock from "./pages/app/Stock";
 import ImportReview from "./pages/app/ImportReview";
+import Funnel from "./pages/app/Funnel";
+import Collections from "./pages/app/Collections";
 
 import Campaigns from "./pages/app/Campaigns";
 import Meetings from "./pages/app/Meetings";
@@ -114,6 +116,8 @@ const App = () => (
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="stock" element={<Stock />} />
                 <Route path="import-review" element={<ImportReview />} />
+                <Route path="funnel" element={<Funnel />} />
+                <Route path="collections" element={<Collections />} />
                 
                 <Route path="campaigns" element={<Campaigns />} />
                 <Route path="meetings" element={<Meetings />} />
