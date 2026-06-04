@@ -39,7 +39,9 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const { profile, hasModule, isOwner, isAdmin } = useTenant();
   const { signOut } = useAuth();
+  const { devMode } = useDevMode();
   const adminMaster = !!(profile as any)?.is_admin_master;
+  const showSoonBadge = !(adminMaster && devMode);
 
   const groups: Group[] = useMemo(() => [
     {
