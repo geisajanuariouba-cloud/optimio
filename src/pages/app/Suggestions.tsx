@@ -59,7 +59,7 @@ export default function Suggestions() {
         impact: "Inadimplência impacta fluxo de caixa.",
         action: "Enviar cobrança", to: `/app/collections`,
       }));
-      (idleLeads.data ?? []).slice(0, 10).forEach((l: any) => out.push({
+      (idleLeads.data ?? []).filter((l: any) => !["won","lost"].includes(l.stage)).slice(0, 10).forEach((l: any) => out.push({
         id: `lead-${l.id}`, severity: "medium",
         problem: `Lead parado: ${l.name}`,
         impact: "Leads sem follow-up esfriam e são perdidos.",

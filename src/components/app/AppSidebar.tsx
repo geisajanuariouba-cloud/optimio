@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, ClipboardCheck, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote, ShoppingBag, Sparkles, UserCog, CheckSquare, TrendingUp, Lightbulb, Users2, Rocket, Warehouse, Bell, Compass } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, ClipboardCheck, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote, ShoppingBag, Sparkles, UserCog, CheckSquare, TrendingUp, Lightbulb, Users2, Rocket, Warehouse, Bell, Compass, BookOpen, ScrollText } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -38,6 +38,9 @@ const ALL = [
   { mod: "marketing", title: "Projetos", url: "/app/projects", icon: KanbanSquare },
   { mod: "dashboard", title: "Tarefas", url: "/app/tasks", icon: CheckSquare },
   { mod: "dashboard", title: "Alertas", url: "/app/alerts", icon: Bell },
+  { mod: "dashboard", title: "Sugestões", url: "/app/suggestions", icon: Lightbulb },
+  { mod: "dashboard", title: "Base de Conhecimento", url: "/app/knowledge", icon: BookOpen },
+  { mod: "dashboard", title: "Auditoria", url: "/app/audit", icon: ScrollText, adminOnly: true },
   { mod: "dashboard", title: "Reuniões", url: "/app/meetings", icon: Users2 },
   { mod: "integrations", title: "Automações (Make)", url: "/app/automations", icon: Zap, adminOnly: true },
 ] as Array<{ mod: string; title: string; url: string; icon: any; end?: boolean; adminOnly?: boolean; anamnesisOnly?: boolean }>;

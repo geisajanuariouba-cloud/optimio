@@ -49,6 +49,9 @@ import Funnel from "./pages/app/Funnel";
 import Collections from "./pages/app/Collections";
 import Operations from "./pages/app/Operations";
 import Alerts from "./pages/app/Alerts";
+import Knowledge from "./pages/app/Knowledge";
+import Audit from "./pages/app/Audit";
+import Suggestions from "./pages/app/Suggestions";
 
 import Campaigns from "./pages/app/Campaigns";
 import Meetings from "./pages/app/Meetings";
@@ -122,6 +125,9 @@ const App = () => (
                 <Route path="collections" element={<Collections />} />
                 <Route path="operations" element={<Operations />} />
                 <Route path="alerts" element={<Alerts />} />
+                <Route path="knowledge" element={<Knowledge />} />
+                <Route path="audit" element={<Audit />} />
+                <Route path="suggestions" element={<Suggestions />} />
                 
                 <Route path="campaigns" element={<Campaigns />} />
                 <Route path="meetings" element={<Meetings />} />
