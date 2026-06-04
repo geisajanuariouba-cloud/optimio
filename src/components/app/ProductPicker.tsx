@@ -104,11 +104,12 @@ export default function ProductPicker({
   }, [open, user, wantProducts, wantServices]);
 
 
+  const debouncedQ = useDebouncedValue(q, 200);
   const filtered = useMemo(() => {
-    if (!q.trim()) return rows.slice(0, 80);
-    const s = q.toLowerCase();
+    if (!debouncedQ.trim()) return rows.slice(0, 80);
+    const s = debouncedQ.toLowerCase();
     return rows.filter(r => r.name.toLowerCase().includes(s)).slice(0, 80);
-  }, [rows, q]);
+  }, [rows, debouncedQ]);
 
   const add = (r: Row) => {
     const sup = r.supplier_id ? suppliers[r.supplier_id] : null;
