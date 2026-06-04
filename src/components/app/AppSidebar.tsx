@@ -131,16 +131,22 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border/60 p-3">
-        <NavLink to="/app" className="flex items-center gap-2.5 px-1.5 py-1 rounded-xl hover:bg-sidebar-accent/50 transition-colors">
+        <NavLink
+          to="/app"
+          className={cn(
+            "flex rounded-xl hover:bg-sidebar-accent/50 transition-colors",
+            collapsed ? "items-center justify-center p-1" : "flex-col items-center gap-1.5 px-2 py-2"
+          )}
+        >
           <img
             src={logoAsset.url}
             alt="Optimio"
-            className={collapsed ? "h-8 w-8 object-cover object-left rounded-md shrink-0" : "h-8 w-auto shrink-0"}
+            className={collapsed ? "h-8 w-8 object-contain shrink-0" : "h-14 w-auto shrink-0"}
             draggable={false}
           />
           {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <div className="font-semibold text-xs leading-tight truncate text-sidebar-foreground/90">
+            <div className="min-w-0 w-full text-center">
+              <div className="font-semibold text-sm leading-tight truncate text-sidebar-foreground">
                 {profile?.company_name || "Sua empresa"}
               </div>
               <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 truncate">
@@ -151,7 +157,7 @@ export function AppSidebar() {
         </NavLink>
         {!collapsed && profile?.logo_url && (
           <div className="mt-2 flex items-center justify-center rounded-lg bg-sidebar-accent/40 p-2">
-            <img src={profile.logo_url} alt={profile.company_name ?? "Empresa"} className="max-h-10 w-auto object-contain" />
+            <img src={profile.logo_url} alt={profile.company_name ?? "Empresa"} className="max-h-12 w-auto object-contain" />
           </div>
         )}
       </SidebarHeader>
