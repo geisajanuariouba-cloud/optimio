@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Plus, X, ImageIcon, Trash2, Wrench } from "lucide-react";
+import { LazyImage } from "@/components/ui/lazy-image";
 
 export type SaleItem = {
   kind: "product" | "variation" | "service";
