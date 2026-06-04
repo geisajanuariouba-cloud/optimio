@@ -1803,6 +1803,48 @@ export type Database = {
         }
         Relationships: []
       }
+      product_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          raw_material_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          raw_material_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          raw_material_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_recipes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recipes_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variations: {
         Row: {
           attributes: Json
@@ -1922,6 +1964,104 @@ export type Database = {
           width?: number | null
         }
         Relationships: []
+      }
+      production_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          quantity: number
+          raw_material_id: string
+          total_cost: number
+          unit_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          quantity: number
+          raw_material_id: string
+          total_cost?: number
+          unit_cost?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          quantity?: number
+          raw_material_id?: string
+          total_cost?: number
+          unit_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_order_items_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_orders: {
+        Row: {
+          actual_cost: number
+          created_at: string
+          estimated_cost: number
+          id: string
+          notes: string | null
+          produced_at: string | null
+          product_id: string
+          quantity: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_cost?: number
+          created_at?: string
+          estimated_cost?: number
+          id?: string
+          notes?: string | null
+          produced_at?: string | null
+          product_id: string
+          quantity: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_cost?: number
+          created_at?: string
+          estimated_cost?: number
+          id?: string
+          notes?: string | null
+          produced_at?: string | null
+          product_id?: string
+          quantity?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -2381,6 +2521,116 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      raw_material_purchases: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          purchased_at: string
+          quantity: number
+          raw_material_id: string
+          supplier_id: string | null
+          total_cost: number | null
+          unit_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchased_at?: string
+          quantity: number
+          raw_material_id: string
+          supplier_id?: string | null
+          total_cost?: number | null
+          unit_cost: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchased_at?: string
+          quantity?: number
+          raw_material_id?: string
+          supplier_id?: string | null
+          total_cost?: number | null
+          unit_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_material_purchases_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_material_purchases_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_materials: {
+        Row: {
+          average_cost: number
+          created_at: string
+          current_cost: number
+          id: string
+          last_cost: number
+          min_stock: number
+          name: string
+          notes: string | null
+          stock: number
+          supplier_id: string | null
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_cost?: number
+          created_at?: string
+          current_cost?: number
+          id?: string
+          last_cost?: number
+          min_stock?: number
+          name: string
+          notes?: string | null
+          stock?: number
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_cost?: number
+          created_at?: string
+          current_cost?: number
+          id?: string
+          last_cost?: number
+          min_stock?: number
+          name?: string
+          notes?: string | null
+          stock?: number
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_materials_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refunds: {
         Row: {
@@ -3324,6 +3574,7 @@ export type Database = {
         Args: { _cost: number; _supplier_id: string }
         Returns: number
       }
+      execute_production_order: { Args: { _order_id: string }; Returns: Json }
       generate_codname: {
         Args: { _color?: string; _name: string; _size?: string }
         Returns: string

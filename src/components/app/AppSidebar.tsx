@@ -50,6 +50,7 @@ const GROUPS: Group[] = [
       { mod: "products", title: "Revisão Importação", url: "/app/import-review", icon: ClipboardCheck },
       { mod: "financial", title: "Logística", url: "/app/deliveries", icon: Truck },
       { mod: "financial", title: "Montadores", url: "/app/assemblers", icon: Wrench },
+      { mod: "products", title: "Produção", url: "/app/production", icon: Factory },
     ],
   },
   {
