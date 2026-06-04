@@ -144,7 +144,9 @@ export default function AppLayout() {
           </header>
           <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
             <Suspense fallback={<RouteFallback />}>
-              <Outlet />
+              <ComingSoonGuard>
+                <Outlet />
+              </ComingSoonGuard>
             </Suspense>
           </main>
           <AIChat context="app" visible={(profile as any)?.support_button_visible !== false} position={((profile as any)?.support_button_position ?? "bottom-right") as any} />
