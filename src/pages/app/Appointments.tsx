@@ -117,15 +117,15 @@ export default function Appointments() {
   const save = async () => {
     if (!user) return;
     const svc = services.find(s => s.id === form.service_id);
-    const amount = form.amount || svc?.starting_price || 0;
+    const baseAmount = items.length > 0 ? itemsTotal : (form.amount || svc?.starting_price || 0);
     const payload = {
       user_id: user.id,
       appointment_date: form.appointment_date,
       appointment_time: form.appointment_time,
       client_id: form.client_id ? form.client_id : null,
-      service_id: form.service_id ? form.service_id : null,
+      service_id: form.service_id ? form.service_id : (items[0]?.service_id || null),
       status: form.status,
-      amount,
+      amount: baseAmount,
       is_walk_in: false,
       notes: form.notes || null,
       professional: form.professional || null,
@@ -140,10 +140,23 @@ export default function Appointments() {
       if (error) return toast.error(friendlyError(error));
       apptId = data.id;
     }
+    // Sincroniza serviços do agendamento (multi-procedimento)
+    if (apptId) {
+      await supabase.from("appointment_services").delete().eq("appointment_id", apptId);
+      if (items.length > 0) {
+        const rows = items.map((it, idx) => ({
+          user_id: user.id, appointment_id: apptId!,
+          service_id: it.service_id || null,
+          name: it.name || services.find(s => s.id === it.service_id)?.name || null,
+          qty: it.qty || 1, price: it.price || 0, sort_order: idx,
+        }));
+        await supabase.from("appointment_services").insert(rows);
+      }
+    }
     if (form.payment_method === "promissoria") {
       if (!form.client_id) return toast.error("Promissória requer cliente cadastrado.");
       try {
-        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: amount, data: promissoria, appointment_id: apptId, notes: form.notes });
+        await createPromissoria({ supabase, user_id: user.id, client_id: form.client_id, original_amount: baseAmount, data: promissoria, appointment_id: apptId, notes: form.notes });
       } catch (e: any) { return toast.error(friendlyError(e, "Falha promissória: ".replace(/:\s*$/, ""))); }
     }
     toast.success(editing ? "Agendamento atualizado" : "Agendamento criado");
