@@ -227,6 +227,7 @@ export default function Products() {
     let r = list;
     if (statusFilter !== "all") r = r.filter(p => p.status === statusFilter);
     if (filter !== "all") r = r.filter(p => (p.category ?? "") === filter);
+    if (imagePendingOnly) r = r.filter(p => !!p.image_review_required);
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       const supMap = new Map(suppliers.map(s => [s.id, s.name.toLowerCase()]));
