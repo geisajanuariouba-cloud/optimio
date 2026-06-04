@@ -102,11 +102,12 @@ export default function Financial() {
     if (isVendaServico && !form.client_id) return toast.error("Selecione um cliente para Venda/Serviço.");
     if (isVendaServico && items.length === 0) return toast.error("Adicione pelo menos 1 produto ou serviço à venda.");
     if (isPromissoria && !form.client_id) return toast.error("Promissória requer cliente cadastrado.");
-    if (isCash && form.cash_received < form.gross_amount) return toast.error("Valor recebido é menor que o total da venda.");
+    if (isCash && form.cash_received < effectiveTotal) return toast.error("Valor recebido é menor que o total da venda.");
 
+    const baseTotal = effectiveTotal;
     const fee_percent = isPromissoria ? 0 : (selectedPM ? Number(selectedPM.fee_percent) : 0);
-    const fee_amount = isIncome ? (form.gross_amount * fee_percent) / 100 + (selectedPM ? Number(selectedPM.fee_fixed) : 0) : 0;
-    const net_amount = isIncome ? Math.max(0, form.gross_amount - fee_amount) : form.gross_amount;
+    const fee_amount = isIncome ? (baseTotal * fee_percent) / 100 + (selectedPM ? Number(selectedPM.fee_fixed) : 0) : 0;
+    const net_amount = isIncome ? Math.max(0, baseTotal - fee_amount) : baseTotal;
 
     if (isVendaServico && form.edit_address && form.client_id && form.delivery_address) {
       await supabase.from("clients").update(form.delivery_address).eq("id", form.client_id);
@@ -122,7 +123,13 @@ export default function Financial() {
     })) : [];
 
     const { data: tx, error } = await supabase.from("financial").insert({
-      user_id: user.id, type: form.type, gross_amount: form.gross_amount, net_amount, fee_percent, fee_amount,
+      user_id: user.id, type: form.type,
+      gross_amount: baseTotal, net_amount, fee_percent, fee_amount,
+      interest_type: isIncome ? form.interest_type : "none",
+      interest_percent: isIncome && form.interest_type === "percent" ? Number(form.interest_percent || 0) : 0,
+      interest_amount: isIncome ? interestAmount : 0,
+      total_with_interest: isIncome ? totalWithInterest : baseTotal,
+      total_manual: !!form.total_manual,
       payment_method: isPromissoria ? "promissoria" : (selectedPM?.code ?? null), payment_method_id: isPromissoria ? null : (form.payment_method_id || null),
       installments: isPromissoria ? promo.installments_count : (selectedPM?.installments ?? 1),
       cash_received: isCash ? form.cash_received : null,
