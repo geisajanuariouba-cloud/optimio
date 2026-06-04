@@ -316,7 +316,7 @@ export default function Appointments() {
               </label>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Serviço</Label>
+              <div><Label>Serviço principal</Label>
                 <Select value={form.service_id} onValueChange={(v) => { const s = services.find(x => x.id === v); setForm({ ...form, service_id: v, amount: s?.starting_price ?? form.amount }); }}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — R$ {s.starting_price?.toFixed(2)}</SelectItem>)}</SelectContent>
@@ -324,12 +324,33 @@ export default function Appointments() {
               </div>
               <div><Label>Profissional</Label><Input value={form.professional} onChange={(e) => setForm({ ...form, professional: e.target.value })} placeholder="Nome" /></div>
             </div>
+
+            <div className="rounded-2xl border border-border/60 p-3 space-y-2 bg-secondary/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Procedimentos adicionais</Label>
+                <Button type="button" size="sm" variant="ghost" onClick={addItem} className="h-7 gap-1"><Plus className="h-3.5 w-3.5" />Adicionar</Button>
+              </div>
+              {items.length === 0 && <p className="text-xs text-muted-foreground">Use para combinar 2+ procedimentos no mesmo atendimento.</p>}
+              {items.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_60px_90px_28px] gap-2 items-center">
+                  <Select value={it.service_id} onValueChange={(v) => { const s = services.find(x => x.id === v); updateItem(i, { service_id: v, name: s?.name || "", price: it.price || s?.starting_price || 0 }); }}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Procedimento" /></SelectTrigger>
+                    <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Input type="number" min={1} value={it.qty} onChange={(e) => updateItem(i, { qty: +e.target.value || 1 })} className="h-9" />
+                  <Input type="number" step="0.01" value={it.price} onChange={(e) => updateItem(i, { price: +e.target.value })} className="h-9" placeholder="R$" />
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i)} className="h-8 w-8"><X className="h-3.5 w-3.5" /></Button>
+                </div>
+              ))}
+              {items.length > 0 && <div className="text-xs text-right text-muted-foreground">Total procedimentos: <strong className="text-foreground">R$ {itemsTotal.toFixed(2)}</strong></div>}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: +e.target.value })} /></div>
+              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={items.length > 0 ? itemsTotal : form.amount} disabled={items.length > 0} onChange={(e) => setForm({ ...form, amount: +e.target.value })} /></div>
               <div><Label>Pagamento</Label>
-                <Select value={form.payment_method} onValueChange={(v) => { setForm({ ...form, payment_method: v }); if (v === "promissoria") setPromissoria(p => ({ ...p, total_amount: form.amount })); }}>
+                <Select value={form.payment_method} onValueChange={(v) => { setForm({ ...form, payment_method: v }); if (v === "promissoria") setPromissoria(p => ({ ...p, total_amount: items.length > 0 ? itemsTotal : form.amount })); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{PAY_METHODS.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}</SelectContent>
+                  <SelectContent>{payMethods.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
