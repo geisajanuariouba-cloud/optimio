@@ -15,6 +15,8 @@ import {
   Settings as SettingsIcon, Crown, LogOut, LifeBuoy, ChevronRight, ChevronLeft,
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
+import { useDevMode } from "@/hooks/useDevMode";
+import { isComingSoon } from "@/lib/comingSoon";
 import logoAsset from "@/assets/optimio-logo.png.asset.json";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
