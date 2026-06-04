@@ -13,7 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy, Shield, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy, Shield, ShieldCheck, AlertTriangle, Lock, Puzzle } from "lucide-react";
+import ModulesSettings from "@/components/app/ModulesSettings";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
 import { getCycleLabel } from "@/lib/operationalCycle";
@@ -169,12 +170,17 @@ export default function Settings() {
       <Tabs defaultValue="general">
         <TabsList className="bg-secondary/40 flex-wrap h-auto">
           <TabsTrigger value="general"><SettingsIcon className="h-4 w-4 mr-1" />Geral</TabsTrigger>
+          <TabsTrigger value="modules"><Puzzle className="h-4 w-4 mr-1" />Módulos</TabsTrigger>
           <TabsTrigger value="categories"><Tags className="h-4 w-4 mr-1" />Categorias</TabsTrigger>
           <TabsTrigger value="anamnesis"><ClipboardList className="h-4 w-4 mr-1" />Anamnese</TabsTrigger>
           <TabsTrigger value="support"><LifeBuoy className="h-4 w-4 mr-1" />Suporte</TabsTrigger>
           <TabsTrigger value="security"><Shield className="h-4 w-4 mr-1" />Segurança</TabsTrigger>
           <TabsTrigger value="plan"><Crown className="h-4 w-4 mr-1" />Plano</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="modules" className="space-y-6 mt-4">
+          <ModulesSettings />
+        </TabsContent>
 
         <TabsContent value="general" className="space-y-6 mt-4">
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
@@ -218,10 +224,15 @@ export default function Settings() {
             <Button onClick={save} className="rounded-2xl">Aplicar</Button>
           </Card>
 
-          <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div><h2 className="text-xl font-semibold">Nicho do negócio</h2><p className="text-sm text-muted-foreground">Atual: {NICHES[(profile?.niche as NicheKey) ?? "beauty"]?.label}</p></div>
-              <Badge variant="outline">{profile?.enabled_modules?.length ?? 0} módulos</Badge>
+          <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h2 className="text-xl font-semibold">Preset rápido (opcional)</h2>
+                <p className="text-sm text-muted-foreground">
+                  Aplique um conjunto pronto de módulos e termos por tipo de negócio. Você ainda pode personalizar tudo em <strong>Módulos</strong>.
+                </p>
+              </div>
+              <Badge variant="outline">{profile?.enabled_modules?.length ?? 0} módulos ativos</Badge>
             </div>
             <Select value={niche} onValueChange={(v) => setNiche(v as NicheKey)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -229,12 +240,12 @@ export default function Settings() {
             </Select>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" className="rounded-2xl"><RefreshCw className="h-4 w-4 mr-2" />Reiniciar nicho</Button>
+                <Button variant="outline" className="rounded-2xl"><RefreshCw className="h-4 w-4 mr-2" />Aplicar preset</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Mudar de nicho?</AlertDialogTitle>
-                  <AlertDialogDescription>Mudar de nicho ocultará dados de módulos incompatíveis. Os dados não serão excluídos — apenas ocultos.</AlertDialogDescription>
+                  <AlertDialogTitle>Aplicar preset?</AlertDialogTitle>
+                  <AlertDialogDescription>Isso substituirá os módulos ativos pela seleção padrão deste preset. Nenhum dado será apagado.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
