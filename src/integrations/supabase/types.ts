@@ -473,6 +473,89 @@ export type Database = {
         }
         Relationships: []
       }
+      card_machine_plans: {
+        Row: {
+          card_machine_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          notes: string | null
+          plan_name: string
+          rates: Json
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          card_machine_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          plan_name: string
+          rates?: Json
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          card_machine_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          plan_name?: string
+          rates?: Json
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_machine_plans_card_machine_id_fkey"
+            columns: ["card_machine_id"]
+            isOneToOne: false
+            referencedRelation: "card_machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_machines: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          operator: string | null
+          plan_name: string | null
+          rates: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          operator?: string | null
+          plan_name?: string | null
+          rates?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          operator?: string | null
+          plan_name?: string | null
+          rates?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cash_drawer_transactions: {
         Row: {
           amount: number
@@ -1412,6 +1495,90 @@ export type Database = {
           scheduled_for?: string | null
           status?: string
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      marketplace_stock: {
+        Row: {
+          external_price: number | null
+          external_sku: string | null
+          id: string
+          marketplace_id: string
+          product_id: string
+          reserved: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          external_price?: number | null
+          external_sku?: string | null
+          id?: string
+          marketplace_id: string
+          product_id: string
+          reserved?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          external_price?: number | null
+          external_sku?: string | null
+          id?: string
+          marketplace_id?: string
+          product_id?: string
+          reserved?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_stock_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplaces: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          name: string
+          platform: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          name: string
+          platform: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          name?: string
+          platform?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
