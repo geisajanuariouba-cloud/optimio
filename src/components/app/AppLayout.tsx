@@ -4,7 +4,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ type Hit = { kind: string; id: string; label: string; sub?: string };
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading } = useTenant();
+  const { mode, toggle } = useTheme();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
@@ -93,6 +95,9 @@ export default function AppLayout() {
                 )}
               </div>
               <div className="text-sm text-muted-foreground hidden md:block">{profile?.company_name}</div>
+              <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema">
+                {mode === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
               <Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button>
             </header>
             <main className="flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden">
