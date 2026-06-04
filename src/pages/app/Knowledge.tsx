@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
-import PageHeader from "@/components/app/PageHeader";
+import { PageHeader } from "@/components/app/PageHeader";
 
 const CATEGORIES = [
   "Primeiros passos", "Financeiro", "Comercial",
@@ -97,9 +97,9 @@ export default function Knowledge() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Base de Conhecimento" icon={BookOpen}
-        actions={isOwner ? <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo artigo</Button> : null}
-      />
+      <PageHeader title="Base de Conhecimento" description="Artigos internos e procedimentos da equipe">
+        {isOwner && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo artigo</Button>}
+      </PageHeader>
 
       <Card className="p-3 flex flex-col md:flex-row gap-2">
         <div className="relative flex-1">

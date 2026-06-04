@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollText } from "lucide-react";
-import PageHeader from "@/components/app/PageHeader";
+import { PageHeader } from "@/components/app/PageHeader";
 
 type Log = {
   id: string;
@@ -48,7 +48,7 @@ export default function Audit() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Auditoria" icon={ScrollText} description="Histórico de ações do sistema (somente leitura)" />
+      <PageHeader title="Auditoria" description="Histórico de ações do sistema (somente leitura)" />
 
       <Card className="p-3 grid grid-cols-1 md:grid-cols-4 gap-2">
         <Input placeholder="ID do usuário…" value={user} onChange={e => setUser(e.target.value)} />

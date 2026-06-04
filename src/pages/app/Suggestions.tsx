@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Lightbulb, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import PageHeader from "@/components/app/PageHeader";
+import { PageHeader } from "@/components/app/PageHeader";
 
 type Suggestion = {
   id: string;
@@ -31,7 +31,7 @@ export default function Suggestions() {
         supabase.from("products").select("id,name").is("deleted_at", null).is("image_url", null).limit(50),
         supabase.from("products").select("id,name,stock,min_stock").is("deleted_at", null).not("min_stock", "is", null).limit(200),
         supabase.from("debts").select("id,client_id,total_amount").eq("status", "open").limit(50),
-        supabase.from("leads").select("id,name,updated_at").lt("updated_at", since).neq("status", "won").neq("status", "lost").limit(50),
+        supabase.from("leads").select("id,name,updated_at,stage").lt("updated_at", since).limit(50),
         supabase.from("quotes").select("id,client_id,status").eq("status", "draft").limit(50),
       ]);
       const out: Suggestion[] = [];
@@ -80,7 +80,7 @@ export default function Suggestions() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Sugestões" icon={Lightbulb} description="Recomendações automáticas baseadas nos seus dados" />
+      <PageHeader title="Sugestões" description="Recomendações automáticas baseadas nos seus dados" />
 
       {loading && <Card className="p-8 text-center text-muted-foreground">Analisando…</Card>}
       {!loading && items.length === 0 && (
