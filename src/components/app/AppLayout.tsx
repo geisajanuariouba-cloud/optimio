@@ -103,6 +103,11 @@ export default function AppLayout() {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 {profile?.company_name}
               </div>
+              {(profile as any)?.is_admin_master && (
+                <div className="hidden md:inline-flex items-center gap-1.5 pill px-2.5 h-9 text-xs font-semibold text-primary border border-primary/30 bg-primary/10">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Admin Master
+                </div>
+              )}
               <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema" className="h-9 w-9 rounded-xl hover:bg-secondary/60">
                 {mode === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
               </Button>
