@@ -185,12 +185,16 @@ export default function ProductPicker({
                       <Input type="number" step="0.01" value={it.margin_percent} onChange={(e) => update(idx, { margin_percent: +e.target.value })} className="h-8" /></label>
                     <label className="space-y-1"><span className="text-muted-foreground">Markup %</span>
                       <Input type="number" step="0.01" value={it.markup_percent} onChange={(e) => update(idx, { markup_percent: +e.target.value })} className="h-8" /></label>
-                    <label className="space-y-1"><span className="text-muted-foreground">Taxa custo %</span>
-                      <Input type="number" step="0.01" value={it.fee_percent} onChange={(e) => update(idx, { fee_percent: +e.target.value })} className="h-8" /></label>
+                    <label className="space-y-1"><span className="text-muted-foreground">Acrésc./Desc. custo %</span>
+                      <Input type="number" step="0.01" value={it.fee_percent} onChange={(e) => update(idx, { fee_percent: +e.target.value })} className="h-8" title="Acréscimo (positivo) ou desconto (negativo) aplicado sobre o custo antes da margem." /></label>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Preço unit.: <strong className="text-foreground">R$ {it.unit_price.toFixed(2)}</strong></span>
-                    <span>Subtotal: <strong className="text-primary">R$ {(it.unit_price * it.quantity).toFixed(2)}</strong></span>
+                  <div className="flex items-center justify-between text-xs flex-wrap gap-1">
+                    <span className="text-muted-foreground">
+                      Custo: <strong className="text-foreground">R$ {Number(it.cost).toFixed(2)}</strong>
+                      {it.fee_percent ? <> · {it.fee_percent > 0 ? "Acrésc." : "Desc."}: <strong className={it.fee_percent > 0 ? "text-amber-500" : "text-emerald-500"}>{it.fee_percent > 0 ? "+" : ""}{it.fee_percent}%</strong></> : null}
+                      {" · "}Final: <strong className="text-foreground">R$ {(it.cost * (1 + (it.fee_percent || 0) / 100)).toFixed(2)}</strong>
+                    </span>
+                    <span>Preço unit.: <strong className="text-primary">R$ {it.unit_price.toFixed(2)}</strong> · Subtotal: <strong className="text-primary">R$ {(it.unit_price * it.quantity).toFixed(2)}</strong></span>
                   </div>
                 </div>
               </div>
