@@ -266,12 +266,28 @@ export default function ImportReview() {
     <div>
       <PageHeader title="Revisão de Importação" description="Aprove ou rejeite os itens extraídos do catálogo antes de virarem produtos." />
 
-      <MetricsRow items={[
-        { label: "Aguardando", value: String(items.filter(i => i.review_status === "pending").length), tone: "warning" },
-        { label: "Aprovados", value: String(items.filter(i => i.review_status === "approved").length), tone: "success" },
-        { label: "Rejeitados", value: String(items.filter(i => i.review_status === "rejected").length), tone: "danger" },
-        { label: "Total extraído", value: String(items.length), tone: "primary" },
-      ]} />
+      {(() => {
+        const approved = items.filter(i => i.review_status === "approved");
+        let activos = 0, apagados = 0, arquivados = 0, semProd = 0;
+        approved.forEach(i => {
+          if (!i.match_product_id) { semProd++; return; }
+          const p = productStatuses[i.match_product_id];
+          if (!p) { semProd++; return; }
+          if (p.deleted) apagados++;
+          else if (p.status === "active") activos++;
+          else arquivados++;
+        });
+        return (
+          <MetricsRow items={[
+            { label: "Aguardando", value: String(items.filter(i => i.review_status === "pending").length), tone: "warning" },
+            { label: "Aprovados ativos", value: String(activos), tone: "success" },
+            { label: "Apagados", value: String(apagados + semProd), tone: "danger" },
+            { label: "Arquivados", value: String(arquivados), tone: "warning" },
+            { label: "Rejeitados", value: String(items.filter(i => i.review_status === "rejected").length), tone: "danger" },
+            { label: "Total extraído", value: String(items.length), tone: "primary" },
+          ]} />
+        );
+      })()}
 
       <div className="flex flex-wrap gap-2 mb-4">
         <Select value={filter} onValueChange={setFilter}>
