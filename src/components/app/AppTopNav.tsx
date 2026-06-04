@@ -78,6 +78,7 @@ const AREAS: Area[] = [
   {
     label: "Gestão",
     items: [
+      { title: "RH", url: "/app/hr", ownerOnly: true },
       { title: "Base de Conhecimento", url: "/app/knowledge" },
       { title: "Reuniões", url: "/app/meetings" },
       { title: "Auditoria", url: "/app/audit", adminOnly: true },
