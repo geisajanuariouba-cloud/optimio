@@ -69,7 +69,7 @@ export function ImageUploader({ value, onChange, folder = "products", label = "I
       <input ref={inputRef} type="file" accept="image/*" onChange={onPick} className="hidden" />
       {value ? (
         <div className="relative w-full rounded-2xl overflow-hidden border bg-muted/30 group">
-          <img src={value} alt="" className="w-full h-44 object-cover" />
+          <LazyImage src={value} alt="" className="w-full h-44 object-cover" />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
             <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()} className="rounded-xl gap-1" disabled={uploading}>
               <Upload className="h-3.5 w-3.5" /> Trocar
