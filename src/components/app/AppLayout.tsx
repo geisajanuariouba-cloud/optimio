@@ -82,65 +82,62 @@ export default function AppLayout() {
   const adminMaster = !!(profile as any)?.is_admin_master;
 
   return (
-    <div className="theme-skillset min-h-screen flex flex-col bg-background">
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur-xl sticky top-0 z-30">
-        <div className="h-14 flex items-center gap-3 px-4 lg:px-6">
-          <NavLink to="/app" className="flex items-center gap-2 shrink-0">
-            <div className="h-8 w-8 rounded-lg bg-gradient-brand flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-white" />
+    <SidebarProvider>
+      <div className="theme-skillset min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="border-b border-border/60 bg-background/80 backdrop-blur-xl sticky top-0 z-30">
+            <div className="h-14 flex items-center gap-3 px-4 lg:px-6">
+              <SidebarTrigger className="h-9 w-9 rounded-xl hover:bg-secondary/60" />
+              <div className="flex-1 max-w-md relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Buscar clientes, produtos, serviços…"
+                  className="pl-10 bg-secondary/50 border border-border/60 h-9 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
+                />
+                {hits.length > 0 && (
+                  <Card className="absolute top-11 left-0 right-0 z-50 rounded-2xl border border-border/60 shadow-elegant max-h-80 overflow-auto premium-card p-1">
+                    {hits.map(h => (
+                      <button key={h.kind + h.id} onClick={() => goTo(h)} className="w-full text-left p-3 rounded-xl hover:bg-secondary/60 flex items-center justify-between">
+                        <div><div className="font-medium text-sm">{h.label}</div><div className="text-xs text-muted-foreground">{h.sub ?? "—"}</div></div>
+                        <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">{h.kind}</span>
+                      </button>
+                    ))}
+                  </Card>
+                )}
+              </div>
+              <div className="hidden lg:flex items-center gap-2 pill px-3 h-9 text-xs text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                {profile?.company_name}
+              </div>
+              {adminMaster && (
+                <div className="hidden md:inline-flex items-center gap-1.5 pill px-2.5 h-9 text-xs font-semibold text-primary border border-primary/30 bg-primary/10">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Admin · Unlimited
+                </div>
+              )}
+              <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema" className="h-9 w-9 rounded-xl hover:bg-secondary/60">
+                {mode === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-secondary/60 relative">
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9 rounded-xl hover:bg-secondary/60" aria-label="Sair">
+                <LogOut className="h-[18px] w-[18px]" />
+              </Button>
             </div>
-            <span className="font-bold text-lg hidden sm:inline">Optimio</span>
-          </NavLink>
-          <div className="flex-1 max-w-md relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar…"
-              className="pl-10 bg-secondary/50 border border-border/60 h-9 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
-            />
-            {hits.length > 0 && (
-              <Card className="absolute top-11 left-0 right-0 z-50 rounded-2xl border border-border/60 shadow-elegant max-h-80 overflow-auto premium-card p-1">
-                {hits.map(h => (
-                  <button key={h.kind + h.id} onClick={() => goTo(h)} className="w-full text-left p-3 rounded-xl hover:bg-secondary/60 flex items-center justify-between">
-                    <div><div className="font-medium text-sm">{h.label}</div><div className="text-xs text-muted-foreground">{h.sub ?? "—"}</div></div>
-                    <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">{h.kind}</span>
-                  </button>
-                ))}
-              </Card>
-            )}
-          </div>
-          <div className="hidden md:flex items-center gap-2 pill px-3 h-9 text-xs text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            {profile?.company_name}
-          </div>
-          {adminMaster && (
-            <div className="hidden md:inline-flex items-center gap-1.5 pill px-2.5 h-9 text-xs font-semibold text-primary border border-primary/30 bg-primary/10">
-              <ShieldCheck className="h-3.5 w-3.5" /> Admin Master · Unlimited
-            </div>
-          )}
-          <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema" className="h-9 w-9 rounded-xl hover:bg-secondary/60">
-            {mode === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-          </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-secondary/60 relative">
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9 rounded-xl hover:bg-secondary/60" aria-label="Sair">
-            <LogOut className="h-[18px] w-[18px]" />
-          </Button>
+          </header>
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+            <Suspense fallback={<RouteFallback />}>
+              <Outlet />
+            </Suspense>
+          </main>
+          <AIChat context="app" visible={(profile as any)?.support_button_visible !== false} position={((profile as any)?.support_button_position ?? "bottom-right") as any} />
         </div>
-        <div className="px-4 lg:px-6 pb-2">
-          <AppTopNav />
-        </div>
-      </header>
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
-        <Suspense fallback={<RouteFallback />}>
-          <Outlet />
-        </Suspense>
-      </main>
-      <AIChat context="app" visible={(profile as any)?.support_button_visible !== false} position={((profile as any)?.support_button_position ?? "bottom-right") as any} />
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }
 
