@@ -1,6 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
+import { useDevMode } from "@/hooks/useDevMode";
+import { isComingSoon } from "@/lib/comingSoon";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
