@@ -364,6 +364,8 @@ export default function Settings() {
             </AlertDialog>
           </Card>
         </TabsContent>
+
+        <TabsContent value="plan" className="space-y-6 mt-4">
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
             <h2 className="text-xl font-semibold">Plano atual</h2>
             <div className="flex items-center gap-3">
