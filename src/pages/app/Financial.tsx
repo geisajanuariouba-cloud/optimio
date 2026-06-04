@@ -284,7 +284,7 @@ export default function Financial() {
 
             {isVendaServico && (
               <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3 space-y-3">
-                <ProductPicker items={items} onChange={setItems} includeServices={form.category === "Serviço"} />
+                <ProductPicker items={items} onChange={setItems} mode={pickerMode} includeServices={pickerMode !== "product"} />
                 <div>
                   <Label>Cliente *</Label>
                   <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
