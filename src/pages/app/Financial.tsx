@@ -36,6 +36,8 @@ export default function Financial() {
     type: "income", gross_amount: 0, payment_method_id: "", category: "", description: "",
     transaction_date: today, client_id: "", cash_received: 0, needs_delivery: false,
     delivery_address: null, edit_address: false,
+    interest_type: "none", interest_percent: 0, interest_amount: 0,
+    total_manual: false, total_override: 0,
   });
   const [items, setItems] = useState<SaleItem[]>([]);
   const [promo, setPromo] = useState<PromissoriaData>({ total_amount: 0, installments_count: 1, first_due: today });
