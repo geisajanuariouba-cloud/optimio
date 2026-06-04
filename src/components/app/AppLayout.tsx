@@ -29,6 +29,7 @@ export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading } = useTenant();
   const { mode, toggle } = useTheme();
+  const { devMode, toggleDevMode } = useDevMode();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
