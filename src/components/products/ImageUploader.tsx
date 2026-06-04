@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Upload, X, ImagePlus, Loader2 } from "lucide-react";
+import { LazyImage } from "@/components/ui/lazy-image";
 
 type Props = {
   value?: string | null;
