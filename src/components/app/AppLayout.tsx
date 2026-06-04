@@ -1,6 +1,7 @@
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useEffect, useState, Suspense } from "react";
-import { AppTopNav } from "@/components/app/AppTopNav";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { Bell, Search, Sun, Moon, ShieldCheck, Sparkles, LogOut } from "lucide-react";
