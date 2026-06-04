@@ -95,6 +95,9 @@ export default function AppLayout() {
                 )}
               </div>
               <div className="text-sm text-muted-foreground hidden md:block">{profile?.company_name}</div>
+              <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema">
+                {mode === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
               <Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button>
             </header>
             <main className="flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden">
