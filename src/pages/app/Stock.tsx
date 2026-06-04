@@ -76,7 +76,7 @@ export default function Stock() {
     return m;
   }, [movements]);
 
-  const lowStock = useMemo(() => products.filter(p => p.stock <= p.min_stock && p.min_stock > 0), [products]);
+  const lowStock = useMemo(() => products.filter(p => !(p.min_stock === 0 && p.stock === 0) && p.stock <= p.min_stock), [products]);
   const outOfStock = useMemo(() => products.filter(p => p.stock <= 0), [products]);
   const totalValue = products.reduce((a, p) => a + (Number(p.cost) * Number(p.stock)), 0);
 

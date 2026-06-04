@@ -20,7 +20,10 @@ type Profile = {
   plan: string;
   terms: Record<string, string>;
   dashboard_widgets?: Record<string, boolean>;
+  is_admin_master?: boolean;
+  operational_cycle_start_day?: number;
 };
+
 
 type Ctx = {
   profile: Profile | null;
