@@ -114,19 +114,21 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
 
 
   const niche = NICHES[(profile?.niche as NicheKey) ?? "beauty"] ?? NICHES.beauty;
+  const adminMaster = !!profile?.is_admin_master;
   const enabled = profile?.enabled_modules?.length ? profile.enabled_modules : niche.modules;
 
   const can = (perm: string) => {
+    if (adminMaster) return true;
     if (isOwner) return true;
     if (role === "admin_master") return true;
     return permissions[perm] === true;
   };
 
   const value: Ctx = {
-    profile, loading, isAdmin,
+    profile, loading, isAdmin: isAdmin || adminMaster,
     tenantOwnerId, isOwner, role, permissions, can,
     niche,
-    hasModule: (m) => enabled.includes(m),
+    hasModule: (m) => adminMaster || enabled.includes(m),
     t: (k) => profile?.terms?.[k] ?? niche.terms[k] ?? k,
     refresh,
   };
