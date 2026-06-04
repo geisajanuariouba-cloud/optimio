@@ -334,6 +334,17 @@ export default function Products() {
             {allCats.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          type="button"
+          variant={imagePendingOnly ? "default" : "outline"}
+          size="sm"
+          className="h-9 rounded-xl gap-1"
+          onClick={() => setImagePendingOnly(v => !v)}
+          title="Mostrar apenas produtos com imagem pendente de revisão"
+        >
+          <ImageOff className="h-3.5 w-3.5" />
+          Imagem pendente {pendingImageCount > 0 && <Badge className="ml-1 bg-amber-500/20 text-amber-700 text-[10px]">{pendingImageCount}</Badge>}
+        </Button>
       </div>
 
       <MetricsRow items={[
