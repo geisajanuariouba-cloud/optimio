@@ -87,9 +87,9 @@ export default function Appointments() {
   };
   useEffect(() => { if (user) load(); }, [user, range.start, range.end]);
 
-  const openNew = (d?: Date) => { setEditing(null); setForm(emptyForm(d ?? date)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(d ?? date) }); setOpen(true); };
-  const openQuickSale = () => { setEditing(null); setForm(emptyForm(date, true)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(date) }); setOpen(true); };
-  const openEdit = (a: Appt) => {
+  const openNew = (d?: Date) => { setEditing(null); setItems([]); setForm(emptyForm(d ?? date)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(d ?? date) }); setOpen(true); };
+  const openQuickSale = () => { setEditing(null); setItems([]); setForm(emptyForm(date, true)); setPromissoria({ total_amount: 0, installments_count: 2, first_due: fmt(date) }); setOpen(true); };
+  const openEdit = async (a: Appt) => {
     setEditing(a);
     setForm({
       appointment_time: a.appointment_time?.slice(0, 5) ?? "09:00",
@@ -105,7 +105,14 @@ export default function Appointments() {
     });
     setPromissoria({ total_amount: Number(a.amount) || 0, installments_count: 2, first_due: a.appointment_date });
     setOpen(true);
+    const { data } = await supabase.from("appointment_services").select("service_id,name,price,qty").eq("appointment_id", a.id).order("sort_order");
+    setItems((data ?? []).map((x: any) => ({ service_id: x.service_id ?? "", name: x.name ?? "", price: Number(x.price) || 0, qty: Number(x.qty) || 1 })));
   };
+
+  const addItem = () => setItems(it => [...it, { service_id: "", name: "", price: 0, qty: 1 }]);
+  const updateItem = (i: number, patch: Partial<Item>) => setItems(it => it.map((x, idx) => idx === i ? { ...x, ...patch } : x));
+  const removeItem = (i: number) => setItems(it => it.filter((_, idx) => idx !== i));
+  const itemsTotal = items.reduce((s, x) => s + Number(x.price || 0) * Number(x.qty || 1), 0);
 
   const save = async () => {
     if (!user) return;
