@@ -4,7 +4,9 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
-import { Bell, Search, Sun, Moon, ShieldCheck, Sparkles, LogOut } from "lucide-react";
+import { Bell, Search, Sun, Moon, ShieldCheck, Sparkles, LogOut, Code2 } from "lucide-react";
+import { useDevMode } from "@/hooks/useDevMode";
+import { ComingSoonGuard } from "@/components/app/ComingSoonGuard";
 import { useTheme } from "@/hooks/useTheme";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading } = useTenant();
   const { mode, toggle } = useTheme();
+  const { devMode, toggleDevMode } = useDevMode();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
@@ -114,9 +117,21 @@ export default function AppLayout() {
                 {profile?.company_name}
               </div>
               {adminMaster && (
-                <div className="hidden md:inline-flex items-center gap-1.5 pill px-2.5 h-9 text-xs font-semibold text-primary border border-primary/30 bg-primary/10">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Admin · Unlimited
-                </div>
+                <>
+                  <div className="hidden md:inline-flex items-center gap-1.5 pill px-2.5 h-9 text-xs font-semibold text-primary border border-primary/30 bg-primary/10">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Admin · Unlimited
+                  </div>
+                  <Button
+                    variant={devMode ? "default" : "ghost"}
+                    size="icon"
+                    onClick={toggleDevMode}
+                    aria-label="Modo desenvolvedor"
+                    title={devMode ? "Modo desenvolvedor ON (mostra módulos em breve)" : "Modo desenvolvedor OFF"}
+                    className={`h-9 w-9 rounded-xl ${devMode ? "bg-primary text-primary-foreground hover:bg-primary/90" : "hover:bg-secondary/60"}`}
+                  >
+                    <Code2 className="h-[18px] w-[18px]" />
+                  </Button>
+                </>
               )}
               <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema" className="h-9 w-9 rounded-xl hover:bg-secondary/60">
                 {mode === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
@@ -129,7 +144,9 @@ export default function AppLayout() {
           </header>
           <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
             <Suspense fallback={<RouteFallback />}>
-              <Outlet />
+              <ComingSoonGuard>
+                <Outlet />
+              </ComingSoonGuard>
             </Suspense>
           </main>
           <AIChat context="app" visible={(profile as any)?.support_button_visible !== false} position={((profile as any)?.support_button_position ?? "bottom-right") as any} />

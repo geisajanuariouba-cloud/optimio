@@ -15,6 +15,8 @@ import {
   Settings as SettingsIcon, Crown, LogOut, LifeBuoy, ChevronRight, ChevronLeft,
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
+import { useDevMode } from "@/hooks/useDevMode";
+import { isComingSoon } from "@/lib/comingSoon";
 import logoAsset from "@/assets/optimio-logo.png.asset.json";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -37,7 +39,9 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const { profile, hasModule, isOwner, isAdmin } = useTenant();
   const { signOut } = useAuth();
+  const { devMode } = useDevMode();
   const adminMaster = !!(profile as any)?.is_admin_master;
+  const showSoonBadge = !(adminMaster && devMode);
 
   const groups: Group[] = useMemo(() => [
     {
@@ -177,13 +181,18 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {items.map((it) => {
                     const active = isActive(it.url);
+                    const soon = !!it.url && isComingSoon(it.url) && showSoonBadge;
                     const Inner = (
                       <>
-                        <it.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-sidebar-primary")} />
+                        <it.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-sidebar-primary", soon && "opacity-60")} />
                         {!collapsed && (
                           <>
-                            <span className="truncate flex-1">{it.title}</span>
-                            {it.badge && (
+                            <span className={cn("truncate flex-1", soon && "opacity-70")}>{it.title}</span>
+                            {soon ? (
+                              <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                                Em breve
+                              </span>
+                            ) : it.badge && (
                               <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-sidebar-primary/15 text-sidebar-primary">
                                 {it.badge}
                               </span>
