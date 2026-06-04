@@ -47,6 +47,8 @@ import Stock from "./pages/app/Stock";
 import ImportReview from "./pages/app/ImportReview";
 import Funnel from "./pages/app/Funnel";
 import Collections from "./pages/app/Collections";
+import Operations from "./pages/app/Operations";
+import Alerts from "./pages/app/Alerts";
 
 import Campaigns from "./pages/app/Campaigns";
 import Meetings from "./pages/app/Meetings";
@@ -118,6 +120,8 @@ const App = () => (
                 <Route path="import-review" element={<ImportReview />} />
                 <Route path="funnel" element={<Funnel />} />
                 <Route path="collections" element={<Collections />} />
+                <Route path="operations" element={<Operations />} />
+                <Route path="alerts" element={<Alerts />} />
                 
                 <Route path="campaigns" element={<Campaigns />} />
                 <Route path="meetings" element={<Meetings />} />

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, ClipboardCheck, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote, ShoppingBag, Sparkles, UserCog, CheckSquare, TrendingUp, Lightbulb, Users2, Rocket, Warehouse } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Package, Scissors, Wallet, Megaphone, Boxes, Trash2, Settings, LogOut, Plug, Shield, ClipboardList, ClipboardCheck, Receipt, LifeBuoy, Tags, CreditCard, Factory, Truck, Gift, KanbanSquare, FileText, Zap, Wrench, Banknote, ShoppingBag, Sparkles, UserCog, CheckSquare, TrendingUp, Lightbulb, Users2, Rocket, Warehouse, Bell, Compass } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -12,6 +12,7 @@ import { NICHES_WITH_ANAMNESIS, NicheKey } from "@/lib/niches";
 
 const ALL = [
   { mod: "dashboard", title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
+  { mod: "dashboard", title: "Central Operacional", url: "/app/operations", icon: Compass },
   { mod: "appointments", title: "Agenda", url: "/app/appointments", icon: Calendar },
   { mod: "clients", title: "termClients", url: "/app/clients", icon: Users },
   { mod: "clients", title: "Funil Comercial", url: "/app/funnel", icon: KanbanSquare },
@@ -36,6 +37,7 @@ const ALL = [
   { mod: "marketing", title: "Combos", url: "/app/combos", icon: Gift },
   { mod: "marketing", title: "Projetos", url: "/app/projects", icon: KanbanSquare },
   { mod: "dashboard", title: "Tarefas", url: "/app/tasks", icon: CheckSquare },
+  { mod: "dashboard", title: "Alertas", url: "/app/alerts", icon: Bell },
   { mod: "dashboard", title: "Reuniões", url: "/app/meetings", icon: Users2 },
   { mod: "integrations", title: "Automações (Make)", url: "/app/automations", icon: Zap, adminOnly: true },
 ] as Array<{ mod: string; title: string; url: string; icon: any; end?: boolean; adminOnly?: boolean; anamnesisOnly?: boolean }>;

@@ -18,8 +18,10 @@ import { CheckSquare, Plus, Sparkles, Calendar, Flag, Trash2 } from "lucide-reac
 
 type Task = {
   id: string; title: string; description: string | null; status: string; priority: string;
-  due_date: string | null; tags: string[]; ai_generated: boolean; completed_at: string | null; created_at: string;
+  due_date: string | null; tags: string[]; ai_generated: boolean; completed_at: string | null;
+  created_at: string; assignee_user_id: string | null;
 };
+type Member = { member_user_id: string; name: string | null; email: string | null };
 
 const STATUS = [
   { key: "todo", label: "A fazer", tone: "bg-slate-500/10 text-slate-600" },
@@ -34,11 +36,12 @@ const PRIORITY: Record<string, { label: string; tone: string }> = {
   urgent: { label: "Urgente", tone: "bg-rose-500/10 text-rose-600" },
 };
 
-const empty = { title: "", description: "", priority: "medium", due_date: "", tags: "" };
+const empty = { title: "", description: "", priority: "medium", due_date: "", tags: "", assignee_user_id: "" };
 
 export default function Tasks() {
   const { user } = useAuth();
   const [list, setList] = useState<Task[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(empty);
   const [view, setView] = useState<"kanban" | "list">("kanban");
@@ -47,7 +50,13 @@ export default function Tasks() {
     const { data } = await supabase.from("tasks").select("*").is("deleted_at", null).order("created_at", { ascending: false });
     setList((data ?? []) as Task[]);
   };
-  useEffect(() => { if (user) load(); }, [user]);
+  const loadMembers = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("team_members")
+      .select("member_user_id,name,email").eq("status", "active");
+    setMembers((data ?? []) as Member[]);
+  };
+  useEffect(() => { if (user) { load(); loadMembers(); } }, [user]);
 
   const save = async () => {
     if (!user || !form.title.trim()) return toast.error("Título obrigatório");
@@ -55,6 +64,7 @@ export default function Tasks() {
     const { error } = await supabase.from("tasks").insert({
       user_id: user.id, title: form.title, description: form.description || null,
       priority: form.priority, due_date: form.due_date || null, tags, status: "todo",
+      assignee_user_id: form.assignee_user_id || null,
     });
     if (error) return toast.error(friendlyError(error));
     toast.success("Tarefa criada"); setOpen(false); setForm(empty); load();
@@ -131,6 +141,13 @@ export default function Tasks() {
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
                       <Badge variant="outline" className={`text-[10px] ${PRIORITY[t.priority]?.tone}`}>{PRIORITY[t.priority]?.label}</Badge>
                       {t.due_date && <Badge variant="outline" className="text-[10px]"><Calendar className="h-2.5 w-2.5 mr-1" />{new Date(t.due_date).toLocaleDateString("pt-BR")}</Badge>}
+                      {t.assignee_user_id && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {members.find(m => m.member_user_id === t.assignee_user_id)?.name
+                            || members.find(m => m.member_user_id === t.assignee_user_id)?.email
+                            || "Atribuído"}
+                        </Badge>
+                      )}
                       {t.tags?.map(tag => <Badge key={tag} variant="outline" className="text-[10px]">#{tag}</Badge>)}
                     </div>
                     <div className="flex gap-1 mt-2">
@@ -174,6 +191,17 @@ export default function Tasks() {
                 </Select>
               </div>
               <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
+            </div>
+            <div><Label>Responsável</Label>
+              <Select value={form.assignee_user_id || "none"} onValueChange={v => setForm({ ...form, assignee_user_id: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Nenhum —</SelectItem>
+                  {members.map(m => (
+                    <SelectItem key={m.member_user_id} value={m.member_user_id}>{m.name || m.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div><Label>Tags (separadas por vírgula)</Label><Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="ex: marketing, urgente" /></div>
           </div>
