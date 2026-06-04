@@ -38,6 +38,8 @@ export default function Settings() {
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [loading, setLoading] = useState(false);
+  const [supportVisible, setSupportVisible] = useState(true);
+  const [supportPosition, setSupportPosition] = useState<"bottom-right" | "bottom-left" | "top-right" | "top-left">("bottom-right");
 
   const [cats, setCats] = useState<Cat[]>([]);
   const [newCat, setNewCat] = useState<{ kind: Cat["kind"]; name: string }>({ kind: "income", name: "" });
