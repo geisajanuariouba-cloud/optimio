@@ -318,8 +318,8 @@ export default function Dashboard() {
           <div className="premium-card p-5">
             <div className="flex items-center gap-2 mb-3"><Users className="h-4 w-4 text-primary" /><div className="text-sm font-semibold">Clientes no período</div></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-white/[0.04] p-3"><div className="text-[11px] uppercase text-muted-foreground">Novos</div><div className="text-2xl font-semibold number-display">{kpi.novos}</div></div>
-              <div className="rounded-xl bg-white/[0.04] p-3"><div className="text-[11px] uppercase text-muted-foreground">Recorrentes</div><div className="text-2xl font-semibold number-display">{kpi.recorrentes}</div></div>
+              <div className="rounded-xl bg-muted/50 dark:bg-white/[0.04] p-3"><div className="text-[11px] uppercase text-muted-foreground">Novos</div><div className="text-2xl font-semibold number-display">{kpi.novos}</div></div>
+              <div className="rounded-xl bg-muted/50 dark:bg-white/[0.04] p-3"><div className="text-[11px] uppercase text-muted-foreground">Recorrentes</div><div className="text-2xl font-semibold number-display">{kpi.recorrentes}</div></div>
             </div>
           </div>
           <SideList
@@ -428,7 +428,7 @@ function Kpi({
     <div className={`premium-card p-5 ${feature ? "premium-feature" : ""}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${feature ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground"}`}>
+        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${feature ? "bg-primary/20 text-primary" : "bg-muted/50 dark:bg-white/5 text-muted-foreground"}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
@@ -458,7 +458,7 @@ function TopList({ title, icon: Icon, items, empty }: { title: string; icon: any
                 <span className="truncate pr-2">{it.name}</span>
                 <span className="text-xs text-muted-foreground">{it.qty} · <strong className="text-foreground">{fmtBRL(it.total)}</strong></span>
               </div>
-              <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+              <div className="h-1.5 rounded-full bg-muted/50 dark:bg-white/[0.05] overflow-hidden">
                 <div className="h-full bg-gradient-brand" style={{ width: `${(it.total / max) * 100}%` }} />
               </div>
             </div>
@@ -486,8 +486,8 @@ function SideList({
       ) : (
         <div className="space-y-1">
           {items.map(it => (
-            <Link key={it.id} to={to} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition">
-              <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-white/[0.04] ${it.tint}`}>
+            <Link key={it.id} to={to} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/40 dark:bg-white/[0.03] transition">
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 dark:bg-white/[0.04] ${it.tint}`}>
                 <it.icon className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
