@@ -11,18 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Calendar, ChevronLeft, ChevronRight, Trash2, Check, Clock, Undo2, Zap } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Trash2, Check, Clock, Undo2, Zap, Plus, X } from "lucide-react";
 import { PromissoriaFields, createPromissoria, type PromissoriaData } from "@/components/app/PromissoriaFields";
 
 type Appt = { id: string; appointment_date: string; appointment_time: string; client_id: string | null; service_id: string | null; status: string; amount: number; is_walk_in: boolean; notes: string | null; package_id: string | null; professional: string | null; payment_method: string | null };
 type Mini = { id: string; name?: string; full_name?: string; starting_price?: number };
+type PayMethod = { v: string; l: string };
+type Item = { service_id: string; name: string; price: number; qty: number };
 type View = "day" | "week" | "month";
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
 const STATUS = ["confirmed", "pending", "completed", "no_show", "cancelled"];
 const STATUS_LABEL: Record<string, string> = { confirmed: "Confirmado", pending: "Pendente", completed: "Concluído", no_show: "Faltou", cancelled: "Cancelado" };
 const STATUS_COLOR: Record<string, string> = { confirmed: "bg-emerald-500/10 text-emerald-600", pending: "bg-amber-500/10 text-amber-600", completed: "bg-primary/10 text-primary", no_show: "bg-rose-500/10 text-rose-600", cancelled: "bg-muted text-muted-foreground" };
-const PAY_METHODS = [
+const DEFAULT_PAY: PayMethod[] = [
   { v: "nao_escolhido", l: "Não escolhido" },
   { v: "dinheiro", l: "Dinheiro" },
   { v: "pix", l: "PIX" },
