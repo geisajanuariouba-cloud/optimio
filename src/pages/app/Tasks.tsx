@@ -141,6 +141,13 @@ export default function Tasks() {
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
                       <Badge variant="outline" className={`text-[10px] ${PRIORITY[t.priority]?.tone}`}>{PRIORITY[t.priority]?.label}</Badge>
                       {t.due_date && <Badge variant="outline" className="text-[10px]"><Calendar className="h-2.5 w-2.5 mr-1" />{new Date(t.due_date).toLocaleDateString("pt-BR")}</Badge>}
+                      {t.assignee_user_id && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {members.find(m => m.member_user_id === t.assignee_user_id)?.name
+                            || members.find(m => m.member_user_id === t.assignee_user_id)?.email
+                            || "Atribuído"}
+                        </Badge>
+                      )}
                       {t.tags?.map(tag => <Badge key={tag} variant="outline" className="text-[10px]">#{tag}</Badge>)}
                     </div>
                     <div className="flex gap-1 mt-2">
@@ -184,6 +191,17 @@ export default function Tasks() {
                 </Select>
               </div>
               <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
+            </div>
+            <div><Label>Responsável</Label>
+              <Select value={form.assignee_user_id || "none"} onValueChange={v => setForm({ ...form, assignee_user_id: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Nenhum —</SelectItem>
+                  {members.map(m => (
+                    <SelectItem key={m.member_user_id} value={m.member_user_id}>{m.name || m.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div><Label>Tags (separadas por vírgula)</Label><Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="ex: marketing, urgente" /></div>
           </div>
