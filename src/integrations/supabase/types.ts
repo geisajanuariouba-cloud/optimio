@@ -1133,6 +1133,42 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_articles: {
+        Row: {
+          author_name: string | null
+          category: string
+          content: string
+          created_at: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          category: string
+          content?: string
+          created_at?: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string | null
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           client_id: string | null
@@ -3169,6 +3205,27 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_dashboard_prefs: {
+        Row: {
+          hidden_widgets: Json
+          updated_at: string
+          user_id: string
+          widget_order: Json
+        }
+        Insert: {
+          hidden_widgets?: Json
+          updated_at?: string
+          user_id: string
+          widget_order?: Json
+        }
+        Update: {
+          hidden_widgets?: Json
+          updated_at?: string
+          user_id?: string
+          widget_order?: Json
         }
         Relationships: []
       }
