@@ -78,15 +78,20 @@ export default function AppLayout() {
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
           <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-16 border-b border-border bg-card/50 backdrop-blur flex items-center gap-4 px-4 lg:px-6">
-              <SidebarTrigger className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 shrink-0" />
+            <header className="h-16 border-b border-border/60 bg-background/70 backdrop-blur-xl flex items-center gap-3 px-4 lg:px-6 sticky top-0 z-30">
+              <SidebarTrigger className="h-9 w-9 rounded-xl bg-secondary/60 hover:bg-secondary text-foreground border border-border/60 shrink-0" />
               <div className="flex-1 max-w-md relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar clientes, produtos, serviços…" className="pl-9 bg-secondary/50 border-0 h-10" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Buscar clientes, produtos, serviços…"
+                  className="pl-10 bg-secondary/50 border border-border/60 h-10 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
+                />
                 {hits.length > 0 && (
-                  <Card className="absolute top-12 left-0 right-0 z-50 rounded-2xl border-0 shadow-lg max-h-80 overflow-auto">
+                  <Card className="absolute top-12 left-0 right-0 z-50 rounded-2xl border border-border/60 shadow-elegant max-h-80 overflow-auto premium-card p-1">
                     {hits.map(h => (
-                      <button key={h.kind + h.id} onClick={() => goTo(h)} className="w-full text-left p-3 hover:bg-secondary/60 flex items-center justify-between">
+                      <button key={h.kind + h.id} onClick={() => goTo(h)} className="w-full text-left p-3 rounded-xl hover:bg-secondary/60 flex items-center justify-between">
                         <div><div className="font-medium text-sm">{h.label}</div><div className="text-xs text-muted-foreground">{h.sub ?? "—"}</div></div>
                         <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">{h.kind}</span>
                       </button>
@@ -94,13 +99,19 @@ export default function AppLayout() {
                   </Card>
                 )}
               </div>
-              <div className="text-sm text-muted-foreground hidden md:block">{profile?.company_name}</div>
-              <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema">
-                {mode === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              <div className="hidden md:flex items-center gap-2 pill px-3 h-9 text-xs text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                {profile?.company_name}
+              </div>
+              <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema" className="h-9 w-9 rounded-xl hover:bg-secondary/60">
+                {mode === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
               </Button>
-              <Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-secondary/60 relative">
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary" />
+              </Button>
             </header>
-            <main className="flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden">
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
               <Outlet />
             </main>
           </div>
@@ -110,6 +121,7 @@ export default function AppLayout() {
     </div>
   );
 }
+
 
 function PendingScreen({ onSignOut }: { onSignOut: () => void }) {
   const [wa, setWa] = useState("");

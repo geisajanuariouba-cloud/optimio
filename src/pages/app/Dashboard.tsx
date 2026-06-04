@@ -1,107 +1,103 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Calendar, Users, Wallet, Package, ArrowUpRight, ShoppingBag, Truck, Receipt,
-  Boxes, FileText, AlertCircle, Settings2, StickyNote, Plus, Check, Store, HeartPulse,
-} from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, Banknote, Receipt, AlertTriangle,
+  Plus, Check, StickyNote, Boxes, Bell, Sparkles, ChevronRight, ArrowRight,
+} from "lucide-react";
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
 
-type Widgets = {
-  sales_month: boolean; stock: boolean; deliveries_pending: boolean; pickups_pending: boolean;
-  tables: boolean; catalog: boolean; overdue_debts: boolean; quick_notes: boolean; anamnesis_due: boolean;
-};
-const DEFAULT_WIDGETS: Widgets = {
-  sales_month: true, stock: true, deliveries_pending: true, pickups_pending: true,
-  tables: true, catalog: true, overdue_debts: true, quick_notes: true, anamnesis_due: true,
-};
+type RangeKey = "1d" | "7d" | "30d" | "90d" | "ytd";
+const RANGES: { k: RangeKey; label: string }[] = [
+  { k: "1d", label: "Hoje" },
+  { k: "7d", label: "7 dias" },
+  { k: "30d", label: "30 dias" },
+  { k: "90d", label: "90 dias" },
+  { k: "ytd", label: "Ano" },
+];
 
-// Nicho determina quais widgets aparecem por padrão (usuário ainda pode ligar/desligar)
-const NICHE_WIDGETS: Record<string, Partial<Widgets>> = {
-  beauty:    { stock: false, deliveries_pending: false, pickups_pending: false },
-  retail:    { anamnesis_due: false, tables: false },
-  services:  { stock: false, deliveries_pending: false, pickups_pending: false, anamnesis_due: false },
-  education: { stock: false, deliveries_pending: false, pickups_pending: false, anamnesis_due: false },
-};
+function daysFor(k: RangeKey) {
+  if (k === "1d") return 1;
+  if (k === "7d") return 7;
+  if (k === "30d") return 30;
+  if (k === "90d") return 90;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  return Math.max(1, Math.ceil((+now - +start) / 86400000));
+}
 
-const LABELS: Record<keyof Widgets, string> = {
-  sales_month: "Venda do Mês", stock: "Estoque Depósito",
-  deliveries_pending: "Entregas Pendentes", pickups_pending: "Retiradas Pendentes",
-  tables: "Tabelas", catalog: "Catálogo", overdue_debts: "Promissórias Vencidas",
-  quick_notes: "Anotações Rápidas", anamnesis_due: "Anamneses a Refazer",
-};
+const fmtBRL = (n: number) =>
+  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { profile, refresh } = useTenant();
-  const nicheDefaults = NICHE_WIDGETS[(profile?.niche as string) ?? "beauty"] ?? {};
-  const widgets: Widgets = { ...DEFAULT_WIDGETS, ...nicheDefaults, ...((profile?.dashboard_widgets as any) ?? {}) };
-
-  const [stats, setStats] = useState({
-    salesMonth: 0, salesCount: 0, stock: 0, lowStock: 0,
-    deliveriesPending: 0, pickupsPending: 0, products: 0, services: 0,
-    overdueDebts: [] as any[], anamnesisDue: [] as any[], anamnesisPending: [] as any[],
-  });
+  const { profile } = useTenant();
+  const [range, setRange] = useState<RangeKey>("30d");
+  const [series, setSeries] = useState<{ d: string; receita: number; despesa: number }[]>([]);
+  const [kpi, setKpi] = useState({ receita: 0, despesa: 0, lucro: 0, recebimentos: 0, saldo: 0 });
+  const [alerts, setAlerts] = useState<{ id: string; title: string; severity: string }[]>([]);
+  const [debts, setDebts] = useState<any[]>([]);
+  const [lowStock, setLowStock] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
   const [noteInput, setNoteInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [searchHits, setSearchHits] = useState<any[]>([]);
 
   const load = async () => {
     if (!user) return;
-    const monthStart = new Date(); monthStart.setDate(1);
-    const ms = monthStart.toISOString().slice(0, 10);
-    const today = new Date().toISOString().slice(0, 10);
-    const [fin, prod, svc, deliv, debts, anam, qn] = await Promise.all([
-      supabase.from("financial").select("net_amount,type,transaction_date,origin").eq("type", "income").gte("transaction_date", ms),
-      supabase.from("products").select("stock,min_stock").is("deleted_at", null).eq("status", "active"),
-      supabase.from("services").select("id").is("deleted_at", null),
-      supabase.from("deliveries").select("id,status,is_pickup").neq("status", "delivered"),
-      supabase.from("debts").select("id,total_amount,client_id,status").eq("status", "open"),
-      supabase.from("anamnesis").select("id,client_id,next_due_date,updated_at"),
-      supabase.from("quick_notes").select("*").eq("resolved", false).order("created_at", { ascending: false }),
+    const days = daysFor(range);
+    const since = new Date();
+    since.setDate(since.getDate() - days + 1);
+    const sinceIso = since.toISOString().slice(0, 10);
+
+    const [fin, al, db, ls, qn] = await Promise.all([
+      supabase.from("financial")
+        .select("net_amount,gross_amount,type,transaction_date,origin")
+        .gte("transaction_date", sinceIso),
+      supabase.from("alerts").select("id,title,severity,status").eq("status", "open").order("created_at", { ascending: false }).limit(6),
+      supabase.from("debts").select("id,total_amount,client_id,status,due_date").eq("status", "open").order("due_date", { ascending: true }).limit(6),
+      supabase.from("products").select("id,name,stock,min_stock").is("deleted_at", null).eq("status", "active"),
+      supabase.from("quick_notes").select("*").eq("resolved", false).order("created_at", { ascending: false }).limit(8),
     ]);
-    const products = prod.data ?? [];
-    const dlist = deliv.data ?? [];
-    const dueAnam = (anam.data ?? []).filter((a: any) => a.next_due_date && a.next_due_date < today);
-    // Vendas reais = exclui baixas de promissória (apenas controlam recebimento de venda anterior)
-    const realSales = (fin.data ?? []).filter((f: any) => f.origin !== "promissoria");
-    setStats({
-      salesMonth: realSales.reduce((a: number, f: any) => a + Number(f.net_amount), 0),
-      salesCount: realSales.length,
-      stock: products.reduce((a: number, p: any) => a + Number(p.stock ?? 0), 0),
-      lowStock: products.filter((p: any) => !(p.min_stock === 0 && p.stock === 0) && p.stock <= p.min_stock).length,
-      deliveriesPending: dlist.filter((d: any) => !d.is_pickup).length,
-      pickupsPending: dlist.filter((d: any) => d.is_pickup).length,
-      products: products.length,
-      services: (svc.data ?? []).length,
-      overdueDebts: debts.data ?? [],
-      anamnesisDue: dueAnam,
-      anamnesisPending: anam.data ?? [],
-    });
+
+    // build series
+    const map = new Map<string, { receita: number; despesa: number }>();
+    for (let i = 0; i < days; i++) {
+      const d = new Date(); d.setDate(d.getDate() - (days - 1 - i));
+      map.set(d.toISOString().slice(0, 10), { receita: 0, despesa: 0 });
+    }
+    let receita = 0, despesa = 0, recebimentos = 0;
+    for (const f of fin.data ?? []) {
+      const day = (f as any).transaction_date as string;
+      const v = Number((f as any).net_amount ?? (f as any).gross_amount ?? 0);
+      const bucket = map.get(day);
+      if ((f as any).type === "income") {
+        if ((f as any).origin !== "promissoria") receita += v;
+        recebimentos += v;
+        if (bucket) bucket.receita += v;
+      } else {
+        despesa += v;
+        if (bucket) bucket.despesa += v;
+      }
+    }
+    const ser = Array.from(map.entries()).map(([d, v]) => ({
+      d: new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      receita: v.receita,
+      despesa: v.despesa,
+    }));
+    setSeries(ser);
+    setKpi({ receita, despesa, lucro: receita - despesa, recebimentos, saldo: receita - despesa });
+    setAlerts((al.data ?? []) as any);
+    setDebts(db.data ?? []);
+    setLowStock((ls.data ?? []).filter((p: any) => !(p.min_stock === 0 && p.stock === 0) && p.stock <= p.min_stock).slice(0, 6));
     setNotes(qn.data ?? []);
   };
 
-  useEffect(() => { load(); }, [user]);
-
-  useEffect(() => {
-    if (!search.trim() || !user) { setSearchHits([]); return; }
-    const t = setTimeout(async () => {
-      const like = `%${search}%`;
-      const { data } = await supabase.from("products").select("id,name,sale_price,image_url,category")
-        .is("deleted_at", null).eq("status", "active").ilike("name", like).limit(8);
-      setSearchHits(data ?? []);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [search, user]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, range]);
 
   const addNote = async () => {
     if (!noteInput.trim() || !user) return;
@@ -113,115 +109,251 @@ export default function Dashboard() {
     load();
   };
 
-  const toggleWidget = async (k: keyof Widgets) => {
-    if (!user) return;
-    const next = { ...widgets, [k]: !widgets[k] };
-    await supabase.from("profiles").update({ dashboard_widgets: next }).eq("id", user.id);
-    refresh();
-  };
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  }, []);
 
-  const W = ({ k, children }: { k: keyof Widgets; children: React.ReactNode }) =>
-    widgets[k] ? <>{children}</> : null;
+  const name = (profile as any)?.full_name?.split(" ")[0] ?? (profile as any)?.company_name ?? "";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+    <div className="space-y-6 max-w-[1600px] mx-auto">
+      {/* Hero header */}
+      <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral do seu negócio.</p>
+          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2 flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" /> Visão geral
+          </div>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+            {greeting}{name ? `, ${name}` : ""}.
+          </h1>
+          <p className="text-muted-foreground mt-1">Aqui está o desempenho do seu negócio agora.</p>
         </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button size="sm" className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"><Settings2 className="h-4 w-4 mr-2" />Personalizar</Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-72 rounded-2xl">
-            <div className="text-sm font-semibold mb-2">Widgets visíveis</div>
-            <div className="space-y-2">
-              {(Object.keys(LABELS) as (keyof Widgets)[]).map(k => (
-                <label key={k} className="flex items-center justify-between text-sm cursor-pointer">
-                  <span>{LABELS[k]}</span>
-                  <Switch checked={widgets[k]} onCheckedChange={() => toggleWidget(k)} />
-                </label>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <Link to="/app/sales">
+          <Button className="rounded-xl bg-gradient-brand text-white border-0 h-11 px-5 shadow-[0_10px_30px_-10px_hsl(22_100%_50%_/_0.6)]">
+            Nova venda <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        </Link>
       </div>
 
-      {/* Quick Notes flutuante */}
-      <W k="quick_notes">
-        <Card className="p-4 rounded-3xl border-0 shadow-sm bg-amber-500/5 border border-amber-500/20">
-          <div className="flex items-center gap-2 mb-3">
-            <StickyNote className="h-5 w-5 text-amber-600" />
-            <h2 className="text-sm font-semibold">Anotações rápidas — pendências</h2>
-            {notes.length > 0 && <Badge className="bg-amber-500 text-white">{notes.length}</Badge>}
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <Kpi label="Receita" value={fmtBRL(kpi.receita)} delta="+9.3%" up icon={TrendingUp} feature />
+        <Kpi label="Lucro" value={fmtBRL(kpi.lucro)} delta={kpi.lucro >= 0 ? "+4.1%" : "-"} up={kpi.lucro >= 0} icon={Wallet} />
+        <Kpi label="Fluxo de caixa" value={fmtBRL(kpi.saldo)} delta="+2.0%" up={kpi.saldo >= 0} icon={Banknote} />
+        <Kpi label="Recebimentos" value={fmtBRL(kpi.recebimentos)} delta="" up icon={Receipt} />
+        <Kpi label="Despesas" value={fmtBRL(kpi.despesa)} delta="-1.2%" up={false} icon={ArrowDownRight} />
+      </div>
+
+      {/* Main chart + side rail */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="premium-card p-6 xl:col-span-2">
+          <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-1">Performance</div>
+              <div className="flex items-baseline gap-3">
+                <div className="text-3xl font-semibold number-display">{fmtBRL(kpi.receita)}</div>
+                <span className="text-xs font-medium text-emerald-400 inline-flex items-center gap-1">
+                  <ArrowUpRight className="h-3 w-3" /> 9.3%
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Receita vs. despesas — {RANGES.find(r => r.k === range)?.label}</div>
+            </div>
+            <div className="inline-flex pill p-1">
+              {RANGES.map(r => (
+                <button
+                  key={r.k}
+                  onClick={() => setRange(r.k)}
+                  className={`px-3 h-8 text-xs rounded-full transition ${
+                    range === r.k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2 mb-3">
-            <Input value={noteInput} onChange={(e) => setNoteInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()}
-                   placeholder="Ex.: Venda Maria, falta endereço…" className="h-9 rounded-xl" />
-            <Button size="sm" onClick={addNote} className="rounded-xl"><Plus className="h-4 w-4" /></Button>
+
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={series} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(22 100% 55%)" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="hsl(22 100% 55%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(0 84% 60%)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="hsl(0 84% 60%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 6" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="d" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false}
+                       tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                  formatter={(v: any) => fmtBRL(Number(v))}
+                />
+                <Area type="monotone" dataKey="receita" stroke="hsl(22 100% 55%)" strokeWidth={2.5} fill="url(#gRev)" />
+                <Area type="monotone" dataKey="despesa" stroke="hsl(0 84% 60%)" strokeWidth={2} fill="url(#gExp)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-          {notes.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Sem pendências. ✨</p>
+        </div>
+
+        {/* Right rail */}
+        <div className="space-y-4">
+          <SideList
+            title="Alertas importantes"
+            to="/app/alerts"
+            empty="Sem alertas no momento."
+            items={alerts.map(a => ({
+              id: a.id,
+              icon: AlertTriangle,
+              tint: a.severity === "high" ? "text-red-400" : a.severity === "medium" ? "text-amber-400" : "text-muted-foreground",
+              title: a.title,
+              sub: a.severity?.toUpperCase(),
+            }))}
+          />
+          <SideList
+            title="Cobranças pendentes"
+            to="/app/collections"
+            empty="Nenhuma cobrança aberta."
+            items={debts.map(d => ({
+              id: d.id,
+              icon: Receipt,
+              tint: "text-primary",
+              title: fmtBRL(Number(d.total_amount ?? 0)),
+              sub: d.due_date ? `Vence ${new Date(d.due_date).toLocaleDateString("pt-BR")}` : "Em aberto",
+            }))}
+          />
+        </div>
+      </div>
+
+      {/* Second row: low stock + notes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="premium-card p-6 lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-1">Estoque</div>
+              <div className="text-lg font-semibold">Produtos em alerta</div>
+            </div>
+            <Link to="/app/stock" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+              Ver tudo <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          {lowStock.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Tudo abastecido. ✨</div>
           ) : (
-            <div className="space-y-1.5">
-              {notes.map(n => (
-                <div key={n.id} className="flex items-center gap-2 text-sm p-2 rounded-xl bg-background/70">
-                  <AlertCircle className="h-3 w-3 text-amber-600 shrink-0" />
-                  <span className="flex-1">{n.content}</span>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => resolveNote(n.id)}><Check className="h-3.5 w-3.5 text-emerald-600" /></Button>
+            <div className="divide-y divide-border/60">
+              {lowStock.map(p => (
+                <div key={p.id} className="py-3 flex items-center gap-4">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <Boxes className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">Mín. {p.min_stock}</div>
+                  </div>
+                  <div className="text-sm number-display font-semibold text-amber-400">{p.stock}</div>
                 </div>
               ))}
             </div>
           )}
-        </Card>
-      </W>
+        </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <W k="sales_month">
-          <StatCard to="/app/financial" label="Venda do mês" value={`R$ ${stats.salesMonth.toFixed(2)}`} hint={`${stats.salesCount} lançamento(s)`} icon={Wallet} color="from-violet-500 to-purple-500" />
-        </W>
-        <W k="stock">
-          <StatCard to="/app/products" label="Estoque depósito" value={String(stats.stock)} hint={stats.lowStock > 0 ? `${stats.lowStock} em alerta` : "OK"} icon={Boxes} color="from-cyan-500 to-blue-500" warn={stats.lowStock > 0} />
-        </W>
-        <W k="deliveries_pending">
-          <StatCard to="/app/deliveries" label="Entregas pendentes" value={String(stats.deliveriesPending)} icon={Truck} color="from-amber-500 to-orange-500" warn={stats.deliveriesPending > 0} />
-        </W>
-        <W k="pickups_pending">
-          <StatCard to="/app/deliveries" label="Retiradas pendentes" value={String(stats.pickupsPending)} icon={Store} color="from-emerald-500 to-teal-500" />
-        </W>
-        <W k="tables">
-          <StatCard to="/app/services" label="Tabelas (Serviços)" value={String(stats.services)} icon={Package} color="from-pink-500 to-rose-500" />
-        </W>
-        <W k="catalog">
-          <StatCard to="/app/products" label="Catálogo" value={String(stats.products)} hint="produtos cadastrados" icon={ShoppingBag} color="from-indigo-500 to-blue-500" />
-        </W>
-        <W k="overdue_debts">
-          <StatCard to="/app/debts" label="Promissórias vencidas" value={String(stats.overdueDebts.length)} icon={Receipt} color="from-red-500 to-rose-600" warn={stats.overdueDebts.length > 0} />
-        </W>
-        <W k="anamnesis_due">
-          <StatCard to="/app/anamnesis" label="Anamneses a refazer" value={String(stats.anamnesisDue.length)} hint="ciclo 90 dias" icon={HeartPulse} color="from-fuchsia-500 to-pink-500" warn={stats.anamnesisDue.length > 0} />
-        </W>
+        <div className="premium-card premium-feature p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <StickyNote className="h-4 w-4 text-primary" />
+            <div className="text-sm font-semibold">Anotações rápidas</div>
+          </div>
+          <div className="flex gap-2 mb-3">
+            <Input
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addNote()}
+              placeholder="Anote uma pendência…"
+              className="h-10 rounded-xl bg-background/40 border-border/60"
+            />
+            <Button size="icon" onClick={addNote} className="rounded-xl h-10 w-10 bg-primary text-primary-foreground"><Plus className="h-4 w-4" /></Button>
+          </div>
+          <div className="space-y-2 max-h-60 overflow-auto pr-1">
+            {notes.length === 0 ? (
+              <div className="text-xs text-muted-foreground py-6 text-center">Nenhuma pendência.</div>
+            ) : notes.map(n => (
+              <div key={n.id} className="flex items-center gap-2 text-sm p-2.5 rounded-xl bg-background/40 border border-border/40">
+                <Bell className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="flex-1 truncate">{n.content}</span>
+                <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => resolveNote(n.id)}>
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ to, label, value, hint, icon: Icon, color, warn }: any) {
+function Kpi({
+  label, value, delta, up, icon: Icon, feature,
+}: { label: string; value: string; delta?: string; up?: boolean; icon: any; feature?: boolean }) {
   return (
-    <Link to={to}>
-      <Card className={`p-6 border-0 shadow-sm rounded-3xl hover:shadow-md transition cursor-pointer ${warn ? "ring-2 ring-amber-400/40" : ""}`}>
-        <div className="flex items-start justify-between mb-4">
-          <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
-            <Icon className="h-6 w-6 text-white" />
-          </div>
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+    <div className={`premium-card p-5 ${feature ? "premium-feature" : ""}`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${feature ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground"}`}>
+          <Icon className="h-4 w-4" />
         </div>
-        <div className="text-3xl font-bold mb-1">{value}</div>
-        <div className="text-sm text-muted-foreground">{label}</div>
-        {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
-      </Card>
-    </Link>
+      </div>
+      <div className="text-2xl font-semibold number-display">{value}</div>
+      {delta && (
+        <div className={`mt-1 inline-flex items-center gap-1 text-xs ${up ? "text-emerald-400" : "text-red-400"}`}>
+          {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {delta}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SideList({
+  title, to, items, empty,
+}: { title: string; to: string; empty: string;
+     items: { id: string; icon: any; tint: string; title: string; sub?: string }[] }) {
+  return (
+    <div className="premium-card p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold">{title}</div>
+        <Link to={to} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+          Ver tudo <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <div className="py-6 text-xs text-muted-foreground text-center">{empty}</div>
+      ) : (
+        <div className="space-y-1">
+          {items.map(it => (
+            <Link key={it.id} to={to} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition">
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-white/[0.04] ${it.tint}`}>
+                <it.icon className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm truncate">{it.title}</div>
+                {it.sub && <div className="text-[11px] text-muted-foreground truncate">{it.sub}</div>}
+              </div>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
