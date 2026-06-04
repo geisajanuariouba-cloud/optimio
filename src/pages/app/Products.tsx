@@ -31,6 +31,7 @@ type Product = {
   width?: number | null; height?: number | null; depth?: number | null; length_cm?: number | null; weight?: number | null; measure_unit?: string | null;
   price_out_of_sync?: boolean | null; engine_suggested_price?: number | null; manual_price_override?: boolean | null;
   out_of_line?: boolean | null;
+  image_review_required?: boolean | null;
 };
 
 const isLowStock = (p: Product) => {
