@@ -64,6 +64,7 @@ export default function Products() {
 
   const [filter, setFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [imagePendingOnly, setImagePendingOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<string>("30");
   const [bestSeller, setBestSeller] = useState<{ name: string; count: number } | null>(null);
