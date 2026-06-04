@@ -120,10 +120,7 @@ export default function AppLayout() {
               <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema" className="h-9 w-9 rounded-xl hover:bg-secondary/60">
                 {mode === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
               </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-secondary/60 relative">
-                <Bell className="h-[18px] w-[18px]" />
-                <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary" />
-              </Button>
+              <NotificationsBell />
               <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9 rounded-xl hover:bg-secondary/60" aria-label="Sair">
                 <LogOut className="h-[18px] w-[18px]" />
               </Button>
