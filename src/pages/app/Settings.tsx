@@ -154,9 +154,16 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold mb-1">Configurações</h1>
-        <p className="text-muted-foreground">Personalize empresa, nicho, design, plano, categorias e anamnese.</p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Configurações</h1>
+          <p className="text-muted-foreground">Personalize empresa, nicho, design, plano, categorias e anamnese.</p>
+        </div>
+        {(profile as any)?.is_admin_master && (
+          <div className="pill px-3 py-1.5 inline-flex items-center gap-2 text-xs font-semibold text-primary">
+            <ShieldCheck className="h-3.5 w-3.5" /> Administrador Master
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="general">
@@ -165,6 +172,7 @@ export default function Settings() {
           <TabsTrigger value="categories"><Tags className="h-4 w-4 mr-1" />Categorias</TabsTrigger>
           <TabsTrigger value="anamnesis"><ClipboardList className="h-4 w-4 mr-1" />Anamnese</TabsTrigger>
           <TabsTrigger value="support"><LifeBuoy className="h-4 w-4 mr-1" />Suporte</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="h-4 w-4 mr-1" />Segurança</TabsTrigger>
           <TabsTrigger value="plan"><Crown className="h-4 w-4 mr-1" />Plano</TabsTrigger>
         </TabsList>
 
@@ -175,8 +183,18 @@ export default function Settings() {
               <div><Label>Nome completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-secondary/50 border-0 h-11" /></div>
               <div><Label>Nome da empresa (whitelabel)</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="bg-secondary/50 border-0 h-11" /></div>
             </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Dia de início do mês operacional</Label>
+                <Input type="number" min={1} max={28} value={cycleDay}
+                  onChange={(e) => setCycleDay(Number(e.target.value))}
+                  className="bg-secondary/50 border-0 h-11" />
+                <p className="text-xs text-muted-foreground mt-1">Ciclo atual: <strong>{getCycleLabel(cycleDay)}</strong></p>
+              </div>
+            </div>
             <Button onClick={save} disabled={loading} className="rounded-2xl">{loading ? "Salvando…" : "Salvar"}</Button>
           </Card>
+
 
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
             <div className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary" /><h2 className="text-xl font-semibold">Aparência</h2></div>
