@@ -198,6 +198,46 @@ export default function Settings() {
                 <p className="text-xs text-muted-foreground mt-1">Ciclo atual: <strong>{getCycleLabel(cycleDay)}</strong></p>
               </div>
             </div>
+
+            {/* Identidade Visual */}
+            <div className="pt-2 border-t border-border/50 space-y-3">
+              <div className="flex items-center gap-2">
+                <Palette className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Identidade Visual</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">A logo da Optimio segue como principal; sua logo aparece logo abaixo na sidebar e em impressões/relatórios.</p>
+              <div className="flex items-center gap-4 flex-wrap">
+                {(profile as any)?.logo_url && (
+                  <img src={(profile as any).logo_url} alt="Logo da empresa" className="h-14 w-auto rounded-md bg-secondary/40 p-1" />
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  disabled={!user}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !user) return;
+                    const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
+                    const up = await supabase.storage.from("tenant-logos").upload(path, file, { upsert: true, contentType: file.type });
+                    if (up.error) return toast.error(friendlyError(up.error));
+                    const { data } = supabase.storage.from("tenant-logos").getPublicUrl(path);
+                    const { error } = await supabase.from("profiles").update({ logo_url: data.publicUrl } as any).eq("id", user.id);
+                    if (error) return toast.error(friendlyError(error));
+                    toast.success("Logo atualizada");
+                    refresh();
+                  }}
+                  className="text-xs"
+                />
+                {(profile as any)?.logo_url && (
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={async () => {
+                    if (!user) return;
+                    await supabase.from("profiles").update({ logo_url: null } as any).eq("id", user.id);
+                    toast.success("Logo removida"); refresh();
+                  }}>Remover</Button>
+                )}
+              </div>
+            </div>
+
             <Button onClick={save} disabled={loading} className="rounded-2xl">{loading ? "Salvando…" : "Salvar"}</Button>
           </Card>
 

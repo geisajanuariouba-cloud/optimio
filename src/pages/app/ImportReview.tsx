@@ -53,6 +53,7 @@ export default function ImportReview() {
   const { user } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [productStatuses, setProductStatuses] = useState<Record<string, { status: string; deleted: boolean }>>({});
   const [filter, setFilter] = useState("pending");
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -68,9 +69,24 @@ export default function ImportReview() {
       supabase.from("catalog_review_items").select("*").order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id,name").is("deleted_at", null).order("name"),
     ]);
-    setItems((data ?? []) as Item[]);
+    const rows = (data ?? []) as Item[];
+    setItems(rows);
     setSuppliers((sup ?? []) as any);
     setSelected(new Set());
+
+    // carrega status dos produtos vinculados para contagem real
+    const ids = Array.from(new Set(rows.map(r => r.match_product_id).filter(Boolean))) as string[];
+    if (ids.length) {
+      const { data: prods } = await supabase
+        .from("products")
+        .select("id,status,deleted_at")
+        .in("id", ids);
+      const map: Record<string, { status: string; deleted: boolean }> = {};
+      (prods ?? []).forEach((p: any) => { map[p.id] = { status: p.status, deleted: !!p.deleted_at }; });
+      setProductStatuses(map);
+    } else {
+      setProductStatuses({});
+    }
   };
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -250,12 +266,28 @@ export default function ImportReview() {
     <div>
       <PageHeader title="Revisão de Importação" description="Aprove ou rejeite os itens extraídos do catálogo antes de virarem produtos." />
 
-      <MetricsRow items={[
-        { label: "Aguardando", value: String(items.filter(i => i.review_status === "pending").length), tone: "warning" },
-        { label: "Aprovados", value: String(items.filter(i => i.review_status === "approved").length), tone: "success" },
-        { label: "Rejeitados", value: String(items.filter(i => i.review_status === "rejected").length), tone: "danger" },
-        { label: "Total extraído", value: String(items.length), tone: "primary" },
-      ]} />
+      {(() => {
+        const approved = items.filter(i => i.review_status === "approved");
+        let activos = 0, apagados = 0, arquivados = 0, semProd = 0;
+        approved.forEach(i => {
+          if (!i.match_product_id) { semProd++; return; }
+          const p = productStatuses[i.match_product_id];
+          if (!p) { semProd++; return; }
+          if (p.deleted) apagados++;
+          else if (p.status === "active") activos++;
+          else arquivados++;
+        });
+        return (
+          <MetricsRow items={[
+            { label: "Aguardando", value: String(items.filter(i => i.review_status === "pending").length), tone: "warning" },
+            { label: "Aprovados ativos", value: String(activos), tone: "success" },
+            { label: "Apagados", value: String(apagados + semProd), tone: "danger" },
+            { label: "Arquivados", value: String(arquivados), tone: "warning" },
+            { label: "Rejeitados", value: String(items.filter(i => i.review_status === "rejected").length), tone: "danger" },
+            { label: "Total extraído", value: String(items.length), tone: "primary" },
+          ]} />
+        );
+      })()}
 
       <div className="flex flex-wrap gap-2 mb-4">
         <Select value={filter} onValueChange={setFilter}>

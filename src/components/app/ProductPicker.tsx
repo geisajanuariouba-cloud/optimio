@@ -89,11 +89,15 @@ export default function ProductPicker({
       (sup.data ?? []).forEach((x: any) => { supMap[x.id] = x; });
       setSuppliers(supMap);
       const list: Row[] = [];
+      const validProductIds = new Set<string>();
       (p.data ?? []).forEach((x: any) => {
+        validProductIds.add(x.id);
         if (x.has_variations) return;
         list.push({ id: x.id, kind: "product", name: x.name, image_url: x.image_url, cost: Number(x.cost ?? 0), sale_price: Number(x.sale_price ?? 0), stock: x.stock, supplier_id: x.supplier_id });
       });
       (v.data ?? []).forEach((x: any) => {
+        // só inclui variações cujo produto pai esteja ativo/visível
+        if (!validProductIds.has(x.product_id)) return;
         list.push({ id: x.id, kind: "variation", product_id: x.product_id, name: x.name, image_url: x.image_url, cost: Number(x.cost ?? 0), sale_price: Number(x.sale_price ?? 0), stock: x.stock, supplier_id: x.supplier_id });
       });
       (s.data ?? []).forEach((x: any) => {
@@ -181,12 +185,16 @@ export default function ProductPicker({
                       <Input type="number" step="0.01" value={it.margin_percent} onChange={(e) => update(idx, { margin_percent: +e.target.value })} className="h-8" /></label>
                     <label className="space-y-1"><span className="text-muted-foreground">Markup %</span>
                       <Input type="number" step="0.01" value={it.markup_percent} onChange={(e) => update(idx, { markup_percent: +e.target.value })} className="h-8" /></label>
-                    <label className="space-y-1"><span className="text-muted-foreground">Taxa custo %</span>
-                      <Input type="number" step="0.01" value={it.fee_percent} onChange={(e) => update(idx, { fee_percent: +e.target.value })} className="h-8" /></label>
+                    <label className="space-y-1"><span className="text-muted-foreground">Acrésc./Desc. custo %</span>
+                      <Input type="number" step="0.01" value={it.fee_percent} onChange={(e) => update(idx, { fee_percent: +e.target.value })} className="h-8" title="Acréscimo (positivo) ou desconto (negativo) aplicado sobre o custo antes da margem." /></label>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Preço unit.: <strong className="text-foreground">R$ {it.unit_price.toFixed(2)}</strong></span>
-                    <span>Subtotal: <strong className="text-primary">R$ {(it.unit_price * it.quantity).toFixed(2)}</strong></span>
+                  <div className="flex items-center justify-between text-xs flex-wrap gap-1">
+                    <span className="text-muted-foreground">
+                      Custo: <strong className="text-foreground">R$ {Number(it.cost).toFixed(2)}</strong>
+                      {it.fee_percent ? <> · {it.fee_percent > 0 ? "Acrésc." : "Desc."}: <strong className={it.fee_percent > 0 ? "text-amber-500" : "text-emerald-500"}>{it.fee_percent > 0 ? "+" : ""}{it.fee_percent}%</strong></> : null}
+                      {" · "}Final: <strong className="text-foreground">R$ {(it.cost * (1 + (it.fee_percent || 0) / 100)).toFixed(2)}</strong>
+                    </span>
+                    <span>Preço unit.: <strong className="text-primary">R$ {it.unit_price.toFixed(2)}</strong> · Subtotal: <strong className="text-primary">R$ {(it.unit_price * it.quantity).toFixed(2)}</strong></span>
                   </div>
                 </div>
               </div>

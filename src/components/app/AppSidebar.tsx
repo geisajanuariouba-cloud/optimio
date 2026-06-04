@@ -15,6 +15,7 @@ import {
   Settings as SettingsIcon, Crown, LogOut, LifeBuoy, ChevronRight, ChevronLeft,
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
+import logoAsset from "@/assets/optimio-logo.png.asset.json";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -131,13 +132,16 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border/60 p-3">
         <NavLink to="/app" className="flex items-center gap-2.5 px-1.5 py-1 rounded-xl hover:bg-sidebar-accent/50 transition-colors">
-          <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-brand flex items-center justify-center shadow-elegant">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
+          <img
+            src={logoAsset.url}
+            alt="Optimio"
+            className={collapsed ? "h-8 w-8 object-cover object-left rounded-md shrink-0" : "h-8 w-auto shrink-0"}
+            draggable={false}
+          />
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="font-bold text-sm leading-tight truncate text-sidebar-foreground">
-                {profile?.company_name || "Optimio"}
+              <div className="font-semibold text-xs leading-tight truncate text-sidebar-foreground/90">
+                {profile?.company_name || "Sua empresa"}
               </div>
               <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 truncate">
                 {adminMaster ? "Admin Master" : (profile?.full_name ?? "")}
@@ -145,6 +149,11 @@ export function AppSidebar() {
             </div>
           )}
         </NavLink>
+        {!collapsed && profile?.logo_url && (
+          <div className="mt-2 flex items-center justify-center rounded-lg bg-sidebar-accent/40 p-2">
+            <img src={profile.logo_url} alt={profile.company_name ?? "Empresa"} className="max-h-10 w-auto object-contain" />
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3 scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
