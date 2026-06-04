@@ -76,6 +76,7 @@ export default function Financial() {
 
   const totalWithInterest = useMemo(() => Math.round((Number(form.gross_amount) + interestAmount) * 100) / 100, [form.gross_amount, interestAmount]);
   const effectiveTotal = form.total_manual ? Number(form.total_override || 0) : totalWithInterest;
+  const change = isCash && form.cash_received ? Math.max(0, Number(form.cash_received) - Number(effectiveTotal || form.gross_amount)) : 0;
 
   const calcNet = () => {
     if (isPromissoria) return effectiveTotal;
