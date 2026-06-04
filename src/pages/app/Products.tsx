@@ -396,6 +396,21 @@ export default function Products() {
                           {bestSeller?.name === p.name && <Trophy className="h-3 w-3 text-amber-500" />}
                           {p.status === "discontinued" && <Badge className="bg-amber-500/15 text-amber-600 text-[10px]">fora de linha</Badge>}
                           {p.is_ingredient_residue && <Badge className="bg-cyan-500/10 text-cyan-600 text-[10px]">ingrediente</Badge>}
+                          {p.image_review_required && (
+                            <span className="inline-flex items-center gap-1">
+                              <Badge className="bg-amber-500/15 text-amber-700 text-[10px] gap-1"><ImageOff className="h-3 w-3" />imagem pendente</Badge>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[10px] text-emerald-600 gap-1"
+                                onClick={() => markImageReviewed(p)}
+                                title="Marcar imagem como revisada"
+                              >
+                                <CheckCircle2 className="h-3 w-3" /> revisada
+                              </Button>
+                            </span>
+                          )}
                         </div>
                         {p.has_variations && (variationsByProduct.get(p.id) ?? []).length > 0 && (
                           <div className="flex items-center gap-1 flex-wrap mt-1">
