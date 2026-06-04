@@ -267,6 +267,20 @@ export default function ImportReview() {
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Fornecedor" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os fornecedores</SelectItem>
+            {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as categorias</SelectItem>
+            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Input placeholder="Buscar por nome ou código…" value={search} onChange={e => setSearch(e.target.value)} className="flex-1 min-w-[200px]" />
         {filter === "pending" && filtered.length > 0 && (
           <>
