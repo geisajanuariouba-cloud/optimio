@@ -65,6 +65,7 @@ export default function Settings() {
     setNiche((profile.niche as NicheKey) ?? "beauty");
     setPrimaryColor(profile.primary_color);
     setBorderStyle(profile.border_style);
+    setCycleDay(Number((profile as any).operational_cycle_start_day ?? 1));
     setSupportVisible((profile as any).support_button_visible !== false);
     setSupportPosition(((profile as any).support_button_position ?? "bottom-right") as any);
   }, [profile]);
@@ -83,13 +84,32 @@ export default function Settings() {
   const save = async () => {
     if (!user) return;
     setLoading(true);
+    const safeDay = Math.min(28, Math.max(1, Number(cycleDay) || 1));
     const { error } = await supabase.from("profiles").update({
       company_name: companyName, full_name: fullName,
       primary_color: primaryColor, border_style: borderStyle,
-    }).eq("id", user.id);
+      operational_cycle_start_day: safeDay,
+    } as any).eq("id", user.id);
     setLoading(false);
     if (error) toast.error(friendlyError(error)); else { toast.success("Configurações salvas!"); refresh(); }
   };
+
+  const doRestore = async () => {
+    if (!user) return;
+    if (restoreConfirm.trim().toUpperCase() !== "CONFIRMAR") return toast.error('Digite "CONFIRMAR" para prosseguir.');
+    if (!restoreEmail || !restorePassword) return toast.error("Informe email e senha.");
+    setRestoring(true);
+    const { error: authErr } = await supabase.auth.signInWithPassword({ email: restoreEmail, password: restorePassword });
+    if (authErr) { setRestoring(false); return toast.error("Email ou senha inválidos."); }
+    const { data, error } = await supabase.rpc("restore_tenant_data" as any);
+    setRestoring(false);
+    if (error) return toast.error(friendlyError(error));
+    toast.success("Conta restaurada. Dados operacionais apagados.");
+    setRestoreOpen(false); setRestoreEmail(""); setRestorePassword(""); setRestoreConfirm("");
+    refresh();
+    setTimeout(() => { window.location.href = "/app"; }, 800);
+  };
+
 
   const resetNiche = async () => {
     if (!user) return;
