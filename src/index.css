@@ -197,6 +197,44 @@
     -webkit-backdrop-filter: blur(20px) saturate(140%);
     border: 1px solid hsl(240 20% 96% / 0.08);
   }
+
+  /* OPTIMIO V2 — premium surfaces */
+  .theme-skillset .premium-card {
+    background: linear-gradient(180deg, hsl(0 0% 9% / 0.92), hsl(0 0% 5% / 0.92));
+    border: 1px solid hsl(0 0% 100% / 0.06);
+    border-radius: 1.25rem;
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 20px 60px -30px hsl(0 0% 0% / 0.6);
+    transition: border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+  }
+  .theme-skillset .premium-card:hover {
+    border-color: hsl(22 100% 50% / 0.35);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.05) inset, 0 30px 80px -30px hsl(22 100% 30% / 0.45);
+  }
+  .theme-skillset.light .premium-card {
+    background: linear-gradient(180deg, #ffffff, #fafafa);
+    border: 1px solid hsl(0 0% 92%);
+    box-shadow: 0 1px 0 hsl(0 0% 100%) inset, 0 12px 40px -20px hsl(0 0% 0% / 0.08);
+  }
+  .theme-skillset .premium-feature {
+    background:
+      radial-gradient(120% 80% at 0% 0%, hsl(22 100% 50% / 0.20), transparent 55%),
+      radial-gradient(100% 80% at 100% 100%, hsl(28 100% 60% / 0.14), transparent 55%),
+      linear-gradient(180deg, hsl(0 0% 8% / 0.95), hsl(0 0% 5% / 0.95));
+    border: 1px solid hsl(22 100% 50% / 0.28);
+  }
+  .theme-skillset .pill {
+    border-radius: 999px;
+    background: hsl(0 0% 100% / 0.04);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+  }
+  .theme-skillset.light .pill {
+    background: hsl(0 0% 100%);
+    border: 1px solid hsl(0 0% 90%);
+  }
+  .number-display { font-feature-settings: "tnum" on, "lnum" on; letter-spacing: -0.03em; }
+
   .border-gradient {
     position: relative;
   }
