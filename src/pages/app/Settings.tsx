@@ -334,6 +334,36 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="security" className="space-y-6 mt-4">
+          <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
+            <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-rose-500" /><h2 className="text-xl font-semibold">Restaurar conta</h2></div>
+            <p className="text-sm text-muted-foreground">
+              Apaga todos os <strong>dados operacionais</strong> (clientes, produtos, vendas, financeiro, agenda, projetos, alertas, tarefas…) mantendo sua conta, plano e configurações. Esta ação é <strong>irreversível</strong>.
+            </p>
+            <AlertDialog open={restoreOpen} onOpenChange={setRestoreOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="rounded-2xl gap-2"><Lock className="h-4 w-4" />Restaurar conta</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar restauração</AlertDialogTitle>
+                  <AlertDialogDescription>Confirme suas credenciais e digite CONFIRMAR para prosseguir.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-3 py-2">
+                  <div><Label>Email</Label><Input type="email" value={restoreEmail} onChange={(e) => setRestoreEmail(e.target.value)} /></div>
+                  <div><Label>Senha</Label><Input type="password" value={restorePassword} onChange={(e) => setRestorePassword(e.target.value)} /></div>
+                  <div><Label>Digite CONFIRMAR</Label><Input value={restoreConfirm} onChange={(e) => setRestoreConfirm(e.target.value)} placeholder="CONFIRMAR" /></div>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={restoring}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction disabled={restoring} onClick={doRestore} className="bg-rose-600 hover:bg-rose-700">
+                    {restoring ? "Restaurando…" : "Restaurar agora"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="plan" className="space-y-6 mt-4">
           <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-4">
