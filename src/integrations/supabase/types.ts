@@ -523,8 +523,10 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          last_contact_at: string | null
           notes: string | null
           phone: string | null
+          responsible_user_id: string | null
           updated_at: string
           user_id: string
         }
@@ -544,8 +546,10 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          last_contact_at?: string | null
           notes?: string | null
           phone?: string | null
+          responsible_user_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -565,8 +569,10 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          last_contact_at?: string | null
           notes?: string | null
           phone?: string | null
+          responsible_user_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1075,6 +1081,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      leads: {
+        Row: {
+          client_id: string | null
+          company: string | null
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          position: number
+          potential_value: number
+          responsible_user_id: string | null
+          stage: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          company?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          position?: number
+          potential_value?: number
+          responsible_user_id?: string | null
+          stage?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          company?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          position?: number
+          potential_value?: number
+          responsible_user_id?: string | null
+          stage?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       legal_pages: {
         Row: {
