@@ -50,6 +50,7 @@ const Assemblers = lazy(() => import("./pages/app/Assemblers"));
 const Sales = lazy(() => import("./pages/app/Sales"));
 const StartHere = lazy(() => import("./pages/app/StartHere"));
 const Team = lazy(() => import("./pages/app/Team"));
+const HR = lazy(() => import("./pages/app/HR"));
 const Tasks = lazy(() => import("./pages/app/Tasks"));
 const Stock = lazy(() => import("./pages/app/Stock"));
 const ImportReview = lazy(() => import("./pages/app/ImportReview"));
@@ -104,6 +105,7 @@ const App = () => (
                     <Route index element={<Dashboard />} />
                     <Route path="start" element={<StartHere />} />
                     <Route path="team" element={<Team />} />
+                    <Route path="hr" element={<HR />} />
                     <Route path="appointments" element={<Appointments />} />
                     <Route path="clients" element={<Clients />} />
                     <Route path="clients/:id" element={<ClientDetail />} />

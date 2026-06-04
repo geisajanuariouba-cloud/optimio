@@ -1129,6 +1129,42 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_shifts: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          member_name: string | null
+          member_user_id: string | null
+          owner_user_id: string
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          member_name?: string | null
+          member_user_id?: string | null
+          owner_user_id: string
+          start_time: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          member_name?: string | null
+          member_user_id?: string | null
+          owner_user_id?: string
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
       financial: {
         Row: {
           cash_received: number | null
@@ -2832,6 +2868,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_templates: {
+        Row: {
+          area: string | null
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+          permissions: Json
+          updated_at: string
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          owner_user_id: string
+          permissions?: Json
+          updated_at?: string
+        }
+        Update: {
+          area?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          permissions?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           category: string | null
@@ -3609,41 +3675,56 @@ export type Database = {
       }
       team_members: {
         Row: {
+          area: string | null
           created_at: string
           email: string | null
+          hire_date: string | null
           id: string
           invited_by: string | null
           member_user_id: string
           name: string | null
           owner_user_id: string
           permissions: Json
+          phone: string | null
+          position: string | null
           role: string
+          salary: number | null
           status: string
           updated_at: string
         }
         Insert: {
+          area?: string | null
           created_at?: string
           email?: string | null
+          hire_date?: string | null
           id?: string
           invited_by?: string | null
           member_user_id: string
           name?: string | null
           owner_user_id: string
           permissions?: Json
+          phone?: string | null
+          position?: string | null
           role?: string
+          salary?: number | null
           status?: string
           updated_at?: string
         }
         Update: {
+          area?: string | null
           created_at?: string
           email?: string | null
+          hire_date?: string | null
           id?: string
           invited_by?: string | null
           member_user_id?: string
           name?: string | null
           owner_user_id?: string
           permissions?: Json
+          phone?: string | null
+          position?: string | null
           role?: string
+          salary?: number | null
           status?: string
           updated_at?: string
         }
