@@ -1174,6 +1174,7 @@ export type Database = {
           created_at: string
           delivery_fee: number
           description: string | null
+          due_date: string | null
           fee_amount: number | null
           fee_percent: number | null
           gross_amount: number
@@ -1184,16 +1185,21 @@ export type Database = {
           interest_percent: number | null
           interest_type: string | null
           is_duplicate: boolean
+          is_fixed: boolean
           items: Json
           needs_assembly: boolean
           needs_delivery: boolean
           net_amount: number
+          notes: string | null
           origin: string | null
           origin_id: string | null
+          paid_at: string | null
           payment_method: string | null
           payment_method_id: string | null
           production_status: string | null
           quote_id: string | null
+          recurrence: string
+          status: string
           supplier_id: string | null
           total_manual: boolean | null
           total_with_interest: number | null
@@ -1210,6 +1216,7 @@ export type Database = {
           created_at?: string
           delivery_fee?: number
           description?: string | null
+          due_date?: string | null
           fee_amount?: number | null
           fee_percent?: number | null
           gross_amount?: number
@@ -1220,16 +1227,21 @@ export type Database = {
           interest_percent?: number | null
           interest_type?: string | null
           is_duplicate?: boolean
+          is_fixed?: boolean
           items?: Json
           needs_assembly?: boolean
           needs_delivery?: boolean
           net_amount?: number
+          notes?: string | null
           origin?: string | null
           origin_id?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_method_id?: string | null
           production_status?: string | null
           quote_id?: string | null
+          recurrence?: string
+          status?: string
           supplier_id?: string | null
           total_manual?: boolean | null
           total_with_interest?: number | null
@@ -1246,6 +1258,7 @@ export type Database = {
           created_at?: string
           delivery_fee?: number
           description?: string | null
+          due_date?: string | null
           fee_amount?: number | null
           fee_percent?: number | null
           gross_amount?: number
@@ -1256,16 +1269,21 @@ export type Database = {
           interest_percent?: number | null
           interest_type?: string | null
           is_duplicate?: boolean
+          is_fixed?: boolean
           items?: Json
           needs_assembly?: boolean
           needs_delivery?: boolean
           net_amount?: number
+          notes?: string | null
           origin?: string | null
           origin_id?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_method_id?: string | null
           production_status?: string | null
           quote_id?: string | null
+          recurrence?: string
+          status?: string
           supplier_id?: string | null
           total_manual?: boolean | null
           total_with_interest?: number | null
