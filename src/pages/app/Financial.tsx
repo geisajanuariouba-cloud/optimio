@@ -38,6 +38,7 @@ export default function Financial() {
     delivery_address: null, edit_address: false,
     interest_type: "none", interest_percent: 0, interest_amount: 0,
     total_manual: false, total_override: 0,
+    status: "paid", due_date: "", paid_at: "", is_fixed: false, recurrence: "one_off", notes: "",
   });
   const [items, setItems] = useState<SaleItem[]>([]);
   const [promo, setPromo] = useState<PromissoriaData>({ total_amount: 0, installments_count: 1, first_due: today });
@@ -140,6 +141,12 @@ export default function Financial() {
       client_id: form.client_id || null,
       needs_delivery: !!form.needs_delivery,
       items: snapshotItems,
+      status: !isIncome ? (form.status || "paid") : "paid",
+      due_date: !isIncome && form.due_date ? form.due_date : null,
+      paid_at: !isIncome && form.status === "paid" ? (form.paid_at || form.transaction_date) : null,
+      is_fixed: !isIncome ? !!form.is_fixed : false,
+      recurrence: !isIncome ? (form.recurrence || "one_off") : "one_off",
+      notes: !isIncome ? (form.notes || null) : null,
     }).select().single();
     if (error) return toast.error(friendlyError(error));
 
@@ -367,6 +374,55 @@ export default function Financial() {
             )}
 
             <div><Label>Descrição</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+
+            {!isIncome && (
+              <div className="rounded-2xl bg-rose-500/5 border border-rose-500/20 p-3 space-y-3">
+                <Label className="text-sm font-medium">Detalhes da despesa</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Status</Label>
+                    <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="paid">Pago</SelectItem>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="overdue">Atrasado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Vencimento</Label>
+                    <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className="h-9" />
+                  </div>
+                  {form.status === "paid" && (
+                    <div className="col-span-2">
+                      <Label className="text-xs">Pago em</Label>
+                      <Input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value })} className="h-9" />
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 items-end">
+                  <label className="flex items-center justify-between gap-2 text-sm bg-background/40 rounded-xl px-3 h-9">
+                    <span>Despesa fixa</span>
+                    <Switch checked={!!form.is_fixed} onCheckedChange={(v) => setForm({ ...form, is_fixed: v, recurrence: v ? "monthly" : "one_off" })} />
+                  </label>
+                  <div>
+                    <Label className="text-xs">Recorrência</Label>
+                    <Select value={form.recurrence} onValueChange={(v) => setForm({ ...form, recurrence: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="one_off">Avulsa</SelectItem>
+                        <SelectItem value="monthly">Mensal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Observações</Label>
+                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="opcional" />
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
