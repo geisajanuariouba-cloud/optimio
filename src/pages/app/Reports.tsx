@@ -128,7 +128,7 @@ export default function Reports() {
 
   return (
     <div className="space-y-4">
-      <PageHeader icon={BarChart3} title="Relatórios" subtitle="Gere relatórios por período e exporte em CSV." />
+      <PageHeader title="Relatórios" description="Gere relatórios por período e exporte em CSV." />
 
       <Card className="p-4 rounded-2xl space-y-3">
         <div className="grid sm:grid-cols-4 gap-3">
