@@ -6,11 +6,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard, Activity, BellRing, Lightbulb,
+  LayoutDashboard, Activity, BellRing, Lightbulb, Sparkles as SparkIcon,
   Users, UserPlus, Target, FileText, ShoppingBag, AlertTriangle, Calendar,
   Package, Boxes, Truck, ShoppingCart, FileSearch, MapPin, Wrench, Factory,
   Wallet, DollarSign, Receipt, FileSignature, CreditCard, Smartphone,
-  Megaphone, Sparkles, Layers,
+  Megaphone, Sparkles, Layers, BarChart3, Trash2,
   Briefcase, CheckSquare, BookOpen, ShieldCheck,
   Settings as SettingsIcon, Crown, LogOut, LifeBuoy, ChevronRight, ChevronLeft,
 } from "lucide-react";
@@ -47,6 +47,7 @@ export function AppSidebar() {
     {
       label: "Principal",
       items: [
+        { title: "Comece Aqui", url: "/app/start", icon: SparkIcon },
         { title: "Dashboard", url: "/app", icon: LayoutDashboard },
         { title: "Central Operacional", url: "/app/operations", icon: Activity },
         { title: "Alertas", url: "/app/alerts", icon: BellRing },
@@ -82,6 +83,7 @@ export function AppSidebar() {
       label: "Financeiro",
       items: [
         { title: "Financeiro", url: "/app/financial", icon: Wallet, mod: "financial" },
+        { title: "Relatórios", url: "/app/reports", icon: BarChart3 },
         { title: "Caixa do Dia", url: "/app/cash-drawer", icon: DollarSign, mod: "financial" },
         { title: "Dívidas", url: "/app/debts", icon: Receipt, mod: "financial" },
         { title: "Promissórias", url: "/app/debts", icon: FileSignature, mod: "financial" },
@@ -112,7 +114,8 @@ export function AppSidebar() {
       label: "Sistema",
       items: [
         { title: "Configurações", url: "/app/settings", icon: SettingsIcon },
-        { title: "Super Admin", url: "/super-admin", icon: Crown, adminOnly: true },
+        { title: "Lixeira", url: "/app/trash", icon: Trash2 },
+        { title: "Super Admin", url: "/admin", icon: Crown, adminOnly: true },
         { title: "Sair", icon: LogOut, onClick: () => signOut() },
       ],
     },
