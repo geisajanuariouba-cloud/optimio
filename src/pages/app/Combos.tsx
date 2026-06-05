@@ -35,7 +35,7 @@ export default function Combos() {
       supabase.from("combos").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("combo_items").select("*"),
       supabase.from("combo_sales").select("*"),
-      supabase.from("products").select("id,name,sale_price").is("deleted_at", null).eq("status", "active"),
+      supabase.from("products").select("id,name,sale_price").is("deleted_at", null).eq("status", "active").eq("out_of_line", false),
       supabase.from("services").select("id,name,starting_price").is("deleted_at", null),
     ]);
     setCombos((c ?? []) as any); setItems((i ?? []) as any); setSales((s ?? []) as any);
