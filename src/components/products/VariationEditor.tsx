@@ -29,11 +29,14 @@ export type Variation = {
   length_cm?: number;
   weight?: number;
   measure_unit?: string;
+  inherit_cost?: boolean;
+  inherit_price?: boolean;
 };
 
 export function emptyVariation(): Variation {
-  return { name: "", color: "", fabric: "", size: "", model: "", finish: "", cost: 0, sale_price: 0, stock: 0, min_stock: 0, measure_unit: "cm", image_url: null };
+  return { name: "", color: "", fabric: "", size: "", model: "", finish: "", cost: 0, sale_price: 0, stock: 0, min_stock: 0, measure_unit: "cm", image_url: null, inherit_cost: true, inherit_price: true };
 }
+
 
 export function VariationEditor({
   value, onChange, parentName, parentCategory,
