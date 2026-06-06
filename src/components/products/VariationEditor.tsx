@@ -39,8 +39,8 @@ export function emptyVariation(): Variation {
 
 
 export function VariationEditor({
-  value, onChange, parentName, parentCategory,
-}: { value: Variation[]; onChange: (v: Variation[]) => void; parentName: string; parentCategory?: string }) {
+  value, onChange, parentName, parentCategory, parentCost = 0, parentPrice = 0,
+}: { value: Variation[]; onChange: (v: Variation[]) => void; parentName: string; parentCategory?: string; parentCost?: number; parentPrice?: number }) {
   const update = (i: number, patch: Partial<Variation>) => {
     const next = value.slice();
     next[i] = { ...next[i], ...patch };
