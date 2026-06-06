@@ -149,25 +149,47 @@ export default function Suppliers() {
             <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Motor de precificação</h4>
               <div className="text-xs text-muted-foreground leading-relaxed bg-background/60 p-3 rounded-xl space-y-1">
-                <div><strong>Custo</strong> = valor da tabela de preços do fornecedor (não vai para venda).</div>
-                <div><strong>Taxa de custo</strong> = só ajusta o custo se houver valor configurado (frete, impostos, etc.).</div>
+                <div><strong>Ajuste de custo</strong> = desconto (-) ou acréscimo (+) sobre o preço de tabela do fornecedor.</div>
+                <div><strong>IPI</strong> = imposto aplicado depois do ajuste (opcional).</div>
+                <div><strong>Taxa de custo</strong> = frete, ICMS, outros impostos sobre o custo final.</div>
                 <div><strong>Margem</strong> = % de lucro desejada em cima do custo.</div>
-                <div><strong>Taxa extra</strong> = % adicional (cartão, comissão, etc.).</div>
+                <div><strong>Taxa extra</strong> = % adicional sobre a venda (cartão, comissão, etc.).</div>
                 <div className="pt-1 border-t border-border/50 mt-1.5">
-                  <strong>Exemplo:</strong> Custo R$100 + Margem 100% + Taxa extra 20% = <strong className="text-primary">R$220</strong> (Lucro R$120).
+                  Fluxo: <strong>Custo → ajuste → IPI → taxa de custo → margem → taxa extra → Preço sugerido.</strong>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label className="text-xs">Ajuste custo (%)</Label><Input type="number" step="0.1" value={form.cost_adjust_percent ?? 0} onChange={(e) => setForm({ ...form, cost_adjust_percent: +e.target.value })} placeholder="-10 / +5" /></div>
+                <div><Label className="text-xs">IPI (%)</Label><Input type="number" step="0.1" value={form.ipi_percent ?? 0} onChange={(e) => setForm({ ...form, ipi_percent: +e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div><Label className="text-xs">Taxa custo (%)</Label><Input type="number" step="0.1" value={form.cost_fee_percent} onChange={(e) => setForm({ ...form, cost_fee_percent: +e.target.value })} /></div>
                 <div><Label className="text-xs">Margem (%)</Label><Input type="number" step="0.1" value={form.default_margin_percent} onChange={(e) => setForm({ ...form, default_margin_percent: +e.target.value })} /></div>
                 <div><Label className="text-xs">Taxa extra (%)</Label><Input type="number" step="0.1" value={form.default_markup_percent} onChange={(e) => setForm({ ...form, default_markup_percent: +e.target.value })} /></div>
               </div>
+              {/* Breakdown visual com custo exemplo R$100 */}
+              {(() => {
+                const b = computeBreakdown(100, form);
+                return (
+                  <div className="text-[11px] bg-background/70 rounded-xl p-3 space-y-0.5 border border-border/40">
+                    <div className="font-semibold text-xs text-foreground mb-1">Simulação com custo R$ 100,00</div>
+                    <div className="flex justify-between"><span>Custo original</span><span>R$ 100,00</span></div>
+                    <div className="flex justify-between text-muted-foreground"><span>Ajuste fornecedor ({b.ca >= 0 ? "+" : ""}{b.ca}%)</span><span>R$ {b.afterAdjust.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-muted-foreground"><span>+ IPI ({b.ipi}%)</span><span>R$ {b.afterIpi.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-muted-foreground"><span>+ Taxa custo ({b.cf}%)</span><span>R$ {b.finalCost.toFixed(2)}</span></div>
+                    <div className="flex justify-between border-t border-border/40 pt-1 mt-1"><span>Custo final</span><strong>R$ {b.finalCost.toFixed(2)}</strong></div>
+                    <div className="flex justify-between text-muted-foreground"><span>× Margem {b.mg}% × Taxa extra {b.mk}%</span><span></span></div>
+                    <div className="flex justify-between text-primary font-bold text-sm pt-1"><span>Preço sugerido</span><span>R$ {b.sale.toFixed(2)}</span></div>
+                  </div>
+                );
+              })()}
               <div><Label className="text-xs">Prazo médio de entrega (dias)</Label><Input type="number" value={form.avg_delivery_days ?? ""} onChange={(e) => setForm({ ...form, avg_delivery_days: +e.target.value })} /></div>
               <label className="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-xl bg-amber-500/5 border border-amber-500/20">
                 <input type="checkbox" checked={!!form.auto_out_of_line} onChange={(e) => setForm({ ...form, auto_out_of_line: e.target.checked })} />
                 <span>Marcar produtos como <b>fora de linha</b> automaticamente quando não vierem na próxima tabela de custo</span>
               </label>
             </div>
+
             <p className="text-xs text-muted-foreground bg-secondary/40 p-3 rounded-2xl">📎 Para anexar catálogo (PDF/Excel/CSV), abra o painel do fornecedor após salvar — ele fica salvo e disponível para download a qualquer momento.</p>
             <div className="pt-2">
               <h4 className="text-sm font-semibold mb-2">Endereço da fábrica <span className="text-xs font-normal text-muted-foreground">(opcional)</span></h4>
