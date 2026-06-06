@@ -29,15 +29,18 @@ export type Variation = {
   length_cm?: number;
   weight?: number;
   measure_unit?: string;
+  inherit_cost?: boolean;
+  inherit_price?: boolean;
 };
 
 export function emptyVariation(): Variation {
-  return { name: "", color: "", fabric: "", size: "", model: "", finish: "", cost: 0, sale_price: 0, stock: 0, min_stock: 0, measure_unit: "cm", image_url: null };
+  return { name: "", color: "", fabric: "", size: "", model: "", finish: "", cost: 0, sale_price: 0, stock: 0, min_stock: 0, measure_unit: "cm", image_url: null, inherit_cost: true, inherit_price: true };
 }
 
+
 export function VariationEditor({
-  value, onChange, parentName, parentCategory,
-}: { value: Variation[]; onChange: (v: Variation[]) => void; parentName: string; parentCategory?: string }) {
+  value, onChange, parentName, parentCategory, parentCost = 0, parentPrice = 0,
+}: { value: Variation[]; onChange: (v: Variation[]) => void; parentName: string; parentCategory?: string; parentCost?: number; parentPrice?: number }) {
   const update = (i: number, patch: Partial<Variation>) => {
     const next = value.slice();
     next[i] = { ...next[i], ...patch };
@@ -104,12 +107,29 @@ export function VariationEditor({
                 <div><Label>Acabamento</Label><Input value={v.finish ?? ""} onChange={(e) => update(i, { finish: e.target.value })} placeholder="Ex: Fosco" /></div>
               </div>
               <div><Label>SKU</Label><Input value={v.sku ?? ""} onChange={(e) => update(i, { sku: e.target.value })} /></div>
-              <div className="grid grid-cols-4 gap-3">
-                <div><Label>Custo (R$)</Label><Input type="number" step="0.01" value={v.cost ?? 0} onChange={(e) => update(i, { cost: +e.target.value })} /></div>
-                <div><Label>Preço (R$)</Label><Input type="number" step="0.01" value={v.sale_price ?? 0} onChange={(e) => update(i, { sale_price: +e.target.value })} /></div>
+              <div className="rounded-xl border border-border/50 bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium">Custo</span>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground">
+                    <input type="checkbox" checked={v.inherit_cost ?? true} onChange={(e) => update(i, { inherit_cost: e.target.checked, ...(e.target.checked ? { cost: parentCost } : {}) })} />
+                    Herdar do produto pai (R$ {Number(parentCost).toFixed(2)})
+                  </label>
+                </div>
+                <Input type="number" step="0.01" disabled={v.inherit_cost ?? true} value={v.inherit_cost ? parentCost : (v.cost ?? 0)} onChange={(e) => update(i, { cost: +e.target.value, inherit_cost: false })} />
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="font-medium">Preço</span>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground">
+                    <input type="checkbox" checked={v.inherit_price ?? true} onChange={(e) => update(i, { inherit_price: e.target.checked, ...(e.target.checked ? { sale_price: parentPrice } : {}) })} />
+                    Herdar do produto pai (R$ {Number(parentPrice).toFixed(2)})
+                  </label>
+                </div>
+                <Input type="number" step="0.01" disabled={v.inherit_price ?? true} value={v.inherit_price ? parentPrice : (v.sale_price ?? 0)} onChange={(e) => update(i, { sale_price: +e.target.value, inherit_price: false })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div><Label>Estoque</Label><Input type="number" value={v.stock ?? 0} onChange={(e) => update(i, { stock: +e.target.value })} /></div>
                 <div><Label>Estoque mín.</Label><Input type="number" value={v.min_stock ?? 0} onChange={(e) => update(i, { min_stock: +e.target.value })} /></div>
               </div>
+
               <div className="pt-2 border-t">
                 <p className="text-xs font-medium mb-2 text-muted-foreground">Medidas desta variação</p>
                 <div className="grid grid-cols-5 gap-2">

@@ -2081,6 +2081,8 @@ export type Database = {
           height: number | null
           id: string
           image_url: string | null
+          inherit_cost: boolean
+          inherit_price: boolean
           last_cost_synced_at: string | null
           length_cm: number | null
           manual_price_override: boolean
@@ -2120,6 +2122,8 @@ export type Database = {
           height?: number | null
           id?: string
           image_url?: string | null
+          inherit_cost?: boolean
+          inherit_price?: boolean
           last_cost_synced_at?: string | null
           length_cm?: number | null
           manual_price_override?: boolean
@@ -2159,6 +2163,8 @@ export type Database = {
           height?: number | null
           id?: string
           image_url?: string | null
+          inherit_cost?: boolean
+          inherit_price?: boolean
           last_cost_synced_at?: string | null
           length_cm?: number | null
           manual_price_override?: boolean
@@ -2429,6 +2435,7 @@ export type Database = {
         Row: {
           accent_color: string | null
           account_status: string
+          alert_on_min_stock_exact: boolean
           border_style: string
           company_name: string | null
           created_at: string
@@ -2459,6 +2466,7 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           account_status?: string
+          alert_on_min_stock_exact?: boolean
           border_style?: string
           company_name?: string | null
           created_at?: string
@@ -2489,6 +2497,7 @@ export type Database = {
         Update: {
           accent_color?: string | null
           account_status?: string
+          alert_on_min_stock_exact?: boolean
           border_style?: string
           company_name?: string | null
           created_at?: string
@@ -3343,6 +3352,7 @@ export type Database = {
           catalog_url: string | null
           cnpj: string | null
           contact_name: string | null
+          cost_adjust_percent: number
           cost_fee_percent: number
           created_at: string
           default_margin_percent: number
@@ -3351,6 +3361,7 @@ export type Database = {
           email: string | null
           full_address: string | null
           id: string
+          ipi_percent: number
           name: string
           notes: string | null
           phone: string | null
@@ -3372,6 +3383,7 @@ export type Database = {
           catalog_url?: string | null
           cnpj?: string | null
           contact_name?: string | null
+          cost_adjust_percent?: number
           cost_fee_percent?: number
           created_at?: string
           default_margin_percent?: number
@@ -3380,6 +3392,7 @@ export type Database = {
           email?: string | null
           full_address?: string | null
           id?: string
+          ipi_percent?: number
           name: string
           notes?: string | null
           phone?: string | null
@@ -3401,6 +3414,7 @@ export type Database = {
           catalog_url?: string | null
           cnpj?: string | null
           contact_name?: string | null
+          cost_adjust_percent?: number
           cost_fee_percent?: number
           created_at?: string
           default_margin_percent?: number
@@ -3409,6 +3423,7 @@ export type Database = {
           email?: string | null
           full_address?: string | null
           id?: string
+          ipi_percent?: number
           name?: string
           notes?: string | null
           phone?: string | null
@@ -3836,6 +3851,10 @@ export type Database = {
         Returns: number
       }
       current_tenant_owner: { Args: never; Returns: string }
+      engine_compute_breakdown: {
+        Args: { _cost: number; _supplier_id: string }
+        Returns: Json
+      }
       engine_compute_sale: {
         Args: { _cost: number; _supplier_id: string }
         Returns: number
