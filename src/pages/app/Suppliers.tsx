@@ -94,10 +94,10 @@ export default function Suppliers() {
       <PageHeader title="Fornecedores / Fábricas" description="Cadastre fábricas, importe catálogos com IA e dispare comandos por chat." actionLabel="Novo fornecedor" onAction={openNew} />
       <MetricsRow items={[
         { label: "Cadastrados", value: String(list.length), tone: "primary" },
-        { label: "Produtos vinculados", value: String(linkedTotal), tone: "primary" },
         { label: "Fora de linha", value: String(outOfLineTotal), tone: "warning" },
         { label: "Sem fornecedor", value: String(noSupplierTotal), tone: "primary" },
       ]} />
+
 
 
       {list.length === 0 ? (
