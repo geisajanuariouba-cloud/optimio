@@ -175,12 +175,17 @@ export default function Products() {
 
       for (const v of variations) {
         const vCodname = v.codname?.trim() || generateCodname(form.name, v.size, v.color, form.category);
+        const inheritCost = v.inherit_cost ?? true;
+        const inheritPrice = v.inherit_price ?? true;
+        const effCost = inheritCost ? (Number(form.cost) || 0) : (v.cost ?? 0);
+        const effPrice = inheritPrice ? (Number(form.sale_price) || 0) : (v.sale_price ?? 0);
         const row: any = {
           product_id: prodId, user_id: user.id, name: v.name || "Variação",
           codname: vCodname, sku: v.sku || null,
           color: v.color || null, fabric: v.fabric || null, material: v.material || null, size: v.size || null,
           model: v.model || null, finish: v.finish || null,
-          cost: v.cost ?? 0, sale_price: v.sale_price ?? 0, stock: v.stock ?? 0, min_stock: v.min_stock ?? 0,
+          cost: effCost, sale_price: effPrice, stock: v.stock ?? 0, min_stock: v.min_stock ?? 0,
+          inherit_cost: inheritCost, inherit_price: inheritPrice,
           image_url: v.image_url || null,
           width: numOrNull(v.width), height: numOrNull(v.height), depth: numOrNull(v.depth),
           length_cm: numOrNull(v.length_cm), weight: numOrNull(v.weight),
