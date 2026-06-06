@@ -14,7 +14,21 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { Factory, Pencil, Trash2, ExternalLink, Phone, MapPin } from "lucide-react";
 import { AddressFields, fullAddress } from "@/components/app/AddressFields";
 
-const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", cost_fee_percent: 10, default_margin_percent: 100, default_markup_percent: 20, avg_delivery_days: 15, auto_out_of_line: false, address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
+const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", cost_fee_percent: 10, default_margin_percent: 100, default_markup_percent: 20, cost_adjust_percent: 0, ipi_percent: 0, avg_delivery_days: 15, auto_out_of_line: false, address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
+
+// Calcula o breakdown completo do motor de precificação (espelha engine_compute_breakdown no banco)
+function computeBreakdown(cost: number, f: any) {
+  const ca = Number(f.cost_adjust_percent || 0);
+  const ipi = Number(f.ipi_percent || 0);
+  const cf = Number(f.cost_fee_percent || 0);
+  const mg = Number(f.default_margin_percent || 0);
+  const mk = Number(f.default_markup_percent || 0);
+  const afterAdjust = cost * (1 + ca / 100);
+  const afterIpi = afterAdjust * (1 + ipi / 100);
+  const finalCost = afterIpi * (1 + cf / 100);
+  const sale = +(finalCost * (1 + mg / 100) * (1 + mk / 100)).toFixed(2);
+  return { ca, ipi, cf, mg, mk, afterAdjust, afterIpi, finalCost, sale };
+}
 
 export default function Suppliers() {
   const { user } = useAuth();
