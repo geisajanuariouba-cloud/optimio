@@ -26,7 +26,8 @@ const SEV: Record<string, string> = {
 
 export default function Alerts() {
   const { user } = useAuth();
-  const { tenantOwnerId } = useTenant();
+  const { tenantOwnerId, profile } = useTenant();
+  const alertExact = !!(profile as any)?.alert_on_min_stock_exact;
   const [list, setList] = useState<Alert[]>([]);
   const [tab, setTab] = useState<"open" | "resolved" | "ignored" | "archived">("open");
   const [busy, setBusy] = useState(false);
