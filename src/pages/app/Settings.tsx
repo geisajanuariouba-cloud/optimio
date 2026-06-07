@@ -92,6 +92,7 @@ export default function Settings() {
       company_name: companyName, full_name: fullName,
       primary_color: primaryColor, border_style: borderStyle,
       operational_cycle_start_day: safeDay,
+      alert_on_min_stock_exact: alertExact,
     } as any).eq("id", user.id);
     setLoading(false);
     if (error) toast.error(friendlyError(error)); else { toast.success("Configurações salvas!"); refresh(); }
