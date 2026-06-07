@@ -17,8 +17,9 @@ type RM = {
   current_cost: number; average_cost: number; last_cost: number; supplier_id: string | null;
 };
 type Product = { id: string; name: string; stock: number | null };
-type Recipe = { id: string; product_id: string; raw_material_id: string; quantity: number };
-type Order = { id: string; product_id: string; quantity: number; status: string; estimated_cost: number; actual_cost: number; produced_at: string | null; created_at: string };
+type Recipe = { id: string; product_id: string; raw_material_id: string; quantity: number; yield_quantity?: number };
+type Order = { id: string; product_id: string; quantity: number; status: string; estimated_cost: number; actual_cost: number; produced_at: string | null; created_at: string; assignee_user_id?: string | null; due_date?: string | null; notes?: string | null; checklist?: { text: string; done: boolean }[] };
+type Member = { member_user_id: string; email: string; role: string };
 
 export default function Production() {
   const { tenantOwnerId } = useTenant();
