@@ -41,6 +41,7 @@ export default function Settings() {
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [cycleDay, setCycleDay] = useState<number>(1);
+  const [alertExact, setAlertExact] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [supportVisible, setSupportVisible] = useState(true);
   const [supportPosition, setSupportPosition] = useState<"bottom-right" | "bottom-left" | "top-right" | "top-left">("bottom-right");
@@ -67,6 +68,7 @@ export default function Settings() {
     setPrimaryColor(profile.primary_color);
     setBorderStyle(profile.border_style);
     setCycleDay(Number((profile as any).operational_cycle_start_day ?? 1));
+    setAlertExact(!!(profile as any).alert_on_min_stock_exact);
     setSupportVisible((profile as any).support_button_visible !== false);
     setSupportPosition(((profile as any).support_button_position ?? "bottom-right") as any);
   }, [profile]);
@@ -90,6 +92,7 @@ export default function Settings() {
       company_name: companyName, full_name: fullName,
       primary_color: primaryColor, border_style: borderStyle,
       operational_cycle_start_day: safeDay,
+      alert_on_min_stock_exact: alertExact,
     } as any).eq("id", user.id);
     setLoading(false);
     if (error) toast.error(friendlyError(error)); else { toast.success("Configurações salvas!"); refresh(); }
@@ -196,6 +199,13 @@ export default function Settings() {
                   onChange={(e) => setCycleDay(Number(e.target.value))}
                   className="bg-secondary/50 border-0 h-11" />
                 <p className="text-xs text-muted-foreground mt-1">Ciclo atual: <strong>{getCycleLabel(cycleDay)}</strong></p>
+              </div>
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-border/50 p-3">
+                <div>
+                  <Label className="text-sm">Alerta de estoque exato no mínimo</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Quando ligado, gera alerta também quando o estoque é exatamente igual ao mínimo (não só abaixo).</p>
+                </div>
+                <Switch checked={alertExact} onCheckedChange={setAlertExact} />
               </div>
             </div>
 

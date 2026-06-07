@@ -26,7 +26,8 @@ const SEV: Record<string, string> = {
 
 export default function Alerts() {
   const { user } = useAuth();
-  const { tenantOwnerId } = useTenant();
+  const { tenantOwnerId, profile } = useTenant();
+  const alertExact = !!(profile as any)?.alert_on_min_stock_exact;
   const [list, setList] = useState<Alert[]>([]);
   const [tab, setTab] = useState<"open" | "resolved" | "ignored" | "archived">("open");
   const [busy, setBusy] = useState(false);
@@ -79,7 +80,8 @@ export default function Alerts() {
       for (const p of (lowStockProducts ?? []) as any[]) {
         const stock = Number(p.stock ?? 0);
         const min = Number(p.min_stock ?? 0);
-        if (stock <= min && !(stock === 0 && min === 0)) {
+        const trigger = alertExact ? (stock <= min) : (stock < min);
+        if (trigger && !(stock === 0 && min === 0)) {
           newAlerts.push({
             user_id: tenantOwnerId, kind: "low_stock", severity: stock <= 0 ? "high" : "warn",
             title: `Estoque baixo: ${p.name}`,
