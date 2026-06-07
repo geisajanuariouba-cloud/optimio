@@ -80,7 +80,8 @@ export default function Alerts() {
       for (const p of (lowStockProducts ?? []) as any[]) {
         const stock = Number(p.stock ?? 0);
         const min = Number(p.min_stock ?? 0);
-        if (stock <= min && !(stock === 0 && min === 0)) {
+        const trigger = alertExact ? (stock <= min) : (stock < min);
+        if (trigger && !(stock === 0 && min === 0)) {
           newAlerts.push({
             user_id: tenantOwnerId, kind: "low_stock", severity: stock <= 0 ? "high" : "warn",
             title: `Estoque baixo: ${p.name}`,
