@@ -38,9 +38,11 @@ export default function Production() {
   const [buyForm, setBuyForm] = useState<{ raw_material_id?: string; quantity: number; unit_cost: number }>({ quantity: 0, unit_cost: 0 });
   const [recOpen, setRecOpen] = useState(false);
   const [recProduct, setRecProduct] = useState<string>("");
+  const [recYield, setRecYield] = useState<number>(1);
   const [recItems, setRecItems] = useState<{ raw_material_id: string; quantity: number }[]>([]);
   const [ordOpen, setOrdOpen] = useState(false);
-  const [ordForm, setOrdForm] = useState<{ product_id?: string; quantity: number }>({ quantity: 1 });
+  const [ordForm, setOrdForm] = useState<{ product_id?: string; quantity: number; assignee_user_id?: string; due_date?: string; notes?: string; checklist: { text: string; done: boolean }[] }>({ quantity: 1, checklist: [] });
+  const [newChecklistItem, setNewChecklistItem] = useState("");
 
   const load = async () => {
     if (!tenantOwnerId) return;
