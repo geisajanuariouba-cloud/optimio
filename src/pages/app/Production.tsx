@@ -105,19 +105,20 @@ export default function Production() {
 
   const openRecipe = (productId: string) => {
     setRecProduct(productId);
-    const current = recipes.filter(r => r.product_id === productId).map(r => ({ raw_material_id: r.raw_material_id, quantity: r.quantity }));
-    setRecItems(current.length ? current : [{ raw_material_id: "", quantity: 0 }]);
+    const rs = recipes.filter(r => r.product_id === productId);
+    setRecItems(rs.length ? rs.map(r => ({ raw_material_id: r.raw_material_id, quantity: r.quantity })) : [{ raw_material_id: "", quantity: 0 }]);
+    setRecYield(Number(rs[0]?.yield_quantity ?? 1) || 1);
     setRecOpen(true);
   };
 
   const saveRecipe = async () => {
     if (!recProduct || !tenantOwnerId) return;
-    // wipe and reinsert
     await supabase.from("product_recipes" as any).delete().eq("product_id", recProduct);
     const valid = recItems.filter(i => i.raw_material_id && Number(i.quantity) > 0);
+    const safeYield = Math.max(0.0001, Number(recYield) || 1);
     if (valid.length) {
       const { error } = await supabase.from("product_recipes" as any).insert(
-        valid.map(i => ({ user_id: tenantOwnerId, product_id: recProduct, raw_material_id: i.raw_material_id, quantity: Number(i.quantity) }))
+        valid.map(i => ({ user_id: tenantOwnerId, product_id: recProduct, raw_material_id: i.raw_material_id, quantity: Number(i.quantity), yield_quantity: safeYield }))
       );
       if (error) return toast.error(error.message);
     }
@@ -126,10 +127,18 @@ export default function Production() {
     load();
   };
 
+  const recipeYield = (productId: string) => {
+    const r = recipes.find(x => x.product_id === productId);
+    const y = Number(r?.yield_quantity ?? 1);
+    return y > 0 ? y : 1;
+  };
+
+  // Custo total dos insumos para produzir `qty` lotes (cada lote rende `yield_quantity` unidades).
   const estimateCost = (productId: string, qty: number) => {
     const rs = recipes.filter(r => r.product_id === productId);
     return rs.reduce((sum, r) => sum + (rmById[r.raw_material_id]?.average_cost || 0) * r.quantity * qty, 0);
   };
+
 
   const checkAvailability = (productId: string, qty: number) => {
     const rs = recipes.filter(r => r.product_id === productId);
