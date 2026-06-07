@@ -68,6 +68,7 @@ export default function Settings() {
     setPrimaryColor(profile.primary_color);
     setBorderStyle(profile.border_style);
     setCycleDay(Number((profile as any).operational_cycle_start_day ?? 1));
+    setAlertExact(!!(profile as any).alert_on_min_stock_exact);
     setSupportVisible((profile as any).support_button_visible !== false);
     setSupportPosition(((profile as any).support_button_position ?? "bottom-right") as any);
   }, [profile]);
