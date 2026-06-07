@@ -335,7 +335,14 @@ export default function Production() {
           <Dialog open={recOpen} onOpenChange={setRecOpen}>
             <DialogContent className="max-w-2xl">
               <DialogHeader><DialogTitle>Receita técnica — {productById[recProduct]?.name}</DialogTitle></DialogHeader>
-              <div className="space-y-2">
+              <div className="space-y-3">
+                <div className="rounded-lg bg-muted/40 p-3 flex items-end gap-3">
+                  <div className="flex-1">
+                    <Label>Rendimento por lote (unidades produzidas)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Quantas unidades do produto final cada execução desta receita gera.</p>
+                  </div>
+                  <Input type="number" step="0.01" min={0.0001} className="w-32" value={recYield} onChange={e => setRecYield(Number(e.target.value))} />
+                </div>
                 {recItems.map((it, idx) => (
                   <div key={idx} className="flex gap-2 items-end">
                     <div className="flex-1">
@@ -355,6 +362,11 @@ export default function Production() {
                 <Button variant="outline" size="sm" onClick={() => setRecItems(items => [...items, { raw_material_id: "", quantity: 0 }])}>
                   <Plus className="h-4 w-4 mr-1" />Adicionar item
                 </Button>
+                {recProduct && (
+                  <div className="text-xs text-muted-foreground">
+                    Custo por unidade final: <b>R$ {(estimateCost(recProduct, 1) / Math.max(0.0001, Number(recYield) || 1)).toFixed(2)}</b>
+                  </div>
+                )}
               </div>
               <DialogFooter><Button onClick={saveRecipe}>Salvar receita</Button></DialogFooter>
             </DialogContent>
