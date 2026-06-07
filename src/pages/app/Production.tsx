@@ -504,18 +504,25 @@ export default function Production() {
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-left">
-                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Itens na receita</th><th className="p-3 text-right">Produção máxima</th><th className="p-3">Gargalo</th></tr>
+                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Itens na receita</th><th className="p-3 text-right">Lotes possíveis</th><th className="p-3 text-right">Unidades finais</th><th className="p-3 text-right">Custo / unidade</th><th className="p-3">Gargalo</th></tr>
                 </thead>
                 <tbody>
-                  {planning.map(p => (
-                    <tr key={p.product.id} className="border-t">
-                      <td className="p-3 font-medium">{p.product.name}</td>
-                      <td className="p-3 text-right">{p.recipeCount}</td>
-                      <td className="p-3 text-right">{p.max}</td>
-                      <td className="p-3">{p.bottleneck || "—"}</td>
-                    </tr>
-                  ))}
-                  {!planning.length && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Cadastre receitas técnicas em produtos para planejar.</td></tr>}
+                  {planning.map(p => {
+                    const y = recipeYield(p.product.id);
+                    const units = p.max * y;
+                    const costPerUnit = estimateCost(p.product.id, 1) / Math.max(0.0001, y);
+                    return (
+                      <tr key={p.product.id} className="border-t">
+                        <td className="p-3 font-medium">{p.product.name}</td>
+                        <td className="p-3 text-right">{p.recipeCount}</td>
+                        <td className="p-3 text-right">{p.max}</td>
+                        <td className="p-3 text-right">{units}</td>
+                        <td className="p-3 text-right">R$ {costPerUnit.toFixed(2)}</td>
+                        <td className="p-3">{p.bottleneck || "—"}</td>
+                      </tr>
+                    );
+                  })}
+                  {!planning.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Cadastre receitas técnicas em produtos para planejar.</td></tr>}
                 </tbody>
               </table>
             </CardContent>
