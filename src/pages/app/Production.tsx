@@ -149,11 +149,23 @@ export default function Production() {
       quantity: Number(ordForm.quantity),
       estimated_cost: estimated,
       status: "draft",
+      assignee_user_id: ordForm.assignee_user_id || null,
+      due_date: ordForm.due_date || null,
+      notes: ordForm.notes || null,
+      checklist: ordForm.checklist ?? [],
     });
     if (error) return toast.error(error.message);
     toast.success("Ordem criada");
     setOrdOpen(false);
-    setOrdForm({ quantity: 1 });
+    setOrdForm({ quantity: 1, checklist: [] });
+    setNewChecklistItem("");
+    load();
+  };
+
+  const toggleChecklistItem = async (order: Order, idx: number) => {
+    const cl = (order.checklist ?? []).map((c, i) => i === idx ? { ...c, done: !c.done } : c);
+    const { error } = await supabase.from("production_orders" as any).update({ checklist: cl }).eq("id", order.id);
+    if (error) return toast.error(error.message);
     load();
   };
 
