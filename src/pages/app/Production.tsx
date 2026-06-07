@@ -17,8 +17,9 @@ type RM = {
   current_cost: number; average_cost: number; last_cost: number; supplier_id: string | null;
 };
 type Product = { id: string; name: string; stock: number | null };
-type Recipe = { id: string; product_id: string; raw_material_id: string; quantity: number };
-type Order = { id: string; product_id: string; quantity: number; status: string; estimated_cost: number; actual_cost: number; produced_at: string | null; created_at: string };
+type Recipe = { id: string; product_id: string; raw_material_id: string; quantity: number; yield_quantity?: number };
+type Order = { id: string; product_id: string; quantity: number; status: string; estimated_cost: number; actual_cost: number; produced_at: string | null; created_at: string; assignee_user_id?: string | null; due_date?: string | null; notes?: string | null; checklist?: { text: string; done: boolean }[] };
+type Member = { member_user_id: string; email: string; role: string };
 
 export default function Production() {
   const { tenantOwnerId } = useTenant();
@@ -27,6 +28,7 @@ export default function Production() {
   const [products, setProducts] = useState<Product[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
   // dialogs
@@ -36,23 +38,27 @@ export default function Production() {
   const [buyForm, setBuyForm] = useState<{ raw_material_id?: string; quantity: number; unit_cost: number }>({ quantity: 0, unit_cost: 0 });
   const [recOpen, setRecOpen] = useState(false);
   const [recProduct, setRecProduct] = useState<string>("");
+  const [recYield, setRecYield] = useState<number>(1);
   const [recItems, setRecItems] = useState<{ raw_material_id: string; quantity: number }[]>([]);
   const [ordOpen, setOrdOpen] = useState(false);
-  const [ordForm, setOrdForm] = useState<{ product_id?: string; quantity: number }>({ quantity: 1 });
+  const [ordForm, setOrdForm] = useState<{ product_id?: string; quantity: number; assignee_user_id?: string; due_date?: string; notes?: string; checklist: { text: string; done: boolean }[] }>({ quantity: 1, checklist: [] });
+  const [newChecklistItem, setNewChecklistItem] = useState("");
 
   const load = async () => {
     if (!tenantOwnerId) return;
     setLoading(true);
-    const [m, p, r, o] = await Promise.all([
+    const [m, p, r, o, tm] = await Promise.all([
       supabase.from("raw_materials" as any).select("*").order("name"),
       supabase.from("products").select("id,name,stock").eq("user_id", tenantOwnerId).is("deleted_at", null).order("name"),
       supabase.from("product_recipes" as any).select("*"),
       supabase.from("production_orders" as any).select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("team_members").select("member_user_id,email,role").eq("owner_user_id", tenantOwnerId).eq("status", "active"),
     ]);
     setMaterials((m.data as any) ?? []);
     setProducts((p.data as any) ?? []);
     setRecipes((r.data as any) ?? []);
     setOrders((o.data as any) ?? []);
+    setMembers((tm.data as any) ?? []);
     setLoading(false);
   };
 
@@ -99,19 +105,20 @@ export default function Production() {
 
   const openRecipe = (productId: string) => {
     setRecProduct(productId);
-    const current = recipes.filter(r => r.product_id === productId).map(r => ({ raw_material_id: r.raw_material_id, quantity: r.quantity }));
-    setRecItems(current.length ? current : [{ raw_material_id: "", quantity: 0 }]);
+    const rs = recipes.filter(r => r.product_id === productId);
+    setRecItems(rs.length ? rs.map(r => ({ raw_material_id: r.raw_material_id, quantity: r.quantity })) : [{ raw_material_id: "", quantity: 0 }]);
+    setRecYield(Number(rs[0]?.yield_quantity ?? 1) || 1);
     setRecOpen(true);
   };
 
   const saveRecipe = async () => {
     if (!recProduct || !tenantOwnerId) return;
-    // wipe and reinsert
     await supabase.from("product_recipes" as any).delete().eq("product_id", recProduct);
     const valid = recItems.filter(i => i.raw_material_id && Number(i.quantity) > 0);
+    const safeYield = Math.max(0.0001, Number(recYield) || 1);
     if (valid.length) {
       const { error } = await supabase.from("product_recipes" as any).insert(
-        valid.map(i => ({ user_id: tenantOwnerId, product_id: recProduct, raw_material_id: i.raw_material_id, quantity: Number(i.quantity) }))
+        valid.map(i => ({ user_id: tenantOwnerId, product_id: recProduct, raw_material_id: i.raw_material_id, quantity: Number(i.quantity), yield_quantity: safeYield }))
       );
       if (error) return toast.error(error.message);
     }
@@ -120,10 +127,18 @@ export default function Production() {
     load();
   };
 
+  const recipeYield = (productId: string) => {
+    const r = recipes.find(x => x.product_id === productId);
+    const y = Number(r?.yield_quantity ?? 1);
+    return y > 0 ? y : 1;
+  };
+
+  // Custo total dos insumos para produzir `qty` lotes (cada lote rende `yield_quantity` unidades).
   const estimateCost = (productId: string, qty: number) => {
     const rs = recipes.filter(r => r.product_id === productId);
     return rs.reduce((sum, r) => sum + (rmById[r.raw_material_id]?.average_cost || 0) * r.quantity * qty, 0);
   };
+
 
   const checkAvailability = (productId: string, qty: number) => {
     const rs = recipes.filter(r => r.product_id === productId);
@@ -145,11 +160,23 @@ export default function Production() {
       quantity: Number(ordForm.quantity),
       estimated_cost: estimated,
       status: "draft",
+      assignee_user_id: ordForm.assignee_user_id || null,
+      due_date: ordForm.due_date || null,
+      notes: ordForm.notes || null,
+      checklist: ordForm.checklist ?? [],
     });
     if (error) return toast.error(error.message);
     toast.success("Ordem criada");
     setOrdOpen(false);
-    setOrdForm({ quantity: 1 });
+    setOrdForm({ quantity: 1, checklist: [] });
+    setNewChecklistItem("");
+    load();
+  };
+
+  const toggleChecklistItem = async (order: Order, idx: number) => {
+    const cl = (order.checklist ?? []).map((c, i) => i === idx ? { ...c, done: !c.done } : c);
+    const { error } = await supabase.from("production_orders" as any).update({ checklist: cl }).eq("id", order.id);
+    if (error) return toast.error(error.message);
     load();
   };
 
@@ -308,7 +335,14 @@ export default function Production() {
           <Dialog open={recOpen} onOpenChange={setRecOpen}>
             <DialogContent className="max-w-2xl">
               <DialogHeader><DialogTitle>Receita técnica — {productById[recProduct]?.name}</DialogTitle></DialogHeader>
-              <div className="space-y-2">
+              <div className="space-y-3">
+                <div className="rounded-lg bg-muted/40 p-3 flex items-end gap-3">
+                  <div className="flex-1">
+                    <Label>Rendimento por lote (unidades produzidas)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Quantas unidades do produto final cada execução desta receita gera.</p>
+                  </div>
+                  <Input type="number" step="0.01" min={0.0001} className="w-32" value={recYield} onChange={e => setRecYield(Number(e.target.value))} />
+                </div>
                 {recItems.map((it, idx) => (
                   <div key={idx} className="flex gap-2 items-end">
                     <div className="flex-1">
@@ -328,6 +362,11 @@ export default function Production() {
                 <Button variant="outline" size="sm" onClick={() => setRecItems(items => [...items, { raw_material_id: "", quantity: 0 }])}>
                   <Plus className="h-4 w-4 mr-1" />Adicionar item
                 </Button>
+                {recProduct && (
+                  <div className="text-xs text-muted-foreground">
+                    Custo por unidade final: <b>R$ {(estimateCost(recProduct, 1) / Math.max(0.0001, Number(recYield) || 1)).toFixed(2)}</b>
+                  </div>
+                )}
               </div>
               <DialogFooter><Button onClick={saveRecipe}>Salvar receita</Button></DialogFooter>
             </DialogContent>
@@ -338,9 +377,9 @@ export default function Production() {
           <div className="flex gap-2">
             <Dialog open={ordOpen} onOpenChange={setOrdOpen}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />Nova ordem</Button></DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-xl">
                 <DialogHeader><DialogTitle>Ordem de produção</DialogTitle></DialogHeader>
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                   <div>
                     <Label>Produto</Label>
                     <Select value={ordForm.product_id} onValueChange={v => setOrdForm({ ...ordForm, product_id: v })}>
@@ -348,10 +387,52 @@ export default function Production() {
                       <SelectContent>{products.filter(p => recipes.some(r => r.product_id === p.id)).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Quantidade</Label><Input type="number" value={ordForm.quantity} onChange={e => setOrdForm({ ...ordForm, quantity: Number(e.target.value) })} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Lotes</Label><Input type="number" min={1} value={ordForm.quantity} onChange={e => setOrdForm({ ...ordForm, quantity: Number(e.target.value) })} /></div>
+                    <div><Label>Prazo</Label><Input type="date" value={ordForm.due_date ?? ""} onChange={e => setOrdForm({ ...ordForm, due_date: e.target.value })} /></div>
+                  </div>
+                  <div>
+                    <Label>Responsável</Label>
+                    <Select value={ordForm.assignee_user_id ?? "none"} onValueChange={v => setOrdForm({ ...ordForm, assignee_user_id: v === "none" ? undefined : v })}>
+                      <SelectTrigger><SelectValue placeholder="Sem responsável" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem responsável</SelectItem>
+                        {members.map(m => <SelectItem key={m.member_user_id} value={m.member_user_id}>{m.email} ({m.role})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Observações</Label>
+                    <Input value={ordForm.notes ?? ""} onChange={e => setOrdForm({ ...ordForm, notes: e.target.value })} placeholder="Ex.: prioridade alta, embalar em caixa…" />
+                  </div>
+                  <div>
+                    <Label>Checklist</Label>
+                    <div className="space-y-1 mt-1">
+                      {ordForm.checklist.map((c, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <span className="flex-1">• {c.text}</span>
+                          <Button variant="ghost" size="sm" onClick={() => setOrdForm({ ...ordForm, checklist: ordForm.checklist.filter((_, j) => j !== i) })}>×</Button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2">
+                        <Input value={newChecklistItem} onChange={e => setNewChecklistItem(e.target.value)} placeholder="Novo item…" onKeyDown={e => {
+                          if (e.key === "Enter" && newChecklistItem.trim()) {
+                            setOrdForm({ ...ordForm, checklist: [...ordForm.checklist, { text: newChecklistItem.trim(), done: false }] });
+                            setNewChecklistItem("");
+                          }
+                        }} />
+                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                          if (!newChecklistItem.trim()) return;
+                          setOrdForm({ ...ordForm, checklist: [...ordForm.checklist, { text: newChecklistItem.trim(), done: false }] });
+                          setNewChecklistItem("");
+                        }}>Adicionar</Button>
+                      </div>
+                    </div>
+                  </div>
                   {ordForm.product_id && ordForm.quantity > 0 && (
                     <div className="rounded-md bg-muted/40 p-3 text-sm space-y-1">
                       <div>Custo estimado: <b>R$ {estimateCost(ordForm.product_id, ordForm.quantity).toFixed(2)}</b></div>
+                      <div className="text-xs text-muted-foreground">Produz {ordForm.quantity * recipeYield(ordForm.product_id)} unidade(s) (rendimento {recipeYield(ordForm.product_id)}/lote).</div>
                       {(() => {
                         const miss = checkAvailability(ordForm.product_id!, ordForm.quantity);
                         if (!miss.length) return <div className="text-green-600">Estoque suficiente para produção.</div>;
@@ -369,22 +450,48 @@ export default function Production() {
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-left">
-                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Qtd</th><th className="p-3">Status</th><th className="p-3 text-right">Custo est.</th><th className="p-3 text-right">Custo real</th><th className="p-3"></th></tr>
+                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Lotes</th><th className="p-3">Status</th><th className="p-3">Responsável</th><th className="p-3">Prazo</th><th className="p-3">Checklist</th><th className="p-3 text-right">Custo est.</th><th className="p-3 text-right">Custo real</th><th className="p-3"></th></tr>
                 </thead>
                 <tbody>
-                  {orders.map(o => (
-                    <tr key={o.id} className="border-t">
-                      <td className="p-3 font-medium">{productById[o.product_id]?.name || "—"}</td>
-                      <td className="p-3 text-right">{o.quantity}</td>
-                      <td className="p-3"><Badge variant={o.status === "done" ? "default" : "secondary"}>{o.status === "done" ? "Produzido" : "Rascunho"}</Badge></td>
-                      <td className="p-3 text-right">R$ {Number(o.estimated_cost).toFixed(2)}</td>
-                      <td className="p-3 text-right">R$ {Number(o.actual_cost).toFixed(2)}</td>
-                      <td className="p-3 text-right">
-                        {o.status !== "done" && <Button size="sm" onClick={() => executeOrder(o.id)}>Executar</Button>}
-                      </td>
-                    </tr>
-                  ))}
-                  {!orders.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma ordem ainda.</td></tr>}
+                  {orders.map(o => {
+                    const member = members.find(m => m.member_user_id === o.assignee_user_id);
+                    const cl = o.checklist ?? [];
+                    const doneCount = cl.filter(c => c.done).length;
+                    const overdue = o.due_date && o.status !== "done" && new Date(o.due_date) < new Date(new Date().toDateString());
+                    return (
+                      <tr key={o.id} className="border-t align-top">
+                        <td className="p-3 font-medium">
+                          {productById[o.product_id]?.name || "—"}
+                          {o.notes && <div className="text-xs text-muted-foreground mt-0.5">{o.notes}</div>}
+                        </td>
+                        <td className="p-3 text-right">{o.quantity}</td>
+                        <td className="p-3"><Badge variant={o.status === "done" ? "default" : "secondary"}>{o.status === "done" ? "Produzido" : "Rascunho"}</Badge></td>
+                        <td className="p-3 text-xs">{member?.email ?? "—"}</td>
+                        <td className="p-3 text-xs">
+                          {o.due_date ? <span className={overdue ? "text-rose-600 font-medium" : ""}>{new Date(o.due_date).toLocaleDateString()}</span> : "—"}
+                        </td>
+                        <td className="p-3 text-xs">
+                          {cl.length ? (
+                            <div className="space-y-0.5">
+                              <div className="text-muted-foreground">{doneCount}/{cl.length}</div>
+                              {cl.map((c, i) => (
+                                <label key={i} className="flex items-center gap-1 cursor-pointer">
+                                  <input type="checkbox" checked={c.done} onChange={() => toggleChecklistItem(o, i)} disabled={o.status === "done"} />
+                                  <span className={c.done ? "line-through text-muted-foreground" : ""}>{c.text}</span>
+                                </label>
+                              ))}
+                            </div>
+                          ) : "—"}
+                        </td>
+                        <td className="p-3 text-right">R$ {Number(o.estimated_cost).toFixed(2)}</td>
+                        <td className="p-3 text-right">R$ {Number(o.actual_cost).toFixed(2)}</td>
+                        <td className="p-3 text-right">
+                          {o.status !== "done" && <Button size="sm" onClick={() => executeOrder(o.id)}>Executar</Button>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!orders.length && <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Nenhuma ordem ainda.</td></tr>}
                 </tbody>
               </table>
             </CardContent>
@@ -397,18 +504,25 @@ export default function Production() {
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-left">
-                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Itens na receita</th><th className="p-3 text-right">Produção máxima</th><th className="p-3">Gargalo</th></tr>
+                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Itens na receita</th><th className="p-3 text-right">Lotes possíveis</th><th className="p-3 text-right">Unidades finais</th><th className="p-3 text-right">Custo / unidade</th><th className="p-3">Gargalo</th></tr>
                 </thead>
                 <tbody>
-                  {planning.map(p => (
-                    <tr key={p.product.id} className="border-t">
-                      <td className="p-3 font-medium">{p.product.name}</td>
-                      <td className="p-3 text-right">{p.recipeCount}</td>
-                      <td className="p-3 text-right">{p.max}</td>
-                      <td className="p-3">{p.bottleneck || "—"}</td>
-                    </tr>
-                  ))}
-                  {!planning.length && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Cadastre receitas técnicas em produtos para planejar.</td></tr>}
+                  {planning.map(p => {
+                    const y = recipeYield(p.product.id);
+                    const units = p.max * y;
+                    const costPerUnit = estimateCost(p.product.id, 1) / Math.max(0.0001, y);
+                    return (
+                      <tr key={p.product.id} className="border-t">
+                        <td className="p-3 font-medium">{p.product.name}</td>
+                        <td className="p-3 text-right">{p.recipeCount}</td>
+                        <td className="p-3 text-right">{p.max}</td>
+                        <td className="p-3 text-right">{units}</td>
+                        <td className="p-3 text-right">R$ {costPerUnit.toFixed(2)}</td>
+                        <td className="p-3">{p.bottleneck || "—"}</td>
+                      </tr>
+                    );
+                  })}
+                  {!planning.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Cadastre receitas técnicas em produtos para planejar.</td></tr>}
                 </tbody>
               </table>
             </CardContent>
