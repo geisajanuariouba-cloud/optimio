@@ -377,9 +377,9 @@ export default function Production() {
           <div className="flex gap-2">
             <Dialog open={ordOpen} onOpenChange={setOrdOpen}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />Nova ordem</Button></DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-xl">
                 <DialogHeader><DialogTitle>Ordem de produção</DialogTitle></DialogHeader>
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                   <div>
                     <Label>Produto</Label>
                     <Select value={ordForm.product_id} onValueChange={v => setOrdForm({ ...ordForm, product_id: v })}>
@@ -387,10 +387,52 @@ export default function Production() {
                       <SelectContent>{products.filter(p => recipes.some(r => r.product_id === p.id)).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Quantidade</Label><Input type="number" value={ordForm.quantity} onChange={e => setOrdForm({ ...ordForm, quantity: Number(e.target.value) })} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Lotes</Label><Input type="number" min={1} value={ordForm.quantity} onChange={e => setOrdForm({ ...ordForm, quantity: Number(e.target.value) })} /></div>
+                    <div><Label>Prazo</Label><Input type="date" value={ordForm.due_date ?? ""} onChange={e => setOrdForm({ ...ordForm, due_date: e.target.value })} /></div>
+                  </div>
+                  <div>
+                    <Label>Responsável</Label>
+                    <Select value={ordForm.assignee_user_id ?? "none"} onValueChange={v => setOrdForm({ ...ordForm, assignee_user_id: v === "none" ? undefined : v })}>
+                      <SelectTrigger><SelectValue placeholder="Sem responsável" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem responsável</SelectItem>
+                        {members.map(m => <SelectItem key={m.member_user_id} value={m.member_user_id}>{m.email} ({m.role})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Observações</Label>
+                    <Input value={ordForm.notes ?? ""} onChange={e => setOrdForm({ ...ordForm, notes: e.target.value })} placeholder="Ex.: prioridade alta, embalar em caixa…" />
+                  </div>
+                  <div>
+                    <Label>Checklist</Label>
+                    <div className="space-y-1 mt-1">
+                      {ordForm.checklist.map((c, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <span className="flex-1">• {c.text}</span>
+                          <Button variant="ghost" size="sm" onClick={() => setOrdForm({ ...ordForm, checklist: ordForm.checklist.filter((_, j) => j !== i) })}>×</Button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2">
+                        <Input value={newChecklistItem} onChange={e => setNewChecklistItem(e.target.value)} placeholder="Novo item…" onKeyDown={e => {
+                          if (e.key === "Enter" && newChecklistItem.trim()) {
+                            setOrdForm({ ...ordForm, checklist: [...ordForm.checklist, { text: newChecklistItem.trim(), done: false }] });
+                            setNewChecklistItem("");
+                          }
+                        }} />
+                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                          if (!newChecklistItem.trim()) return;
+                          setOrdForm({ ...ordForm, checklist: [...ordForm.checklist, { text: newChecklistItem.trim(), done: false }] });
+                          setNewChecklistItem("");
+                        }}>Adicionar</Button>
+                      </div>
+                    </div>
+                  </div>
                   {ordForm.product_id && ordForm.quantity > 0 && (
                     <div className="rounded-md bg-muted/40 p-3 text-sm space-y-1">
                       <div>Custo estimado: <b>R$ {estimateCost(ordForm.product_id, ordForm.quantity).toFixed(2)}</b></div>
+                      <div className="text-xs text-muted-foreground">Produz {ordForm.quantity * recipeYield(ordForm.product_id)} unidade(s) (rendimento {recipeYield(ordForm.product_id)}/lote).</div>
                       {(() => {
                         const miss = checkAvailability(ordForm.product_id!, ordForm.quantity);
                         if (!miss.length) return <div className="text-green-600">Estoque suficiente para produção.</div>;
@@ -408,22 +450,48 @@ export default function Production() {
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-left">
-                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Qtd</th><th className="p-3">Status</th><th className="p-3 text-right">Custo est.</th><th className="p-3 text-right">Custo real</th><th className="p-3"></th></tr>
+                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Lotes</th><th className="p-3">Status</th><th className="p-3">Responsável</th><th className="p-3">Prazo</th><th className="p-3">Checklist</th><th className="p-3 text-right">Custo est.</th><th className="p-3 text-right">Custo real</th><th className="p-3"></th></tr>
                 </thead>
                 <tbody>
-                  {orders.map(o => (
-                    <tr key={o.id} className="border-t">
-                      <td className="p-3 font-medium">{productById[o.product_id]?.name || "—"}</td>
-                      <td className="p-3 text-right">{o.quantity}</td>
-                      <td className="p-3"><Badge variant={o.status === "done" ? "default" : "secondary"}>{o.status === "done" ? "Produzido" : "Rascunho"}</Badge></td>
-                      <td className="p-3 text-right">R$ {Number(o.estimated_cost).toFixed(2)}</td>
-                      <td className="p-3 text-right">R$ {Number(o.actual_cost).toFixed(2)}</td>
-                      <td className="p-3 text-right">
-                        {o.status !== "done" && <Button size="sm" onClick={() => executeOrder(o.id)}>Executar</Button>}
-                      </td>
-                    </tr>
-                  ))}
-                  {!orders.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma ordem ainda.</td></tr>}
+                  {orders.map(o => {
+                    const member = members.find(m => m.member_user_id === o.assignee_user_id);
+                    const cl = o.checklist ?? [];
+                    const doneCount = cl.filter(c => c.done).length;
+                    const overdue = o.due_date && o.status !== "done" && new Date(o.due_date) < new Date(new Date().toDateString());
+                    return (
+                      <tr key={o.id} className="border-t align-top">
+                        <td className="p-3 font-medium">
+                          {productById[o.product_id]?.name || "—"}
+                          {o.notes && <div className="text-xs text-muted-foreground mt-0.5">{o.notes}</div>}
+                        </td>
+                        <td className="p-3 text-right">{o.quantity}</td>
+                        <td className="p-3"><Badge variant={o.status === "done" ? "default" : "secondary"}>{o.status === "done" ? "Produzido" : "Rascunho"}</Badge></td>
+                        <td className="p-3 text-xs">{member?.email ?? "—"}</td>
+                        <td className="p-3 text-xs">
+                          {o.due_date ? <span className={overdue ? "text-rose-600 font-medium" : ""}>{new Date(o.due_date).toLocaleDateString()}</span> : "—"}
+                        </td>
+                        <td className="p-3 text-xs">
+                          {cl.length ? (
+                            <div className="space-y-0.5">
+                              <div className="text-muted-foreground">{doneCount}/{cl.length}</div>
+                              {cl.map((c, i) => (
+                                <label key={i} className="flex items-center gap-1 cursor-pointer">
+                                  <input type="checkbox" checked={c.done} onChange={() => toggleChecklistItem(o, i)} disabled={o.status === "done"} />
+                                  <span className={c.done ? "line-through text-muted-foreground" : ""}>{c.text}</span>
+                                </label>
+                              ))}
+                            </div>
+                          ) : "—"}
+                        </td>
+                        <td className="p-3 text-right">R$ {Number(o.estimated_cost).toFixed(2)}</td>
+                        <td className="p-3 text-right">R$ {Number(o.actual_cost).toFixed(2)}</td>
+                        <td className="p-3 text-right">
+                          {o.status !== "done" && <Button size="sm" onClick={() => executeOrder(o.id)}>Executar</Button>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!orders.length && <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Nenhuma ordem ainda.</td></tr>}
                 </tbody>
               </table>
             </CardContent>
