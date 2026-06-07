@@ -200,6 +200,13 @@ export default function Settings() {
                   className="bg-secondary/50 border-0 h-11" />
                 <p className="text-xs text-muted-foreground mt-1">Ciclo atual: <strong>{getCycleLabel(cycleDay)}</strong></p>
               </div>
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-border/50 p-3">
+                <div>
+                  <Label className="text-sm">Alerta de estoque exato no mínimo</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Quando ligado, gera alerta também quando o estoque é exatamente igual ao mínimo (não só abaixo).</p>
+                </div>
+                <Switch checked={alertExact} onCheckedChange={setAlertExact} />
+              </div>
             </div>
 
             {/* Identidade Visual */}
