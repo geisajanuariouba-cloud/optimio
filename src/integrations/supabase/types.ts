@@ -2032,6 +2032,7 @@ export type Database = {
           quantity: number
           raw_material_id: string
           user_id: string
+          yield_quantity: number
         }
         Insert: {
           created_at?: string
@@ -2040,6 +2041,7 @@ export type Database = {
           quantity?: number
           raw_material_id: string
           user_id: string
+          yield_quantity?: number
         }
         Update: {
           created_at?: string
@@ -2048,6 +2050,7 @@ export type Database = {
           quantity?: number
           raw_material_id?: string
           user_id?: string
+          yield_quantity?: number
         }
         Relationships: [
           {
@@ -2243,7 +2246,10 @@ export type Database = {
       production_orders: {
         Row: {
           actual_cost: number
+          assignee_user_id: string | null
+          checklist: Json
           created_at: string
+          due_date: string | null
           estimated_cost: number
           id: string
           notes: string | null
@@ -2256,7 +2262,10 @@ export type Database = {
         }
         Insert: {
           actual_cost?: number
+          assignee_user_id?: string | null
+          checklist?: Json
           created_at?: string
+          due_date?: string | null
           estimated_cost?: number
           id?: string
           notes?: string | null
@@ -2269,7 +2278,10 @@ export type Database = {
         }
         Update: {
           actual_cost?: number
+          assignee_user_id?: string | null
+          checklist?: Json
           created_at?: string
+          due_date?: string | null
           estimated_cost?: number
           id?: string
           notes?: string | null
