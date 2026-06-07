@@ -41,6 +41,7 @@ export default function Settings() {
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [cycleDay, setCycleDay] = useState<number>(1);
+  const [alertExact, setAlertExact] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [supportVisible, setSupportVisible] = useState(true);
   const [supportPosition, setSupportPosition] = useState<"bottom-right" | "bottom-left" | "top-right" | "top-left">("bottom-right");
