@@ -3858,6 +3858,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_team_invite: { Args: { _token: string }; Returns: Json }
       apply_engine_price: {
         Args: { _force?: boolean; _id: string; _kind: string }
         Returns: number
@@ -3875,6 +3876,18 @@ export type Database = {
       generate_codname: {
         Args: { _color?: string; _name: string; _size?: string }
         Returns: string
+      }
+      get_team_invite_by_token: {
+        Args: { _token: string }
+        Returns: {
+          email: string
+          expires_at: string
+          id: string
+          owner_user_id: string
+          permissions: Json
+          role: string
+          status: string
+        }[]
       }
       has_permission: {
         Args: { _key: string; _user_id: string }
