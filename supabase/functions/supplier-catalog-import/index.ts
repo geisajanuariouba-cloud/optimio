@@ -402,7 +402,7 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
           const found: Uint8Array[] = [];
           let i = 0;
           const max = buf.length - 4;
-          while (i < max && found.length < 80) {
+          while (i < max && found.length < 200) {
             if (buf[i] === 0xff && buf[i + 1] === 0xd8 && buf[i + 2] === 0xff) {
               let j = i + 2;
               while (j < max) {
@@ -410,7 +410,8 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
                 j++;
               }
               const size = j - i;
-              if (size > 2048 && size < 4_000_000) {
+              // tolera thumbnails maiores que 1KB e ignora imagens enormes (>6MB)
+              if (size > 1024 && size < 6_000_000) {
                 found.push(buf.slice(i, j));
               }
               i = j;
