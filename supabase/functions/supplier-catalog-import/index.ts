@@ -289,9 +289,20 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
         const codeKey = norm(it.code);
         const nameKey = norm(it.name);
 
-        // Match prioridade: variação por código > produto por código > variação por nome > produto por nome
-        const vMatch = (codeKey && vByCode.get(codeKey)) || (nameKey && vByName.get(nameKey));
-        const pMatch = (codeKey && pByCode.get(codeKey)) || (nameKey && pByName.get(nameKey));
+        // Match prioridade: variação por código > produto por código > variação por nome (exato) > produto por nome (exato)
+        // Fallback fuzzy: nome contém / é contido (apenas se nameKey tiver >=6 chars para evitar matches abertos)
+        let vMatch = (codeKey && vByCode.get(codeKey)) || (nameKey && vByName.get(nameKey));
+        let pMatch = (codeKey && pByCode.get(codeKey)) || (nameKey && pByName.get(nameKey));
+        if (!vMatch && !pMatch && nameKey && nameKey.length >= 6) {
+          for (const [nk, v] of vByName) {
+            if (nk && (nk.includes(nameKey) || nameKey.includes(nk))) { vMatch = v; break; }
+          }
+          if (!vMatch) {
+            for (const [nk, p] of pByName) {
+              if (nk && (nk.includes(nameKey) || nameKey.includes(nk))) { pMatch = p; break; }
+            }
+          }
+        }
 
         if (vMatch) {
           const patch: any = {
