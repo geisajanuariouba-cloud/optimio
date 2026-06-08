@@ -289,9 +289,20 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
         const codeKey = norm(it.code);
         const nameKey = norm(it.name);
 
-        // Match prioridade: variação por código > produto por código > variação por nome > produto por nome
-        const vMatch = (codeKey && vByCode.get(codeKey)) || (nameKey && vByName.get(nameKey));
-        const pMatch = (codeKey && pByCode.get(codeKey)) || (nameKey && pByName.get(nameKey));
+        // Match prioridade: variação por código > produto por código > variação por nome (exato) > produto por nome (exato)
+        // Fallback fuzzy: nome contém / é contido (apenas se nameKey tiver >=6 chars para evitar matches abertos)
+        let vMatch = (codeKey && vByCode.get(codeKey)) || (nameKey && vByName.get(nameKey));
+        let pMatch = (codeKey && pByCode.get(codeKey)) || (nameKey && pByName.get(nameKey));
+        if (!vMatch && !pMatch && nameKey && nameKey.length >= 6) {
+          for (const [nk, v] of vByName) {
+            if (nk && (nk.includes(nameKey) || nameKey.includes(nk))) { vMatch = v; break; }
+          }
+          if (!vMatch) {
+            for (const [nk, p] of pByName) {
+              if (nk && (nk.includes(nameKey) || nameKey.includes(nk))) { pMatch = p; break; }
+            }
+          }
+        }
 
         if (vMatch) {
           const patch: any = {
@@ -402,7 +413,7 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
           const found: Uint8Array[] = [];
           let i = 0;
           const max = buf.length - 4;
-          while (i < max && found.length < 80) {
+          while (i < max && found.length < 200) {
             if (buf[i] === 0xff && buf[i + 1] === 0xd8 && buf[i + 2] === 0xff) {
               let j = i + 2;
               while (j < max) {
@@ -410,7 +421,8 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
                 j++;
               }
               const size = j - i;
-              if (size > 2048 && size < 4_000_000) {
+              // tolera thumbnails maiores que 1KB e ignora imagens enormes (>6MB)
+              if (size > 1024 && size < 6_000_000) {
                 found.push(buf.slice(i, j));
               }
               i = j;
@@ -419,7 +431,7 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
             }
           }
           await log("imgs_found", `${found.length} imagem(ns) candidata(s) localizada(s).`);
-          for (let idx = 0; idx < Math.min(found.length, 80); idx++) {
+          for (let idx = 0; idx < Math.min(found.length, 200); idx++) {
             const path = `${userId}/${catalogId}/img-${String(idx).padStart(3, "0")}.jpg`;
             const up = await supabase.storage.from("catalog-images")
               .upload(path, found[idx], { contentType: "image/jpeg", upsert: true });
