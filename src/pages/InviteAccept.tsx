@@ -20,25 +20,20 @@ export default function InviteAccept() {
   useEffect(() => {
     (async () => {
       if (!token) return;
-      const { data } = await supabase.from("team_invites").select("*").eq("token", token).maybeSingle();
-      setInvite(data);
+      const { data } = await (supabase as any).rpc("get_team_invite_by_token", { _token: token });
+      setInvite(Array.isArray(data) && data.length ? data[0] : null);
       setLoading(false);
     })();
   }, [token]);
 
   const accept = async () => {
-    if (!user || !invite) return;
+    if (!user || !invite || !token) return;
     if ((user.email || "").toLowerCase() !== invite.email.toLowerCase()) {
       return toast.error(`Faça login com o email ${invite.email} para aceitar.`);
     }
     setAccepting(true);
-    const { error } = await supabase.from("team_members").upsert({
-      owner_user_id: invite.owner_user_id, member_user_id: user.id,
-      email: invite.email, role: invite.role, permissions: invite.permissions,
-      status: "active", invited_by: invite.created_by,
-    }, { onConflict: "owner_user_id,member_user_id" });
+    const { error } = await (supabase as any).rpc("accept_team_invite", { _token: token });
     if (error) { setAccepting(false); return toast.error(friendlyError(error)); }
-    await supabase.from("team_invites").update({ status: "accepted" }).eq("id", invite.id);
     toast.success("Convite aceito! Bem-vindo à equipe.");
     nav("/app");
   };
