@@ -420,7 +420,7 @@ async function processCatalog(catalogId: string, userId: string, supplierId: str
             }
           }
           await log("imgs_found", `${found.length} imagem(ns) candidata(s) localizada(s).`);
-          for (let idx = 0; idx < Math.min(found.length, 80); idx++) {
+          for (let idx = 0; idx < Math.min(found.length, 200); idx++) {
             const path = `${userId}/${catalogId}/img-${String(idx).padStart(3, "0")}.jpg`;
             const up = await supabase.storage.from("catalog-images")
               .upload(path, found[idx], { contentType: "image/jpeg", upsert: true });
