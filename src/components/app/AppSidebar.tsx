@@ -15,6 +15,7 @@ import {
   Settings as SettingsIcon, Crown, LogOut, LifeBuoy, ChevronRight, ChevronLeft,
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
+import { useModuleVisibility } from "@/hooks/useModuleVisibility";
 import { useDevMode } from "@/hooks/useDevMode";
 import { isComingSoon } from "@/lib/comingSoon";
 import logoAsset from "@/assets/optimio-logo.png.asset.json";
@@ -28,6 +29,7 @@ type Item = {
   mod?: string;        // module key — hide if not enabled
   ownerOnly?: boolean;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;  // só Super Admin Optimio (painel interno)
   badge?: string;
   onClick?: () => void;
 };
@@ -37,11 +39,12 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { profile, hasModule, isOwner, isAdmin } = useTenant();
+  const { profile, isOwner, isAdmin, isSuperAdmin } = useTenant();
+  const { isModuleVisible } = useModuleVisibility();
   const { signOut } = useAuth();
   const { devMode } = useDevMode();
   const adminMaster = !!(profile as any)?.is_admin_master;
-  const showSoonBadge = !(adminMaster && devMode);
+  const showSoonBadge = !(isSuperAdmin && devMode);
 
   const groups: Group[] = useMemo(() => [
     {
@@ -115,7 +118,7 @@ export function AppSidebar() {
       items: [
         { title: "Configurações", url: "/app/settings", icon: SettingsIcon },
         { title: "Lixeira", url: "/app/trash", icon: Trash2 },
-        { title: "Super Admin", url: "/admin", icon: Crown, adminOnly: true },
+        { title: "Super Admin", url: "/admin", icon: Crown, superAdminOnly: true },
         { title: "Sair", icon: LogOut, onClick: () => signOut() },
       ],
     },
@@ -128,10 +131,12 @@ export function AppSidebar() {
   };
 
   const visible = (it: Item) => {
+    // Painel interno da Optimio: só Super Admin (verificado antes de qualquer atalho).
+    if (it.superAdminOnly) return isSuperAdmin;
     if (adminMaster) return true;
     if (it.adminOnly && !isAdmin) return false;
     if (it.ownerOnly && !isOwner) return false;
-    if (it.mod && !hasModule(it.mod)) return false;
+    if (it.mod && !isModuleVisible(it.mod)) return false;
     return true;
   };
 

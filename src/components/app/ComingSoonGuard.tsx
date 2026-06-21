@@ -14,10 +14,10 @@ import ComingSoon from "@/pages/app/ComingSoon";
 export function ComingSoonGuard({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { devMode } = useDevMode();
-  const { profile } = useTenant();
-  const adminMaster = !!(profile as any)?.is_admin_master;
+  const { isSuperAdmin } = useTenant();
 
-  if (isComingSoon(pathname) && !(adminMaster && devMode)) {
+  // Apenas o Super Admin Optimio com Modo Desenvolvedor ligado acessa módulos em breve.
+  if (isComingSoon(pathname) && !(isSuperAdmin && devMode)) {
     return <ComingSoon />;
   }
   return <>{children}</>;

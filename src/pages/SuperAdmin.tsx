@@ -20,7 +20,9 @@ type Plan = { id: string; slug: string; name: string; price: number; description
 type Sub = { id: string; user_id: string; plan_slug: string; status: string; current_period_end: string; last_paid_at: string|null };
 
 export default function SuperAdmin() {
-  const { isAdmin, loading } = useTenant();
+  // Painel interno da Optimio: exclusivo do Super Admin (papel `admin`).
+  // Admin Master da empresa NÃO tem acesso, mesmo com plano unlimited.
+  const { isSuperAdmin, loading } = useTenant();
   const { user } = useAuth();
   const nav = useNavigate();
   const backToApp = () => nav("/app");
@@ -37,10 +39,10 @@ export default function SuperAdmin() {
     ]);
     setTenants((t??[]) as Tenant[]); setPlans((p??[]) as any); setSubs((s??[]) as Sub[]);
   };
-  useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
+  useEffect(() => { if (isSuperAdmin) load(); }, [isSuperAdmin]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background bg-mesh"><div className="h-12 w-12 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>;
-  if (!isAdmin) return <Navigate to="/app" replace />;
+  if (!isSuperAdmin) return <Navigate to="/app" replace />;
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("profiles").update({ account_status: status }).eq("id", id);

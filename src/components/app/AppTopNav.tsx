@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
+import { useModuleVisibility } from "@/hooks/useModuleVisibility";
 import { useDevMode } from "@/hooks/useDevMode";
 import { isComingSoon } from "@/lib/comingSoon";
 import { ChevronDown } from "lucide-react";
@@ -107,15 +108,15 @@ const AREAS: Area[] = [
 ];
 
 export function AppTopNav() {
-  const { hasModule, isAdmin, isOwner, can, profile } = useTenant();
+  const { isAdmin, isOwner, isSuperAdmin, can } = useTenant();
+  const { isModuleVisible } = useModuleVisibility();
   const { devMode } = useDevMode();
-  const adminMaster = !!(profile as any)?.is_admin_master;
-  const showSoonBadge = !(adminMaster && devMode);
+  const showSoonBadge = !(isSuperAdmin && devMode);
   const { pathname } = useLocation();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   const visible = (i: Item) =>
-    (!i.mod || hasModule(i.mod)) &&
+    (!i.mod || isModuleVisible(i.mod)) &&
     (!i.adminOnly || isAdmin) &&
     (!i.ownerOnly || isOwner) &&
     (!i.perm || isOwner || can(i.perm));

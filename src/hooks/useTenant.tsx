@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { NICHES, NicheKey, NicheConfig } from "@/lib/niches";
@@ -28,7 +28,12 @@ type Profile = {
 type Ctx = {
   profile: Profile | null;
   loading: boolean;
+  /** Admin "amplo": Super Admin Optimio OU Admin Master da empresa. Mantido para compatibilidade. */
   isAdmin: boolean;
+  /** Super Admin Optimio (dono da plataforma). Tem papel `admin` em user_roles. NÃO confundir com Admin Master da empresa. */
+  isSuperAdmin: boolean;
+  /** Módulos efetivamente habilitados para o tenant (resolvido: perfil ou padrão do nicho). */
+  enabledModules: string[];
   /** Tenant (dono da conta). Para admin master = user.id; para membro = owner_user_id. */
   tenantOwnerId: string | null;
   /** true se o usuário logado é o dono da conta (não um membro convidado). */
@@ -44,7 +49,7 @@ type Ctx = {
 };
 
 const C = createContext<Ctx>({
-  profile: null, loading: true, isAdmin: false,
+  profile: null, loading: true, isAdmin: false, isSuperAdmin: false, enabledModules: [],
   tenantOwnerId: null, isOwner: true, role: null, permissions: {},
   can: () => true,
   niche: NICHES.beauty, hasModule: () => true, t: (k) => k, refresh: async () => {},
@@ -116,7 +121,10 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   const niche = NICHES[(profile?.niche as NicheKey) ?? "beauty"] ?? NICHES.beauty;
   const adminMaster = !!profile?.is_admin_master;
   const isUnlimited = profile?.plan === "unlimited";
-  const enabled = profile?.enabled_modules?.length ? profile.enabled_modules : niche.modules;
+  const enabled = useMemo(
+    () => (profile?.enabled_modules?.length ? profile.enabled_modules : niche.modules),
+    [profile?.enabled_modules, niche]
+  );
 
   const can = (perm: string) => {
     if (adminMaster) return true;
@@ -126,7 +134,10 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const value: Ctx = {
-    profile, loading, isAdmin: isAdmin || adminMaster,
+    profile, loading,
+    isAdmin: isAdmin || adminMaster,
+    isSuperAdmin: isAdmin,
+    enabledModules: enabled,
     tenantOwnerId, isOwner, role, permissions, can,
     niche,
     hasModule: (m) => adminMaster || isUnlimited || enabled.includes(m),
