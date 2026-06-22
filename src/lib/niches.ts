@@ -14,9 +14,15 @@ export type NicheConfig = {
   terms: Record<string, string>;
 };
 
-const BASE_PRODUCT = ["dashboard","clients","products","financial","marketing","integrations"];
-const BASE_SERVICE = ["dashboard","appointments","clients","services","financial","marketing","integrations"];
-const BASE_BOTH = ["dashboard","appointments","clients","products","services","financial","marketing","integrations"];
+// Submódulos que antes apareciam na navegação amarrados a "products" ou "financial".
+// Após o alinhamento das chaves de módulo, incluímos explicitamente para preservar a
+// visibilidade nos nichos (ver migration de backfill para tenants já existentes).
+const PRODUCT_SUBMODULES = ["stock","suppliers","smart_purchases","quotes"];
+const FINANCIAL_SUBMODULES = ["sales","cash_drawer","payment_methods"];
+
+const BASE_PRODUCT = ["dashboard","clients","products","financial","marketing","integrations", ...PRODUCT_SUBMODULES, ...FINANCIAL_SUBMODULES];
+const BASE_SERVICE = ["dashboard","appointments","clients","services","financial","marketing","integrations", ...FINANCIAL_SUBMODULES];
+const BASE_BOTH = ["dashboard","appointments","clients","products","services","financial","marketing","integrations", ...PRODUCT_SUBMODULES, ...FINANCIAL_SUBMODULES];
 
 export const NICHES: Record<NicheKey, NicheConfig> = {
   beauty:       { key:"beauty",       label:"Beleza & Saúde",      group:"both",   modules:[...BASE_BOTH,"packages","anamnesis"], terms:{ client:"Cliente", clients:"Clientes", service:"Procedimento", services:"Procedimentos", professional:"Profissional", appointment:"Agendamento" } },

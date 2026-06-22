@@ -15,7 +15,7 @@ const AREAS: Area[] = [
     label: "Cadastros",
     items: [
       { title: "Clientes", url: "/app/clients", mod: "clients" },
-      { title: "Fornecedores", url: "/app/suppliers", mod: "products" },
+      { title: "Fornecedores", url: "/app/suppliers", mod: "suppliers" },
       { title: "Produtos", url: "/app/products", mod: "products" },
       { title: "Serviços", url: "/app/services", mod: "services" },
       { title: "Categorias", url: "/app/categories" },
@@ -25,8 +25,8 @@ const AREAS: Area[] = [
   {
     label: "Comercial",
     items: [
-      { title: "Orçamentos", url: "/app/quotes", mod: "products" },
-      { title: "Vendas", url: "/app/sales", mod: "financial" },
+      { title: "Orçamentos", url: "/app/quotes", mod: "quotes" },
+      { title: "Vendas", url: "/app/sales", mod: "sales" },
       { title: "CRM / Funil", url: "/app/funnel", mod: "clients" },
       { title: "Cobrança Inteligente", url: "/app/collections", mod: "financial" },
       { title: "Agenda", url: "/app/appointments", mod: "appointments" },
@@ -38,22 +38,22 @@ const AREAS: Area[] = [
     items: [
       { title: "Financeiro", url: "/app/financial", mod: "financial" },
       { title: "Promissórias", url: "/app/debts", mod: "financial" },
-      { title: "Caixa do Dia", url: "/app/cash-drawer", mod: "financial" },
+      { title: "Caixa do Dia", url: "/app/cash-drawer", mod: "cash_drawer" },
       { title: "Maquininhas", url: "/app/card-machines", mod: "financial" },
     ],
   },
   {
     label: "Estoque",
     items: [
-      { title: "Estoque", url: "/app/stock", mod: "products" },
-      { title: "Compras Inteligentes", url: "/app/smart-purchases", mod: "products" },
+      { title: "Estoque", url: "/app/stock", mod: "stock" },
+      { title: "Compras Inteligentes", url: "/app/smart-purchases", mod: "smart_purchases" },
       { title: "Revisão Importação", url: "/app/import-review", mod: "products" },
     ],
   },
   {
     label: "Produção",
     items: [
-      { title: "Produção", url: "/app/production", mod: "products" },
+      { title: "Produção", url: "/app/production", mod: "production" },
     ],
   },
   {
@@ -69,12 +69,12 @@ const AREAS: Area[] = [
     label: "Operações",
     items: [
       { title: "Central Operacional", url: "/app/operations" },
-      { title: "Projetos", url: "/app/projects", mod: "marketing" },
+      { title: "Projetos", url: "/app/projects" },
       { title: "Tarefas", url: "/app/tasks" },
       { title: "Alertas", url: "/app/alerts" },
       { title: "Sugestões", url: "/app/suggestions" },
-      { title: "Logística", url: "/app/deliveries", mod: "financial" },
-      { title: "Montadores", url: "/app/assemblers", mod: "financial" },
+      { title: "Logística", url: "/app/deliveries" },
+      { title: "Montadores", url: "/app/assemblers" },
       { title: "Anamnese", url: "/app/anamnesis", mod: "anamnesis" },
     ],
   },

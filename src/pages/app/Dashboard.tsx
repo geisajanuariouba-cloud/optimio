@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
+import { useModuleVisibility } from "@/hooks/useModuleVisibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -53,6 +54,11 @@ function prevRange(start: Date, end: Date) {
 export default function Dashboard() {
   const { user } = useAuth();
   const { profile } = useTenant();
+  const { isModuleVisible } = useModuleVisibility();
+  // Widgets do dashboard respeitam a visibilidade de módulos do tenant.
+  const showProducts = isModuleVisible("products");
+  const showServices = isModuleVisible("services");
+  const showAppointments = isModuleVisible("appointments");
   const cycleStart = Number((profile as any)?.operational_cycle_start_day ?? 1);
 
   const [range, setRange] = useState<RangeKey>("30d");
@@ -78,11 +84,17 @@ export default function Dashboard() {
     const [fin, finPrev, appts, clients, al, db, ls, qn] = await Promise.all([
       supabase.from("financial").select("net_amount,gross_amount,type,transaction_date,origin,client_id,items").gte("transaction_date", startIso).lte("transaction_date", endIso),
       supabase.from("financial").select("net_amount,gross_amount,type,origin").gte("transaction_date", iso(prev.start)).lte("transaction_date", iso(prev.end)),
-      supabase.from("appointments").select("service_id,amount,status").gte("appointment_date", startIso).lte("appointment_date", endIso).is("deleted_at", null).neq("status", "cancelled"),
+      // Agenda/serviços só quando o módulo está visível.
+      showAppointments
+        ? supabase.from("appointments").select("service_id,amount,status").gte("appointment_date", startIso).lte("appointment_date", endIso).is("deleted_at", null).neq("status", "cancelled")
+        : Promise.resolve({ data: [] }),
       supabase.from("clients").select("id,created_at").is("deleted_at", null),
       supabase.from("alerts").select("id,title,severity,status").eq("status", "open").order("created_at", { ascending: false }).limit(6),
       supabase.from("debts").select("id,total_amount,client_id,status,due_date").eq("status", "open").order("due_date", { ascending: true }).limit(6),
-      supabase.from("products").select("id,name,stock,min_stock").is("deleted_at", null).eq("status", "active"),
+      // Estoque baixo só quando o módulo de produtos está visível.
+      showProducts
+        ? supabase.from("products").select("id,name,stock,min_stock").is("deleted_at", null).eq("status", "active")
+        : Promise.resolve({ data: [] }),
       supabase.from("quick_notes").select("*").eq("resolved", false).order("created_at", { ascending: false }).limit(8),
     ]);
 
@@ -179,7 +191,8 @@ export default function Dashboard() {
     setNotes(qn.data ?? []);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, range, custom.from, custom.to, cycleStart]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [user, range, custom.from, custom.to, cycleStart, showProducts, showServices, showAppointments]);
 
   const addNote = async () => {
     if (!noteInput.trim() || !user) return;
@@ -349,14 +362,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Top produtos / Top serviços */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopList title="Top produtos" icon={Package} items={topProducts} empty="Sem vendas de produtos no período." />
-        <TopList title="Top serviços" icon={Percent} items={topServices} empty="Sem atendimentos no período." />
-      </div>
+      {/* Top produtos / Top serviços — só os módulos visíveis */}
+      {(showProducts || showServices) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {showProducts && <TopList title="Top produtos" icon={Package} items={topProducts} empty="Sem vendas de produtos no período." />}
+          {showServices && <TopList title="Top serviços" icon={Percent} items={topServices} empty="Sem atendimentos no período." />}
+        </div>
+      )}
 
       {/* Second row: low stock + notes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {showProducts && (
         <div className="premium-card p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -386,8 +402,9 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+        )}
 
-        <div className="premium-card premium-feature p-6">
+        <div className={`premium-card premium-feature p-6 ${showProducts ? "" : "lg:col-span-3"}`}>
           <div className="flex items-center gap-2 mb-4">
             <StickyNote className="h-4 w-4 text-primary" />
             <div className="text-sm font-semibold">Anotações rápidas</div>

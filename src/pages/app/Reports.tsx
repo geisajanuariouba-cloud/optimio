@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useModuleVisibility } from "@/hooks/useModuleVisibility";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,8 +46,23 @@ function downloadCSV(filename: string, csv: string) {
   URL.revokeObjectURL(url);
 }
 
+// Cada tipo de relatório pertence a um módulo; só aparece se o módulo estiver visível.
+const KIND_MODULE: Record<ReportKind, string> = {
+  sales: "financial",
+  financial: "financial",
+  expenses: "financial",
+  stock: "products",
+  products: "products",
+  clients: "clients",
+};
+
 export default function Reports() {
   const { user } = useAuth();
+  const { isModuleVisible } = useModuleVisibility();
+  const availableKinds = useMemo(
+    () => (Object.keys(KIND_LABEL) as ReportKind[]).filter((k) => isModuleVisible(KIND_MODULE[k])),
+    [isModuleVisible]
+  );
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
@@ -105,6 +121,11 @@ export default function Reports() {
     }
   };
 
+  // Se o tipo atual deixar de estar disponível (módulo desativado), volta para o primeiro válido.
+  useEffect(() => {
+    if (availableKinds.length && !availableKinds.includes(kind)) setKind(availableKinds[0]);
+  }, [availableKinds, kind]);
+
   useEffect(() => { if (user) run(); /* eslint-disable-next-line */ }, [user, kind]);
 
   const totals = useMemo(() => {
@@ -137,7 +158,7 @@ export default function Reports() {
             <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {(Object.keys(KIND_LABEL) as ReportKind[]).map(k => (
+                {availableKinds.map(k => (
                   <SelectItem key={k} value={k}>{KIND_LABEL[k]}</SelectItem>
                 ))}
               </SelectContent>
