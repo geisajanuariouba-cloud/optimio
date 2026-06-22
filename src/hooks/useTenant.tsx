@@ -127,24 +127,32 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     [profile?.enabled_modules, niche]
   );
 
-  const can = (perm: string) => {
+  const can = useCallback((perm: string) => {
     if (adminMaster) return true;
     if (isOwner) return true;
     if (role === "admin_master") return true;
     return permissions[perm] === true;
-  };
+  }, [adminMaster, isOwner, role, permissions]);
 
-  const value: Ctx = {
+  const hasModule = useCallback(
+    (m: string) => adminMaster || isUnlimited || enabled.includes(m),
+    [adminMaster, isUnlimited, enabled]
+  );
+
+  const t = useCallback(
+    (k: string) => profile?.terms?.[k] ?? niche.terms[k] ?? k,
+    [profile?.terms, niche]
+  );
+
+  const value = useMemo<Ctx>(() => ({
     profile, loading,
     isAdmin: isAdmin || adminMaster,
     isSuperAdmin: isAdmin,
     enabledModules: enabled,
     tenantOwnerId, isOwner, role, permissions, can,
-    niche,
-    hasModule: (m) => adminMaster || isUnlimited || enabled.includes(m),
-    t: (k) => profile?.terms?.[k] ?? niche.terms[k] ?? k,
-    refresh,
-  };
+    niche, hasModule, t, refresh,
+  }), [profile, loading, isAdmin, adminMaster, enabled, tenantOwnerId, isOwner, role, permissions, can, niche, hasModule, t, refresh]);
+
   return <C.Provider value={value}>{children}</C.Provider>;
 };
 

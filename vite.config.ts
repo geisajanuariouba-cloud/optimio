@@ -19,4 +19,20 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Isola bibliotecas-folha pesadas em chunks próprios (melhor cache, bundle inicial menor).
+        // NÃO separa o React core para evitar problemas de ordem de runtime.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("recharts") || id.includes("/d3-") || id.includes("victory-vendor")) return "vendor-charts";
+          if (id.includes("@supabase")) return "vendor-supabase";
+          if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("leaflet")) return "vendor-maps";
+          if (id.includes("pdf-lib")) return "vendor-pdf";
+        },
+      },
+    },
+  },
 }));
