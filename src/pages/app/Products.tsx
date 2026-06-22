@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { friendlyError } from "@/lib/errors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenant } from "@/hooks/useTenant";
+import { isLowStock as computeLowStock } from "@/lib/stock";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,11 +37,6 @@ type Product = {
   image_review_required?: boolean | null;
 };
 
-const isLowStock = (p: Product) => {
-  if (p.min_stock === 0 && p.stock === 0) return false;
-  return p.stock <= p.min_stock;
-};
-
 const emptyForm = {
   name: "", codname: "", code: "", category: "", description: "",
   stock: 0, min_stock: 5, sale_price: 0, cost: 0,
@@ -53,6 +50,9 @@ type VarRow = { id: string; product_id: string; name: string; codname: string|nu
 
 export default function Products() {
   const { user } = useAuth();
+  const { profile } = useTenant();
+  const alertOnExact = profile?.alert_on_min_stock_exact ?? true;
+  const isLowStock = (p: Product) => computeLowStock(p.stock, p.min_stock, alertOnExact);
   const [list, setList] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [allVariations, setAllVariations] = useState<VarRow[]>([]);

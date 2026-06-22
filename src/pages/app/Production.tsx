@@ -18,7 +18,14 @@ type RM = {
 };
 type Product = { id: string; name: string; stock: number | null };
 type Recipe = { id: string; product_id: string; raw_material_id: string; quantity: number; yield_quantity?: number };
-type Order = { id: string; product_id: string; quantity: number; status: string; estimated_cost: number; actual_cost: number; produced_at: string | null; created_at: string; assignee_user_id?: string | null; due_date?: string | null; notes?: string | null; checklist?: { text: string; done: boolean }[] };
+type Order = { id: string; product_id: string; quantity: number; status: string; estimated_cost: number; actual_cost: number; produced_at: string | null; created_at: string; assignee_user_id?: string | null; due_date?: string | null; notes?: string | null; department?: string | null; priority?: string | null; checklist?: { text: string; done: boolean }[] };
+
+const PRIORITIES: { value: string; label: string; cls: string }[] = [
+  { value: "low", label: "Baixa", cls: "bg-slate-500/15 text-slate-600" },
+  { value: "medium", label: "Média", cls: "bg-blue-500/15 text-blue-600" },
+  { value: "high", label: "Alta", cls: "bg-amber-500/15 text-amber-700" },
+  { value: "urgent", label: "Urgente", cls: "bg-rose-500/15 text-rose-600" },
+];
 type Member = { member_user_id: string; email: string; role: string };
 
 export default function Production() {
@@ -41,7 +48,7 @@ export default function Production() {
   const [recYield, setRecYield] = useState<number>(1);
   const [recItems, setRecItems] = useState<{ raw_material_id: string; quantity: number }[]>([]);
   const [ordOpen, setOrdOpen] = useState(false);
-  const [ordForm, setOrdForm] = useState<{ product_id?: string; quantity: number; assignee_user_id?: string; due_date?: string; notes?: string; checklist: { text: string; done: boolean }[] }>({ quantity: 1, checklist: [] });
+  const [ordForm, setOrdForm] = useState<{ product_id?: string; quantity: number; assignee_user_id?: string; due_date?: string; notes?: string; department?: string; priority: string; checklist: { text: string; done: boolean }[] }>({ quantity: 1, priority: "medium", checklist: [] });
   const [newChecklistItem, setNewChecklistItem] = useState("");
 
   const load = async () => {
@@ -163,12 +170,14 @@ export default function Production() {
       assignee_user_id: ordForm.assignee_user_id || null,
       due_date: ordForm.due_date || null,
       notes: ordForm.notes || null,
+      department: ordForm.department || null,
+      priority: ordForm.priority || "medium",
       checklist: ordForm.checklist ?? [],
     });
     if (error) return toast.error(error.message);
     toast.success("Ordem criada");
     setOrdOpen(false);
-    setOrdForm({ quantity: 1, checklist: [] });
+    setOrdForm({ quantity: 1, priority: "medium", checklist: [] });
     setNewChecklistItem("");
     load();
   };
@@ -391,6 +400,16 @@ export default function Production() {
                     <div><Label>Lotes</Label><Input type="number" min={1} value={ordForm.quantity} onChange={e => setOrdForm({ ...ordForm, quantity: Number(e.target.value) })} /></div>
                     <div><Label>Prazo</Label><Input type="date" value={ordForm.due_date ?? ""} onChange={e => setOrdForm({ ...ordForm, due_date: e.target.value })} /></div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Prioridade</Label>
+                      <Select value={ordForm.priority} onValueChange={v => setOrdForm({ ...ordForm, priority: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{PRIORITIES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label>Departamento</Label><Input value={ordForm.department ?? ""} onChange={e => setOrdForm({ ...ordForm, department: e.target.value })} placeholder="Ex.: Costura, Montagem" /></div>
+                  </div>
                   <div>
                     <Label>Responsável</Label>
                     <Select value={ordForm.assignee_user_id ?? "none"} onValueChange={v => setOrdForm({ ...ordForm, assignee_user_id: v === "none" ? undefined : v })}>
@@ -461,7 +480,14 @@ export default function Production() {
                     return (
                       <tr key={o.id} className="border-t align-top">
                         <td className="p-3 font-medium">
-                          {productById[o.product_id]?.name || "—"}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {productById[o.product_id]?.name || "—"}
+                            {(() => {
+                              const pr = PRIORITIES.find(x => x.value === (o.priority ?? "medium"));
+                              return pr ? <Badge className={pr.cls}>{pr.label}</Badge> : null;
+                            })()}
+                          </div>
+                          {o.department && <div className="text-xs text-muted-foreground mt-0.5">Depto: {o.department}</div>}
                           {o.notes && <div className="text-xs text-muted-foreground mt-0.5">{o.notes}</div>}
                         </td>
                         <td className="p-3 text-right">{o.quantity}</td>

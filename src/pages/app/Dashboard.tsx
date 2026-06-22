@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { useModuleVisibility } from "@/hooks/useModuleVisibility";
+import { isLowStock } from "@/lib/stock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -143,7 +144,7 @@ export default function Dashboard() {
       cur.qty += 1; cur.total += Number(a.amount || 0);
       svcAgg.set(a.service_id, cur);
     }
-    let svcNames: Record<string, string> = {};
+    const svcNames: Record<string, string> = {};
     if (svcAgg.size > 0) {
       const { data: svs } = await supabase.from("services").select("id,name").in("id", Array.from(svcAgg.keys()));
       (svs ?? []).forEach((s: any) => { svcNames[s.id] = s.name; });
@@ -187,7 +188,8 @@ export default function Dashboard() {
     setTopServices(topSv);
     setAlerts((al.data ?? []) as any);
     setDebts(db.data ?? []);
-    setLowStock((ls.data ?? []).filter((p: any) => !(p.min_stock === 0 && p.stock === 0) && p.stock <= p.min_stock).slice(0, 6));
+    const alertOnExact = (profile as any)?.alert_on_min_stock_exact ?? true;
+    setLowStock((ls.data ?? []).filter((p: any) => isLowStock(p.stock, p.min_stock, alertOnExact)).slice(0, 6));
     setNotes(qn.data ?? []);
   };
 

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenant } from "@/hooks/useTenant";
+import { isLowStock } from "@/lib/stock";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,8 @@ const DAYS_SALES_WINDOW = 30;
 
 export default function Stock() {
   const { user } = useAuth();
+  const { profile } = useTenant();
+  const alertOnExact = profile?.alert_on_min_stock_exact ?? true;
   const [products, setProducts] = useState<Product[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [salesTxs, setSalesTxs] = useState<FinTx[]>([]);
@@ -76,7 +80,7 @@ export default function Stock() {
     return m;
   }, [movements]);
 
-  const lowStock = useMemo(() => products.filter(p => !(p.min_stock === 0 && p.stock === 0) && p.stock <= p.min_stock), [products]);
+  const lowStock = useMemo(() => products.filter(p => isLowStock(p.stock, p.min_stock, alertOnExact)), [products, alertOnExact]);
   const outOfStock = useMemo(() => products.filter(p => p.stock <= 0), [products]);
   const totalValue = products.reduce((a, p) => a + (Number(p.cost) * Number(p.stock)), 0);
 

@@ -22,6 +22,7 @@ type Profile = {
   dashboard_widgets?: Record<string, boolean>;
   is_admin_master?: boolean;
   operational_cycle_start_day?: number;
+  alert_on_min_stock_exact?: boolean;
 };
 
 
