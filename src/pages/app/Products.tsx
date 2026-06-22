@@ -132,6 +132,29 @@ export default function Products() {
 
   const save = async () => {
     if (!user || !form.name.trim()) return toast.error("Nome obrigatório");
+
+    // Regra: jamais deixar custo/preço zerado para produtos ativos.
+    const isActive = (form.status ?? "active") === "active";
+    if (isActive && !form.has_variations && Number(form.sale_price) <= 0) {
+      setTab("preco");
+      return toast.error("Preço de venda não pode ser zero. Informe um valor.");
+    }
+    if (isActive && form.has_variations) {
+      // Variação que herda preço usa o preço base; se o base for 0, fica zerada.
+      const zeroed = variations.find((v) => {
+        const eff = (v.inherit_price ?? true) ? Number(form.sale_price) : Number(v.sale_price ?? 0);
+        return eff <= 0;
+      });
+      if (zeroed) {
+        setTab(((zeroed.inherit_price ?? true)) ? "preco" : "variacoes");
+        return toast.error(
+          (zeroed.inherit_price ?? true)
+            ? "O preço base está zerado e há variações que o herdam. Defina o preço base."
+            : `A variação "${zeroed.name || "sem nome"}" está com preço zerado.`
+        );
+      }
+    }
+
     const codname = form.codname?.trim() || generateCodname(form.name, undefined, undefined, form.category);
     const payload: any = {
       ...form,
@@ -187,9 +210,13 @@ export default function Products() {
           cost: effCost, sale_price: effPrice, stock: v.stock ?? 0, min_stock: v.min_stock ?? 0,
           inherit_cost: inheritCost, inherit_price: inheritPrice,
           image_url: v.image_url || null,
-          width: numOrNull(v.width), height: numOrNull(v.height), depth: numOrNull(v.depth),
-          length_cm: numOrNull(v.length_cm), weight: numOrNull(v.weight),
-          measure_unit: v.measure_unit || "cm",
+          // Medidas herdam do produto pai quando a variação não tem valor próprio.
+          width: numOrNull(v.width) ?? numOrNull(form.width),
+          height: numOrNull(v.height) ?? numOrNull(form.height),
+          depth: numOrNull(v.depth) ?? numOrNull(form.depth),
+          length_cm: numOrNull(v.length_cm) ?? numOrNull(form.length_cm),
+          weight: numOrNull(v.weight) ?? numOrNull(form.weight),
+          measure_unit: v.measure_unit || form.measure_unit || "cm",
           attributes: { color: v.color, fabric: v.fabric, material: v.material, size: v.size, model: v.model, finish: v.finish },
         };
         if (v.id) {
@@ -536,16 +563,16 @@ export default function Products() {
             </TabsContent>
 
             <TabsContent value="preco" className="space-y-4 pt-4">
-              {form.has_variations && <p className="text-xs text-muted-foreground bg-violet-500/5 border border-violet-500/20 rounded-xl p-2">Este produto usa variações. Preço e estoque são gerenciados por variação.</p>}
+              {form.has_variations && <p className="text-xs text-muted-foreground bg-violet-500/5 border border-violet-500/20 rounded-xl p-2">Este produto usa variações. O <strong>estoque</strong> é gerenciado por variação, mas o <strong>custo e preço abaixo são a base herdada</strong> pelas variações que não têm valor próprio.</p>}
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Estoque atual</Label><Input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: +e.target.value })} disabled={form.has_variations} /></div>
                 <div><Label>Estoque mínimo</Label><Input type="number" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: +e.target.value })} disabled={form.has_variations} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Preço de venda (R$)</Label><Input type="number" step="0.01" value={form.sale_price} onChange={(e) => setForm({ ...form, sale_price: +e.target.value })} disabled={form.has_variations} /></div>
-                <div><Label>Custo (R$)</Label><Input type="number" step="0.01" value={form.cost} onChange={(e) => setForm({ ...form, cost: +e.target.value })} disabled={form.has_variations} /></div>
+                <div><Label>{form.has_variations ? "Preço base (R$)" : "Preço de venda (R$)"}</Label><Input type="number" step="0.01" value={form.sale_price} onChange={(e) => setForm({ ...form, sale_price: +e.target.value })} /></div>
+                <div><Label>{form.has_variations ? "Custo base (R$)" : "Custo (R$)"}</Label><Input type="number" step="0.01" value={form.cost} onChange={(e) => setForm({ ...form, cost: +e.target.value })} /></div>
               </div>
-              <p className="text-xs text-muted-foreground">💡 Estoque mínimo = 0 e estoque atual = 0 não dispara alarme.</p>
+              <p className="text-xs text-muted-foreground">💡 Estoque mínimo = 0 e estoque atual = 0 não dispara alarme. {form.has_variations && "Alterar o custo/preço base atualiza automaticamente as variações que herdam."}</p>
             </TabsContent>
 
             <TabsContent value="medidas" className="space-y-4 pt-4">

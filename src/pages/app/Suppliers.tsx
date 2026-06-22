@@ -14,20 +14,23 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { Factory, Pencil, Trash2, ExternalLink, Phone, MapPin } from "lucide-react";
 import { AddressFields, fullAddress } from "@/components/app/AddressFields";
 
-const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", cost_fee_percent: 10, default_margin_percent: 100, default_markup_percent: 20, cost_adjust_percent: 0, ipi_percent: 0, avg_delivery_days: 15, auto_out_of_line: false, address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
+const empty = { name: "", cnpj: "", contact_name: "", phone: "", email: "", catalog_url: "", notes: "", cost_fee_percent: 10, default_margin_percent: 100, default_markup_percent: 20, cost_discount_percent: 0, cost_surcharge_percent: 0, cost_adjust_percent: 0, ipi_percent: 0, avg_delivery_days: 15, auto_out_of_line: false, address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
 
-// Calcula o breakdown completo do motor de precificação (espelha engine_compute_breakdown no banco)
+// Calcula o breakdown completo do motor de precificação (espelha engine_compute_breakdown no banco):
+// Custo Original -> Desconto -> Acréscimo -> IPI -> Taxa de custo -> Custo Final -> Margem -> Taxa extra -> Preço
 function computeBreakdown(cost: number, f: any) {
-  const ca = Number(f.cost_adjust_percent || 0);
+  const disc = Number(f.cost_discount_percent || 0);
+  const surch = Number(f.cost_surcharge_percent || 0);
   const ipi = Number(f.ipi_percent || 0);
   const cf = Number(f.cost_fee_percent || 0);
   const mg = Number(f.default_margin_percent || 0);
   const mk = Number(f.default_markup_percent || 0);
-  const afterAdjust = cost * (1 + ca / 100);
-  const afterIpi = afterAdjust * (1 + ipi / 100);
+  const afterDisc = cost * (1 - disc / 100);
+  const afterSurch = afterDisc * (1 + surch / 100);
+  const afterIpi = afterSurch * (1 + ipi / 100);
   const finalCost = afterIpi * (1 + cf / 100);
   const sale = +(finalCost * (1 + mg / 100) * (1 + mk / 100)).toFixed(2);
-  return { ca, ipi, cf, mg, mk, afterAdjust, afterIpi, finalCost, sale };
+  return { disc, surch, ipi, cf, mg, mk, afterDisc, afterSurch, afterIpi, finalCost, sale };
 }
 
 export default function Suppliers() {
@@ -149,17 +152,19 @@ export default function Suppliers() {
             <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Motor de precificação</h4>
               <div className="text-xs text-muted-foreground leading-relaxed bg-background/60 p-3 rounded-xl space-y-1">
-                <div><strong>Ajuste de custo</strong> = desconto (-) ou acréscimo (+) sobre o preço de tabela do fornecedor.</div>
-                <div><strong>IPI</strong> = imposto aplicado depois do ajuste (opcional).</div>
+                <div><strong>Desconto de custo</strong> = abatimento sobre o preço de tabela do fornecedor.</div>
+                <div><strong>Acréscimo de custo</strong> = aumento sobre o preço de tabela (aplicado após o desconto).</div>
+                <div><strong>IPI</strong> = imposto aplicado depois do desconto/acréscimo (opcional).</div>
                 <div><strong>Taxa de custo</strong> = frete, ICMS, outros impostos sobre o custo final.</div>
                 <div><strong>Margem</strong> = % de lucro desejada em cima do custo.</div>
                 <div><strong>Taxa extra</strong> = % adicional sobre a venda (cartão, comissão, etc.).</div>
                 <div className="pt-1 border-t border-border/50 mt-1.5">
-                  Fluxo: <strong>Custo → ajuste → IPI → taxa de custo → margem → taxa extra → Preço sugerido.</strong>
+                  Fluxo: <strong>Custo → desconto → acréscimo → IPI → taxa de custo → margem → taxa extra → Preço sugerido.</strong>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label className="text-xs">Ajuste custo (%)</Label><Input type="number" step="0.1" value={form.cost_adjust_percent ?? 0} onChange={(e) => setForm({ ...form, cost_adjust_percent: +e.target.value })} placeholder="-10 / +5" /></div>
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label className="text-xs">Desconto custo (%)</Label><Input type="number" step="0.1" value={form.cost_discount_percent ?? 0} onChange={(e) => setForm({ ...form, cost_discount_percent: +e.target.value })} placeholder="10" /></div>
+                <div><Label className="text-xs">Acréscimo custo (%)</Label><Input type="number" step="0.1" value={form.cost_surcharge_percent ?? 0} onChange={(e) => setForm({ ...form, cost_surcharge_percent: +e.target.value })} placeholder="5" /></div>
                 <div><Label className="text-xs">IPI (%)</Label><Input type="number" step="0.1" value={form.ipi_percent ?? 0} onChange={(e) => setForm({ ...form, ipi_percent: +e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -174,7 +179,8 @@ export default function Suppliers() {
                   <div className="text-[11px] bg-background/70 rounded-xl p-3 space-y-0.5 border border-border/40">
                     <div className="font-semibold text-xs text-foreground mb-1">Simulação com custo R$ 100,00</div>
                     <div className="flex justify-between"><span>Custo original</span><span>R$ 100,00</span></div>
-                    <div className="flex justify-between text-muted-foreground"><span>Ajuste fornecedor ({b.ca >= 0 ? "+" : ""}{b.ca}%)</span><span>R$ {b.afterAdjust.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-muted-foreground"><span>− Desconto ({b.disc}%)</span><span>R$ {b.afterDisc.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-muted-foreground"><span>+ Acréscimo ({b.surch}%)</span><span>R$ {b.afterSurch.toFixed(2)}</span></div>
                     <div className="flex justify-between text-muted-foreground"><span>+ IPI ({b.ipi}%)</span><span>R$ {b.afterIpi.toFixed(2)}</span></div>
                     <div className="flex justify-between text-muted-foreground"><span>+ Taxa custo ({b.cf}%)</span><span>R$ {b.finalCost.toFixed(2)}</span></div>
                     <div className="flex justify-between border-t border-border/40 pt-1 mt-1"><span>Custo final</span><strong>R$ {b.finalCost.toFixed(2)}</strong></div>

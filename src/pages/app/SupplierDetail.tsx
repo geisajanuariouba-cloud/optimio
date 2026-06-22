@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Send, Upload, Phone, MapPin, MessageSquare, Boxes, Loader2, FileText, DollarSign, Eye, Download, Trash2, Search, X, AlertTriangle } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Send, Phone, MapPin, MessageSquare, Loader2, FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
 import { MetricsRow } from "@/components/app/PageHeader";
 
 
@@ -20,7 +19,6 @@ export default function SupplierDetail() {
   const { user } = useAuth();
   const nav = useNavigate();
   const [supplier, setSupplier] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [catalogs, setCatalogs] = useState<any[]>([]);
   const [cmd, setCmd] = useState("");
@@ -29,9 +27,6 @@ export default function SupplierDetail() {
   const pricingRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState<null | "catalog" | "pricing">(null);
   const [preview, setPreview] = useState<{ url: string; mime: string; filename: string } | null>(null);
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkBusy, setBulkBusy] = useState(false);
 
 
 
@@ -40,21 +35,12 @@ export default function SupplierDetail() {
     if (!id || !user) return;
     // Destrava catálogos parados há mais de 3min sem heartbeat
     await supabase.rpc("recover_stuck_catalogs", { _user_id: user.id });
-    const [s, p, h, c] = await Promise.all([
+    const [s, h, c] = await Promise.all([
       supabase.from("suppliers").select("*").eq("id", id).maybeSingle(),
-      // Produtos vinculados: vivos, aprovados (ou legados sem review_status). Variações ficam de fora.
-      supabase.from("products")
-        .select("id,name,code,sku,model,finish,category,stock,sale_price,cost,status,out_of_line,review_status,image_url")
-        .eq("supplier_id", id)
-        .is("deleted_at", null)
-        .or("review_status.is.null,review_status.eq.approved")
-        .order("name")
-        .limit(10000),
       supabase.from("supplier_commands").select("*").eq("supplier_id", id).order("created_at", { ascending: false }).limit(50),
       supabase.from("supplier_catalogs").select("*").eq("supplier_id", id).eq("internal_only", false).order("created_at", { ascending: false }),
     ]);
-    setSupplier(s.data); setProducts(p.data ?? []); setHistory(h.data ?? []); setCatalogs(c.data ?? []);
-    setSelected(new Set()); // limpa seleção ao recarregar
+    setSupplier(s.data); setHistory(h.data ?? []); setCatalogs(c.data ?? []);
   };
   useEffect(() => { if (user) load(); }, [user, id]);
 
@@ -284,59 +270,8 @@ export default function SupplierDetail() {
 
   if (!supplier) return <div className="p-6 text-muted-foreground">Carregando…</div>;
 
-  const isOutOfLine = (p: any) => p.out_of_line === true || p.status === "discontinued";
-  const active = products.filter(p => !isOutOfLine(p)).length;
-  const disc = products.filter(p => isOutOfLine(p)).length;
-
-  // Filtro de busca (nome, código, sku, modelo, acabamento, categoria)
-  const q = search.trim().toLowerCase();
-  const filteredProducts = q
-    ? products.filter(p => [p.name, p.code, p.sku, p.model, p.finish, p.category]
-        .some(v => String(v ?? "").toLowerCase().includes(q)))
-    : products;
-
-  const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => selected.has(p.id));
-  const toggleAllFiltered = () => {
-    const next = new Set(selected);
-    if (allFilteredSelected) filteredProducts.forEach(p => next.delete(p.id));
-    else filteredProducts.forEach(p => next.add(p.id));
-    setSelected(next);
-  };
-  const toggleOne = (pid: string) => {
-    const next = new Set(selected);
-    next.has(pid) ? next.delete(pid) : next.add(pid);
-    setSelected(next);
-  };
-
-  const bulkUpdate = async (patch: Record<string, any>, label: string) => {
-    if (selected.size === 0) return;
-    setBulkBusy(true);
-    try {
-      const ids = Array.from(selected);
-      const { error } = await supabase.from("products").update(patch as any).in("id", ids);
-      if (error) throw error;
-      toast.success(`${ids.length} produto(s): ${label}`);
-      setSelected(new Set());
-      await load();
-    } catch (e: any) {
-      toast.error(friendlyError(e, "Falha na ação em lote: "));
-    } finally { setBulkBusy(false); }
-  };
-
-  const bulkUnlink = () => {
-    if (!confirm(`Remover vínculo de ${selected.size} produto(s) com este fornecedor?`)) return;
-    return bulkUpdate({ supplier_id: null }, "vínculo removido");
-  };
-  const bulkOutOfLine = () => {
-    if (!confirm(`Marcar ${selected.size} produto(s) como fora de linha?`)) return;
-    return bulkUpdate({ out_of_line: true, status: "discontinued" }, "marcado(s) como fora de linha");
-  };
-  const bulkActivate = () => bulkUpdate({ out_of_line: false, status: "active" }, "reativado(s)");
-  const bulkTrash = () => {
-    if (!confirm(`Mover ${selected.size} produto(s) para a lixeira? Esta ação pode ser desfeita.`)) return;
-    return bulkUpdate({ deleted_at: new Date().toISOString() }, "movido(s) para lixeira");
-  };
-
+  const catalogCount = catalogs.filter((c: any) => (c.kind ?? "catalog") === "catalog").length;
+  const pricingCount = catalogs.filter((c: any) => c.kind === "pricing").length;
 
   return (
     <div className="space-y-5">
@@ -352,8 +287,8 @@ export default function SupplierDetail() {
       </Card>
 
       <MetricsRow items={[
-        { label: "Produtos ativos", value: String(active), tone: "primary" },
-        { label: "Fora de linha", value: String(disc), tone: "warning" },
+        { label: "Catálogos", value: String(catalogCount), tone: "primary" },
+        { label: "Tabelas de custo", value: String(pricingCount), tone: "primary" },
         { label: "Comandos enviados", value: String(history.length), tone: "primary" },
         { label: "Status", value: supplier.status, tone: "success" },
       ]} />
@@ -361,7 +296,6 @@ export default function SupplierDetail() {
       <Tabs defaultValue="chat">
         <TabsList className="bg-secondary/40">
           <TabsTrigger value="chat"><MessageSquare className="h-4 w-4 mr-1" />Chat & Importação</TabsTrigger>
-          <TabsTrigger value="products"><Boxes className="h-4 w-4 mr-1" />Produtos ({products.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="chat" className="space-y-4">
@@ -520,83 +454,6 @@ export default function SupplierDetail() {
                 </div>
               ))}
             </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="products" className="space-y-3">
-          <Card className="p-3 rounded-3xl border-0 shadow-sm space-y-3">
-            {/* Busca */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar produto por nome, código, SKU, modelo, acabamento ou categoria"
-                className="pl-9 pr-9 rounded-2xl"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Limpar">
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Barra de controle + seleção em massa */}
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/50 cursor-pointer select-none">
-                <Checkbox checked={allFilteredSelected} onCheckedChange={toggleAllFiltered} />
-                <span>Selecionar todos ({filteredProducts.length})</span>
-              </label>
-              <span className="text-muted-foreground">
-                {selected.size > 0 ? `${selected.size} selecionado(s)` : `${filteredProducts.length} de ${products.length} produto(s)`}
-              </span>
-              {selected.size > 0 && (
-                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} className="rounded-xl gap-1 ml-auto">
-                  <X className="h-3.5 w-3.5" />Limpar seleção
-                </Button>
-              )}
-            </div>
-
-            {selected.size > 0 && (
-              <div className="flex flex-wrap gap-2 p-2 rounded-2xl bg-primary/5 border border-primary/15">
-                <Button size="sm" variant="outline" disabled={bulkBusy} onClick={bulkActivate} className="rounded-xl">Marcar ativo</Button>
-                <Button size="sm" variant="outline" disabled={bulkBusy} onClick={bulkOutOfLine} className="rounded-xl gap-1 text-amber-700">
-                  <AlertTriangle className="h-3.5 w-3.5" />Fora de linha
-                </Button>
-                <Button size="sm" variant="outline" disabled={bulkBusy} onClick={bulkUnlink} className="rounded-xl">Remover vínculo</Button>
-                <Button size="sm" variant="outline" disabled={bulkBusy} onClick={bulkTrash} className="rounded-xl gap-1 text-rose-600">
-                  <Trash2 className="h-3.5 w-3.5" />Lixeira
-                </Button>
-              </div>
-            )}
-          </Card>
-
-          <Card className="rounded-3xl border-0 shadow-sm divide-y divide-border">
-            {products.length === 0 && (
-              <div className="p-6 text-sm text-muted-foreground">Nenhum produto vinculado. Importe um catálogo ou edite produtos existentes.</div>
-            )}
-            {products.length > 0 && filteredProducts.length === 0 && (
-              <div className="p-6 text-sm text-muted-foreground">Nenhum produto encontrado para "{search}".</div>
-            )}
-            {filteredProducts.map(p => {
-              const outOfLine = isOutOfLine(p);
-              const checked = selected.has(p.id);
-              return (
-                <div key={p.id} className={`px-4 py-3 flex items-center gap-3 text-sm transition ${checked ? "bg-primary/5" : ""}`}>
-                  <Checkbox checked={checked} onCheckedChange={() => toggleOne(p.id)} />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {[p.code && `cód ${p.code}`, p.sku && `SKU ${p.sku}`, p.category, `estoque ${p.stock ?? 0}`, `R$ ${Number(p.sale_price ?? 0).toFixed(2)}`]
-                        .filter(Boolean).join(" · ")}
-                    </div>
-                  </div>
-                  {outOfLine
-                    ? <Badge className="bg-amber-500/15 text-amber-600">fora de linha</Badge>
-                    : <Badge className="bg-emerald-500/15 text-emerald-600">ativo</Badge>}
-                </div>
-              );
-            })}
           </Card>
         </TabsContent>
 
