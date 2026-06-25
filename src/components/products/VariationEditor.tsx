@@ -81,7 +81,7 @@ export function VariationEditor({
                 {v.size && <span className="text-xs text-muted-foreground">• {v.size}</span>}
                 {v.model && <span className="text-xs bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-full">modelo: {v.model}</span>}
                 {v.finish && <span className="text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full">acab.: {v.finish}</span>}
-                <span className="ml-auto text-xs text-muted-foreground">R$ {Number(v.sale_price ?? 0).toFixed(2)} • estoque {v.stock ?? 0}</span>
+                <span className="ml-auto text-xs text-muted-foreground">R$ {Number((v.inherit_price ?? true) ? parentPrice : (v.sale_price ?? 0)).toFixed(2)} • estoque {v.stock ?? 0}</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="pb-4 space-y-3">
@@ -115,7 +115,7 @@ export function VariationEditor({
                     Herdar do produto pai (R$ {Number(parentCost).toFixed(2)})
                   </label>
                 </div>
-                <Input type="number" step="0.01" disabled={v.inherit_cost ?? true} value={v.inherit_cost ? parentCost : (v.cost ?? 0)} onChange={(e) => update(i, { cost: +e.target.value, inherit_cost: false })} />
+                <Input type="number" step="0.01" disabled={v.inherit_cost ?? true} value={(v.inherit_cost ?? true) ? parentCost : (v.cost ?? 0)} onChange={(e) => update(i, { cost: +e.target.value, inherit_cost: false })} />
                 <div className="flex items-center justify-between text-xs pt-1">
                   <span className="font-medium">Preço</span>
                   <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground">
@@ -123,7 +123,7 @@ export function VariationEditor({
                     Herdar do produto pai (R$ {Number(parentPrice).toFixed(2)})
                   </label>
                 </div>
-                <Input type="number" step="0.01" disabled={v.inherit_price ?? true} value={v.inherit_price ? parentPrice : (v.sale_price ?? 0)} onChange={(e) => update(i, { sale_price: +e.target.value, inherit_price: false })} />
+                <Input type="number" step="0.01" disabled={v.inherit_price ?? true} value={(v.inherit_price ?? true) ? parentPrice : (v.sale_price ?? 0)} onChange={(e) => update(i, { sale_price: +e.target.value, inherit_price: false })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Estoque</Label><Input type="number" value={v.stock ?? 0} onChange={(e) => update(i, { stock: +e.target.value })} /></div>

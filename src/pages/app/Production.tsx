@@ -191,6 +191,14 @@ export default function Production() {
     load();
   };
 
+  const deleteOrder = async (id: string) => {
+    if (!confirm("Excluir esta ordem de produção?")) return;
+    const { error } = await supabase.from("production_orders" as any).delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Ordem excluída");
+    load();
+  };
+
   const executeOrder = async (id: string) => {
     const { data, error } = await supabase.rpc("execute_production_order" as any, { _order_id: id });
     if (error) return toast.error(error.message);
@@ -543,7 +551,10 @@ export default function Production() {
                         <td className="p-3 text-right">R$ {Number(o.estimated_cost).toFixed(2)}</td>
                         <td className="p-3 text-right">R$ {Number(o.actual_cost).toFixed(2)}</td>
                         <td className="p-3 text-right">
-                          {o.status !== "done" && <Button size="sm" onClick={() => executeOrder(o.id)}>Executar</Button>}
+                          <div className="flex gap-1 justify-end">
+                            {o.status !== "done" && <Button size="sm" onClick={() => executeOrder(o.id)}>Executar</Button>}
+                            {o.status !== "done" && <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => deleteOrder(o.id)}>Excluir</Button>}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -556,12 +567,20 @@ export default function Production() {
         </TabsContent>
 
         <TabsContent value="planning" className="space-y-4">
+          {/* Resumo visual */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card><CardContent className="py-3 text-center"><div className="text-xs text-muted-foreground mb-1">Produtos com receita</div><div className="text-2xl font-bold text-primary">{planning.length}</div></CardContent></Card>
+            <Card><CardContent className="py-3 text-center"><div className="text-xs text-muted-foreground mb-1">Sem receita</div><div className="text-2xl font-bold text-amber-500">{products.filter(p => !recipes.some(r => r.product_id === p.id)).length}</div></CardContent></Card>
+            <Card><CardContent className="py-3 text-center"><div className="text-xs text-muted-foreground mb-1">MP abaixo do mínimo</div><div className="text-2xl font-bold text-rose-500">{lowStock.length}</div></CardContent></Card>
+            <Card><CardContent className="py-3 text-center"><div className="text-xs text-muted-foreground mb-1">Custo total estimado</div><div className="text-lg font-bold">R$ {planning.reduce((a, p) => a + estimateCost(p.product.id, 1) / Math.max(0.0001, recipeYield(p.product.id)), 0).toFixed(2)}</div></CardContent></Card>
+          </div>
+
           <Card>
             <CardHeader><CardTitle className="text-base">Quanto posso produzir agora</CardTitle></CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-left">
-                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Itens na receita</th><th className="p-3 text-right">Lotes possíveis</th><th className="p-3 text-right">Unidades finais</th><th className="p-3 text-right">Custo / unidade</th><th className="p-3">Gargalo</th></tr>
+                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Lotes possíveis</th><th className="p-3 text-right">Unidades finais</th><th className="p-3 text-right">Custo/unidade</th><th className="p-3 text-right">Custo total</th><th className="p-3">Gargalo</th></tr>
                 </thead>
                 <tbody>
                   {planning.map(p => {
@@ -571,11 +590,13 @@ export default function Production() {
                     return (
                       <tr key={p.product.id} className="border-t">
                         <td className="p-3 font-medium">{p.product.name}</td>
-                        <td className="p-3 text-right">{p.recipeCount}</td>
-                        <td className="p-3 text-right">{p.max}</td>
+                        <td className="p-3 text-right">{p.max === 0 ? <Badge variant="destructive">0</Badge> : p.max}</td>
                         <td className="p-3 text-right">{units}</td>
                         <td className="p-3 text-right">R$ {costPerUnit.toFixed(2)}</td>
-                        <td className="p-3">{p.bottleneck || "—"}</td>
+                        <td className="p-3 text-right">R$ {(costPerUnit * units).toFixed(2)}</td>
+                        <td className="p-3">
+                          {p.bottleneck ? <span className="text-amber-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{p.bottleneck}</span> : "—"}
+                        </td>
                       </tr>
                     );
                   })}
@@ -584,6 +605,53 @@ export default function Production() {
               </table>
             </CardContent>
           </Card>
+
+          {/* Sugestão de compra de MP */}
+          {lowStock.length > 0 && (
+            <Card className="border-amber-500/30">
+              <CardHeader><CardTitle className="text-base text-amber-700 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Sugestão de compra — matérias-primas</CardTitle></CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-amber-500/10 text-left">
+                    <tr><th className="p-3">Matéria-prima</th><th className="p-3">Unidade</th><th className="p-3 text-right">Estoque</th><th className="p-3 text-right">Mínimo</th><th className="p-3 text-right">Comprar</th><th className="p-3 text-right">Custo est.</th></tr>
+                  </thead>
+                  <tbody>
+                    {lowStock.map(m => {
+                      const buy = Math.max(0, m.min_stock * 2 - m.stock);
+                      return (
+                        <tr key={m.id} className="border-t">
+                          <td className="p-3 font-medium">{m.name}</td>
+                          <td className="p-3">{m.unit}</td>
+                          <td className="p-3 text-right text-rose-600">{m.stock}</td>
+                          <td className="p-3 text-right">{m.min_stock}</td>
+                          <td className="p-3 text-right"><Badge variant="outline">{buy} {m.unit}</Badge></td>
+                          <td className="p-3 text-right">R$ {(buy * Number(m.average_cost || m.current_cost || 0)).toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Produtos sem receita */}
+          {(() => {
+            const noRecipe = products.filter(p => !recipes.some(r => r.product_id === p.id));
+            if (!noRecipe.length) return null;
+            return (
+              <Card>
+                <CardHeader><CardTitle className="text-base text-muted-foreground">Produtos sem receita técnica</CardTitle></CardHeader>
+                <CardContent className="p-0">
+                  <div className="flex flex-wrap gap-2 p-3">
+                    {noRecipe.map(p => (
+                      <button key={p.id} type="button" onClick={() => openRecipe(p.id)} className="text-xs px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition">{p.name}</button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </TabsContent>
       </Tabs>
     </div>

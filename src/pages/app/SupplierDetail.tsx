@@ -10,8 +10,23 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Send, Phone, MapPin, MessageSquare, Loader2, FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Send, Phone, MapPin, MessageSquare, Loader2, FileText, DollarSign, Eye, Download, Trash2, TrendingUp } from "lucide-react";
 import { MetricsRow } from "@/components/app/PageHeader";
+
+function computeBreakdown(cost: number, s: any) {
+  const disc = Number(s.cost_discount_percent || 0);
+  const surch = Number(s.cost_surcharge_percent || 0);
+  const ipi = Number(s.ipi_percent || 0);
+  const cf = Number(s.cost_fee_percent || 0);
+  const mg = Number(s.default_margin_percent || 0);
+  const mk = Number(s.default_markup_percent || 0);
+  const afterDisc = cost * (1 - disc / 100);
+  const afterSurch = afterDisc * (1 + surch / 100);
+  const afterIpi = afterSurch * (1 + ipi / 100);
+  const finalCost = afterIpi * (1 + cf / 100);
+  const sale = +(finalCost * (1 + mg / 100) * (1 + mk / 100)).toFixed(2);
+  return { disc, surch, ipi, cf, mg, mk, afterDisc, afterSurch, afterIpi, finalCost, sale };
+}
 
 
 export default function SupplierDetail() {
@@ -292,6 +307,48 @@ export default function SupplierDetail() {
         { label: "Comandos enviados", value: String(history.length), tone: "primary" },
         { label: "Status", value: supplier.status, tone: "success" },
       ]} />
+
+      {/* Motor de Precificação */}
+      {(supplier.cost_fee_percent || supplier.default_margin_percent || supplier.default_markup_percent || supplier.cost_discount_percent || supplier.cost_surcharge_percent || supplier.ipi_percent) ? (() => {
+        const b = computeBreakdown(100, supplier);
+        return (
+          <Card className="p-5 rounded-3xl border-0 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Motor de Precificação</span>
+              <span className="text-xs text-muted-foreground">(simulação com custo R$ 100,00)</span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Custo original</span><strong>R$ 100,00</strong></div>
+                {b.disc > 0 && <div className="flex justify-between text-emerald-600"><span>− Desconto custo ({b.disc}%)</span><span>R$ {b.afterDisc.toFixed(2)}</span></div>}
+                {b.surch > 0 && <div className="flex justify-between text-amber-600"><span>+ Acréscimo custo ({b.surch}%)</span><span>R$ {b.afterSurch.toFixed(2)}</span></div>}
+                {b.ipi > 0 && <div className="flex justify-between text-muted-foreground"><span>+ IPI ({b.ipi}%)</span><span>R$ {b.afterIpi.toFixed(2)}</span></div>}
+                {b.cf > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Taxa custo/frete ({b.cf}%)</span><span>R$ {b.finalCost.toFixed(2)}</span></div>}
+                <div className="flex justify-between border-t border-border/40 pt-1 mt-1"><span className="font-medium">Custo final</span><strong>R$ {b.finalCost.toFixed(2)}</strong></div>
+                <div className="flex justify-between text-muted-foreground"><span>× Margem {b.mg}%</span><span></span></div>
+                {b.mk > 0 && <div className="flex justify-between text-muted-foreground"><span>× Taxa extra {b.mk}%</span><span></span></div>}
+                <div className="flex justify-between text-primary font-bold text-base pt-1"><span>Preço sugerido</span><span>R$ {b.sale.toFixed(2)}</span></div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {[
+                  { label: "Desconto custo", value: `${supplier.cost_discount_percent ?? 0}%`, cls: "text-emerald-600" },
+                  { label: "Acréscimo custo", value: `${supplier.cost_surcharge_percent ?? 0}%`, cls: "text-amber-600" },
+                  { label: "IPI", value: `${supplier.ipi_percent ?? 0}%`, cls: "" },
+                  { label: "Taxa custo/frete", value: `${supplier.cost_fee_percent ?? 0}%`, cls: "" },
+                  { label: "Margem padrão", value: `${supplier.default_margin_percent ?? 0}%`, cls: "text-primary" },
+                  { label: "Taxa extra", value: `${supplier.default_markup_percent ?? 0}%`, cls: "" },
+                ].map(({ label, value, cls }) => (
+                  <div key={label} className="rounded-xl bg-secondary/40 p-2 text-center">
+                    <div className="text-muted-foreground">{label}</div>
+                    <div className={`font-bold text-sm ${cls}`}>{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        );
+      })() : null}
 
       <Tabs defaultValue="chat">
         <TabsList className="bg-secondary/40">

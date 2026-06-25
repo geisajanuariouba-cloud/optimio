@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 
 type Product = { id: string; name: string; stock: number | null; min_stock: number | null; cost: number | null; supplier_id: string | null };
 type Mov = { product_id: string; quantity: number; type: string; created_at: string };
-type Recipe = { product_id: string };
+type Recipe = { product_id: string; raw_material_id: string; quantity: number; yield_quantity?: number };
 type RM = { id: string; name: string; unit: string; stock: number; min_stock: number; average_cost: number; last_cost: number };
 
 export default function SmartPurchases() {
@@ -29,7 +29,7 @@ export default function SmartPurchases() {
     const [p, m, r, rm] = await Promise.all([
       supabase.from("products").select("id,name,stock,min_stock,cost,supplier_id").eq("user_id", tenantOwnerId).is("deleted_at", null).eq("status", "active"),
       supabase.from("stock_movements").select("product_id,quantity,type,created_at").eq("user_id", tenantOwnerId).gte("created_at", since),
-      productionOn ? supabase.from("product_recipes" as any).select("product_id").eq("user_id", tenantOwnerId) : Promise.resolve({ data: [] }),
+      productionOn ? supabase.from("product_recipes" as any).select("product_id,raw_material_id,quantity,yield_quantity").eq("user_id", tenantOwnerId) : Promise.resolve({ data: [] }),
       productionOn ? supabase.from("raw_materials" as any).select("id,name,unit,stock,min_stock,average_cost,last_cost").eq("user_id", tenantOwnerId).order("name") : Promise.resolve({ data: [] }),
     ]);
     setProducts((p.data as any) ?? []);
@@ -61,6 +61,29 @@ export default function SmartPurchases() {
   const resaleSuggestions = baseSuggestions.filter(s => !s.isManufactured);
   const produceSuggestions = baseSuggestions.filter(s => s.isManufactured);
   const lowMaterials = materials.filter(m => m.stock <= m.min_stock && (m.min_stock > 0 || m.stock <= 0));
+
+  // Calcula matérias-primas necessárias para atender as sugestões de produção
+  const rmNeeds = useMemo(() => {
+    const needs = new Map<string, { rm: RM; needed: number; short: number }>();
+    for (const s of produceSuggestions) {
+      const rs = recipes.filter(r => r.product_id === s.p.id);
+      const batchYield = Number(rs[0]?.yield_quantity ?? 1) || 1;
+      const batches = Math.ceil(s.buyQty / batchYield);
+      for (const r of rs) {
+        const rm = materials.find(m => m.id === r.raw_material_id);
+        if (!rm) continue;
+        const totalNeeded = Number(r.quantity) * batches;
+        const existing = needs.get(rm.id);
+        if (existing) existing.needed += totalNeeded;
+        else needs.set(rm.id, { rm, needed: totalNeeded, short: 0 });
+      }
+    }
+    return Array.from(needs.values()).map(n => ({
+      ...n,
+      short: Math.max(0, n.needed - n.rm.stock),
+      estCost: Math.max(0, n.needed - n.rm.stock) * Number(n.rm.average_cost || n.rm.last_cost || 0),
+    })).filter(n => n.short > 0);
+  }, [produceSuggestions, recipes, materials]);
 
   const totalResaleCost = resaleSuggestions.reduce((a, b) => a + b.totalCost, 0);
   const critical = resaleSuggestions.filter(s => Number.isFinite(s.daysLeft) && s.daysLeft < 7);
@@ -162,6 +185,30 @@ export default function SmartPurchases() {
                 </table>
               </CardContent>
             </Card>
+            {rmNeeds.length > 0 && (
+              <Card className="border-amber-500/30">
+                <CardHeader><CardTitle className="text-base text-amber-700 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Matérias-primas a comprar para produzir</CardTitle></CardHeader>
+                <CardContent className="p-0 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-amber-500/10 text-left">
+                      <tr><th className="p-3">Matéria-prima</th><th className="p-3">Unidade</th><th className="p-3 text-right">Em estoque</th><th className="p-3 text-right">Necessário</th><th className="p-3 text-right">Comprar</th><th className="p-3 text-right">Custo est.</th></tr>
+                    </thead>
+                    <tbody>
+                      {rmNeeds.map(n => (
+                        <tr key={n.rm.id} className="border-t">
+                          <td className="p-3 font-medium">{n.rm.name}</td>
+                          <td className="p-3">{n.rm.unit}</td>
+                          <td className="p-3 text-right">{n.rm.stock}</td>
+                          <td className="p-3 text-right">{n.needed.toFixed(2)}</td>
+                          <td className="p-3 text-right"><Badge variant="outline">{n.short.toFixed(2)} {n.rm.unit}</Badge></td>
+                          <td className="p-3 text-right">R$ {n.estCost.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         )}
 
