@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { isComingSoon } from "@/lib/comingSoon";
 
 type Alert = { id: string; title: string; severity: string | null; created_at: string };
+
+const ALERTS_COMING_SOON = isComingSoon("/app/alerts");
 
 export function NotificationsBell() {
   const { user } = useAuth();
@@ -14,7 +17,7 @@ export function NotificationsBell() {
   const [open, setOpen] = useState(false);
 
   const load = async () => {
-    if (!user) return;
+    if (!user || ALERTS_COMING_SOON) return;
     const { data } = await supabase
       .from("alerts")
       .select("id,title,severity,created_at")
@@ -44,9 +47,11 @@ export function NotificationsBell() {
       <PopoverContent align="end" className="w-80 p-0 rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
           <div className="text-sm font-semibold">Notificações</div>
-          <Link to="/app/alerts" onClick={() => setOpen(false)} className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
-            Ver todas <ChevronRight className="h-3 w-3" />
-          </Link>
+          {!ALERTS_COMING_SOON && (
+            <Link to="/app/alerts" onClick={() => setOpen(false)} className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
+              Ver todas <ChevronRight className="h-3 w-3" />
+            </Link>
+          )}
         </div>
         <div className="max-h-80 overflow-auto">
           {items.length === 0 ? (
@@ -54,7 +59,7 @@ export function NotificationsBell() {
           ) : items.map(a => (
             <Link
               key={a.id}
-              to="/app/alerts"
+              to={ALERTS_COMING_SOON ? "/app" : "/app/alerts"}
               onClick={() => setOpen(false)}
               className="flex items-start gap-3 px-4 py-3 border-b border-border/40 hover:bg-secondary/60 transition"
             >

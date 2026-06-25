@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { useModuleVisibility } from "@/hooks/useModuleVisibility";
 import { isLowStock } from "@/lib/stock";
+import { isComingSoon } from "@/lib/comingSoon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -60,6 +61,7 @@ export default function Dashboard() {
   const showProducts = isModuleVisible("products");
   const showServices = isModuleVisible("services");
   const showAppointments = isModuleVisible("appointments");
+  const showAlerts = !isComingSoon("/app/alerts");
   const cycleStart = Number((profile as any)?.operational_cycle_start_day ?? 1);
 
   const [range, setRange] = useState<RangeKey>("30d");
@@ -90,7 +92,9 @@ export default function Dashboard() {
         ? supabase.from("appointments").select("service_id,amount,status").gte("appointment_date", startIso).lte("appointment_date", endIso).is("deleted_at", null).neq("status", "cancelled")
         : Promise.resolve({ data: [] }),
       supabase.from("clients").select("id,created_at").is("deleted_at", null),
-      supabase.from("alerts").select("id,title,severity,status").eq("status", "open").order("created_at", { ascending: false }).limit(6),
+      showAlerts
+        ? supabase.from("alerts").select("id,title,severity,status").eq("status", "open").order("created_at", { ascending: false }).limit(6)
+        : Promise.resolve({ data: [] }),
       supabase.from("debts").select("id,total_amount,client_id,status,due_date").eq("status", "open").order("due_date", { ascending: true }).limit(6),
       // Estoque baixo só quando o módulo de produtos está visível.
       showProducts
@@ -194,7 +198,7 @@ export default function Dashboard() {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [user, range, custom.from, custom.to, cycleStart, showProducts, showServices, showAppointments]);
+  useEffect(() => { load(); }, [user, range, custom.from, custom.to, cycleStart, showProducts, showServices, showAppointments, showAlerts]);
 
   const addNote = async () => {
     if (!noteInput.trim() || !user) return;
@@ -337,18 +341,20 @@ export default function Dashboard() {
               <div className="rounded-xl bg-muted/50 dark:bg-white/[0.04] p-3"><div className="text-[11px] uppercase text-muted-foreground">Recorrentes</div><div className="text-2xl font-semibold number-display">{kpi.recorrentes}</div></div>
             </div>
           </div>
-          <SideList
-            title="Alertas importantes"
-            to="/app/alerts"
-            empty="Sem alertas no momento."
-            items={alerts.map(a => ({
-              id: a.id,
-              icon: AlertTriangle,
-              tint: a.severity === "high" ? "text-red-400" : a.severity === "medium" ? "text-amber-400" : "text-muted-foreground",
-              title: a.title,
-              sub: a.severity?.toUpperCase(),
-            }))}
-          />
+          {showAlerts && (
+            <SideList
+              title="Alertas importantes"
+              to="/app/alerts"
+              empty="Sem alertas no momento."
+              items={alerts.map(a => ({
+                id: a.id,
+                icon: AlertTriangle,
+                tint: a.severity === "high" ? "text-red-400" : a.severity === "medium" ? "text-amber-400" : "text-muted-foreground",
+                title: a.title,
+                sub: a.severity?.toUpperCase(),
+              }))}
+            />
+          )}
           <SideList
             title="Cobranças pendentes"
             to="/app/collections"
