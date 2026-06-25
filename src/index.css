@@ -148,6 +148,22 @@
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
     --shadow-elegant: 0 20px 60px -20px hsl(0 0% 0% / 0.12);
   }
+  /* Light mode: ensure input text is visible (dark on white) */
+  .light .theme-skillset input,
+  .light .theme-skillset textarea,
+  .light .theme-skillset select,
+  .theme-skillset.light input,
+  .theme-skillset.light textarea,
+  .theme-skillset.light select {
+    color: hsl(0 0% 8%);
+  }
+  .light .theme-skillset input::placeholder,
+  .light .theme-skillset textarea::placeholder,
+  .theme-skillset.light input::placeholder,
+  .theme-skillset.light textarea::placeholder {
+    color: hsl(0 0% 50%);
+  }
+
   /* Force titles to use full foreground in light mode (overrides washed-out tokens) */
   .light .theme-skillset h1,
   .light .theme-skillset h2,
@@ -288,4 +304,23 @@
 @keyframes grid-move {
   0% { background-position: 0 0; }
   100% { background-position: 60px 60px; }
+}
+
+/* Premium scrollbar — dark mode */
+.theme-skillset ::-webkit-scrollbar { width: 6px; height: 6px; }
+.theme-skillset ::-webkit-scrollbar-track { background: transparent; }
+.theme-skillset ::-webkit-scrollbar-thumb {
+  background: hsl(22 100% 50% / 0.45);
+  border-radius: 999px;
+  transition: background .2s;
+}
+.theme-skillset ::-webkit-scrollbar-thumb:hover { background: hsl(22 100% 50% / 0.75); }
+/* Premium scrollbar — light mode */
+.light .theme-skillset ::-webkit-scrollbar-thumb,
+.theme-skillset.light ::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 70%);
+}
+.light .theme-skillset ::-webkit-scrollbar-thumb:hover,
+.theme-skillset.light ::-webkit-scrollbar-thumb:hover {
+  background: hsl(22 100% 50% / 0.65);
 }

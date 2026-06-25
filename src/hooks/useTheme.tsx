@@ -10,10 +10,7 @@ export function useTheme() {
   });
 
   useEffect(() => {
-    const root = document.querySelector(".theme-skillset");
-    if (!root) return;
-    if (mode === "light") root.classList.add("light");
-    else root.classList.remove("light");
+    document.documentElement.classList.toggle("light", mode === "light");
     localStorage.setItem(KEY, mode);
   }, [mode]);
 

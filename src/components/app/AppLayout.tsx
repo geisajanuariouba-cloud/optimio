@@ -1,5 +1,6 @@
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useEffect, useState, Suspense } from "react";
+import { cn } from "@/lib/utils";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -99,7 +100,7 @@ export default function AppLayout() {
 
   return (
     <SidebarProvider>
-      <div className="theme-skillset min-h-screen flex w-full bg-background">
+      <div className={cn("theme-skillset min-h-screen flex w-full bg-background", mode === "light" && "light")}>
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="border-b border-border/60 bg-background/80 backdrop-blur-xl sticky top-0 z-30">

@@ -123,11 +123,6 @@ export default function Suppliers() {
                   <Button size="icon" variant="ghost" onClick={() => remove(s.id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-2xl bg-secondary/50 p-2"><div className="text-xs text-muted-foreground">Ativos</div><div className="font-bold text-primary">{productCount(s.id)}</div></div>
-                <div className="rounded-2xl bg-secondary/50 p-2"><div className="text-xs text-muted-foreground">Fora linha</div><div className="font-bold text-amber-500">{discontinuedCount(s.id)}</div></div>
-                <div className="rounded-2xl bg-secondary/50 p-2"><div className="text-xs text-muted-foreground">Total</div><div className="font-bold">{productCount(s.id) + discontinuedCount(s.id)}</div></div>
-              </div>
               <Link to={`/app/suppliers/${s.id}`}>
                 <Button variant="outline" className="w-full mt-3 rounded-2xl gap-2"><ExternalLink className="h-4 w-4" />Abrir painel + chat</Button>
               </Link>
@@ -168,7 +163,7 @@ export default function Suppliers() {
                 <div><Label className="text-xs">IPI (%)</Label><Input type="number" step="0.1" value={form.ipi_percent ?? 0} onChange={(e) => setForm({ ...form, ipi_percent: +e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-xs">Taxa custo (%)</Label><Input type="number" step="0.1" value={form.cost_fee_percent} onChange={(e) => setForm({ ...form, cost_fee_percent: +e.target.value })} /></div>
+                <div><Label className="text-xs">Taxa custo / Frete (%)</Label><Input type="number" step="0.1" value={form.cost_fee_percent} onChange={(e) => setForm({ ...form, cost_fee_percent: +e.target.value })} title="Frete, ICMS, impostos sobre o custo final (aplicado após IPI)." /></div>
                 <div><Label className="text-xs">Margem (%)</Label><Input type="number" step="0.1" value={form.default_margin_percent} onChange={(e) => setForm({ ...form, default_margin_percent: +e.target.value })} /></div>
                 <div><Label className="text-xs">Taxa extra (%)</Label><Input type="number" step="0.1" value={form.default_markup_percent} onChange={(e) => setForm({ ...form, default_markup_percent: +e.target.value })} /></div>
               </div>

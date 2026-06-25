@@ -18,6 +18,7 @@ import { useTenant } from "@/hooks/useTenant";
 import { useModuleVisibility } from "@/hooks/useModuleVisibility";
 import { useDevMode } from "@/hooks/useDevMode";
 import { isComingSoon } from "@/lib/comingSoon";
+import { ComingSoonModal } from "@/components/app/ComingSoonModal";
 import logoAsset from "@/assets/optimio-logo.png.asset.json";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ export function AppSidebar() {
   const { devMode } = useDevMode();
   const adminMaster = !!(profile as any)?.is_admin_master;
   const showSoonBadge = !(isSuperAdmin && devMode);
+  const [soonModal, setSoonModal] = useState<{ open: boolean; title: string }>({ open: false, title: "" });
 
   const groups: Group[] = useMemo(() => [
     {
@@ -141,6 +143,7 @@ export function AppSidebar() {
   };
 
   return (
+    <>
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border/60 p-3">
         <NavLink
@@ -153,7 +156,7 @@ export function AppSidebar() {
           <img
             src={logoAsset.url}
             alt="Optimio"
-            className={collapsed ? "h-8 w-8 object-contain shrink-0" : "h-14 w-auto shrink-0"}
+            className={collapsed ? "h-9 w-9 object-contain shrink-0" : "h-18 w-auto shrink-0 max-h-[72px]"}
             draggable={false}
           />
           {!collapsed && (
@@ -197,7 +200,7 @@ export function AppSidebar() {
                           <>
                             <span className={cn("truncate flex-1", soon && "opacity-70")}>{it.title}</span>
                             {soon ? (
-                              <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                              <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 tracking-wide shadow-[0_0_8px_hsl(38_100%_50%/0.2)]">
                                 Em breve
                               </span>
                             ) : it.badge && (
@@ -222,8 +225,10 @@ export function AppSidebar() {
                             active && "bg-sidebar-accent text-sidebar-foreground shadow-[inset_2px_0_0_0_hsl(var(--sidebar-primary))]"
                           )}
                         >
-                          {it.url ? (
+                          {it.url && !soon ? (
                             <NavLink to={it.url}>{Inner}</NavLink>
+                          ) : it.url && soon ? (
+                            <button type="button" onClick={() => setSoonModal({ open: true, title: it.title })} className="w-full text-left">{Inner}</button>
                           ) : (
                             <button type="button" onClick={it.onClick} className="w-full text-left">{Inner}</button>
                           )}
@@ -258,6 +263,12 @@ export function AppSidebar() {
         </NavLink>
       </SidebarFooter>
     </Sidebar>
+    <ComingSoonModal
+      open={soonModal.open}
+      title={soonModal.title}
+      onClose={() => setSoonModal(s => ({ ...s, open: false }))}
+    />
+    </>
   );
 }
 

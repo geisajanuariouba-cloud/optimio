@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Factory, Beaker, ListChecks, AlertTriangle, Package as PackageIcon } from "lucide-react";
+import { Plus, Factory, Beaker, ListChecks, AlertTriangle, Package as PackageIcon, Search } from "lucide-react";
 
 type RM = {
   id: string; name: string; unit: string; stock: number; min_stock: number;
@@ -47,6 +47,8 @@ export default function Production() {
   const [recProduct, setRecProduct] = useState<string>("");
   const [recYield, setRecYield] = useState<number>(1);
   const [recItems, setRecItems] = useState<{ raw_material_id: string; quantity: number }[]>([]);
+  const [recSearch, setRecSearch] = useState("");
+  const [recFilter, setRecFilter] = useState<"all" | "with" | "without">("all");
   const [ordOpen, setOrdOpen] = useState(false);
   const [ordForm, setOrdForm] = useState<{ product_id?: string; quantity: number; assignee_user_id?: string; due_date?: string; notes?: string; department?: string; priority: string; checklist: { text: string; done: boolean }[] }>({ quantity: 1, priority: "medium", checklist: [] });
   const [newChecklistItem, setNewChecklistItem] = useState("");
@@ -202,6 +204,17 @@ export default function Production() {
     load();
   };
 
+  const filteredRecipeProducts = useMemo(() => {
+    const q = recSearch.toLowerCase().trim();
+    return products.filter(p => {
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      const hasRecipe = recipes.some(r => r.product_id === p.id);
+      if (recFilter === "with" && !hasRecipe) return false;
+      if (recFilter === "without" && hasRecipe) return false;
+      return true;
+    });
+  }, [products, recipes, recSearch, recFilter]);
+
   // Planejamento: quantos podem ser produzidos por produto
   const planning = useMemo(() => {
     const byProduct: { product: Product; max: number; bottleneck?: string; recipeCount: number }[] = [];
@@ -316,26 +329,44 @@ export default function Production() {
         </TabsContent>
 
         <TabsContent value="recipes" className="space-y-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input value={recSearch} onChange={e => setRecSearch(e.target.value)} placeholder="Buscar produto…" className="pl-9 h-9" />
+            </div>
+            <Select value={recFilter} onValueChange={v => setRecFilter(v as any)}>
+              <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os produtos</SelectItem>
+                <SelectItem value="with">Com receita</SelectItem>
+                <SelectItem value="without">Sem receita</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-left">
-                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Itens</th><th className="p-3 text-right">Custo unitário estimado</th><th className="p-3"></th></tr>
+                  <tr><th className="p-3">Produto</th><th className="p-3 text-right">Insumos</th><th className="p-3 text-right">Custo/unidade estimado</th><th className="p-3"></th></tr>
                 </thead>
                 <tbody>
-                  {products.map(p => {
+                  {filteredRecipeProducts.map(p => {
                     const items = recipes.filter(r => r.product_id === p.id);
                     const cost = estimateCost(p.id, 1);
+                    const yld = recipeYield(p.id);
+                    const unitCost = items.length ? cost / yld : 0;
                     return (
                       <tr key={p.id} className="border-t">
                         <td className="p-3 font-medium">{p.name}</td>
-                        <td className="p-3 text-right">{items.length}</td>
-                        <td className="p-3 text-right">R$ {cost.toFixed(2)}</td>
+                        <td className="p-3 text-right">
+                          {items.length ? <Badge variant="outline">{items.length}</Badge> : <span className="text-muted-foreground text-xs">sem receita</span>}
+                        </td>
+                        <td className="p-3 text-right">{items.length ? `R$ ${unitCost.toFixed(2)}` : "—"}</td>
                         <td className="p-3 text-right"><Button size="sm" variant="outline" onClick={() => openRecipe(p.id)}>Editar receita</Button></td>
                       </tr>
                     );
                   })}
-                  {!products.length && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum produto cadastrado.</td></tr>}
+                  {!filteredRecipeProducts.length && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum produto encontrado.</td></tr>}
                 </tbody>
               </table>
             </CardContent>
