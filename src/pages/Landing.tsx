@@ -26,10 +26,26 @@ function useCountdown() {
   return { h, m, s };
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+function CountdownDisplay({ h, m, s, dark }: { h: string; m: string; s: string; dark?: boolean }) {
+  const boxCls = dark
+    ? "bg-black/20 text-white rounded-lg px-3 py-1.5 font-mono font-black text-2xl leading-none min-w-[52px] text-center"
+    : "bg-orange-600 text-white rounded-lg px-3 py-1.5 font-mono font-black text-2xl leading-none min-w-[52px] text-center shadow";
+  const labelCls = dark ? "text-white/60 text-[10px] text-center mt-1" : "text-orange-600 text-[10px] text-center mt-1 font-semibold";
+  return (
+    <div className="flex items-start gap-1.5">
+      <div><div className={boxCls}>{h}</div><div className={labelCls}>HORAS</div></div>
+      <div className={`font-black text-xl mt-1 ${dark ? "text-white/60" : "text-orange-400"}`}>:</div>
+      <div><div className={boxCls}>{m}</div><div className={labelCls}>MIN</div></div>
+      <div className={`font-black text-xl mt-1 ${dark ? "text-white/60" : "text-orange-400"}`}>:</div>
+      <div><div className={boxCls}>{s}</div><div className={labelCls}>SEG</div></div>
+    </div>
+  );
+}
+
+// ── Dados ──────────────────────────────────────────────────────────────────
 const faq: { q: string; a: string }[] = [
-  { q: "Preciso instalar alguma coisa?", a: "Não. O Optimio é 100% online. Acesse pelo computador, celular ou tablet — basta um navegador e internet." },
-  { q: "Serve para qualquer tipo de negócio?", a: "Sim. Salão de beleza, loja de roupas, pet shop, clínica, estúdio, loja de móveis, consultório — o sistema se adapta ao seu nicho automaticamente." },
+  { q: "Preciso instalar alguma coisa?", a: "Não. O Optimio é 100% online. Acesse pelo computador, celular ou tablet, basta um navegador e internet." },
+  { q: "Serve para qualquer tipo de negócio?", a: "Sim. Salão de beleza, loja de roupas, pet shop, clínica, estúdio, loja de móveis, consultório. O sistema se adapta ao seu nicho automaticamente." },
   { q: "Posso cancelar quando quiser?", a: "Sim, sem fidelidade. No plano mensal você cancela a qualquer momento pelo painel. No trimestral, o acesso segue até o final do período pago." },
   { q: "E se eu não souber usar o sistema?", a: "O Optimio foi feito para ser simples. Mas caso precise, nosso suporte via WhatsApp está disponível para te ajudar no que precisar." },
   { q: "Meus dados ficam seguros?", a: "Seus dados ficam armazenados em servidores seguros com criptografia. Nenhum terceiro tem acesso às suas informações." },
@@ -37,10 +53,10 @@ const faq: { q: string; a: string }[] = [
 ];
 
 const depoimentos = [
-  { nome: "Carla Menezes", cidade: "Belo Horizonte – MG", negocio: "Salão de Beleza", texto: "Antes eu anotava tudo no caderno e no WhatsApp. Perdi clientes, perdi dinheiro. Com o Optimio meu caixa fecha certinho todo mês." },
-  { nome: "Rafael Souza", cidade: "São Paulo – SP", negocio: "Loja de Móveis Planejados", texto: "Minhas ordens de produção ficavam espalhadas. Hoje consigo acompanhar cada pedido, estoque e fornecedor em um único lugar. Economizei horas por semana." },
-  { nome: "Patrícia Lima", cidade: "Goiânia – GO", negocio: "Clínica Estética", texto: "Fiz 3 meses no plano trimestral e já paguei o investimento só com os agendamentos que eu deixava escapar antes. Vale muito." },
-  { nome: "Marcos Andrade", cidade: "Curitiba – PR", negocio: "Pet Shop", texto: "A parte financeira era um caos total. Agora eu vejo receita, despesas e lucro real em tempo real. Finalmente sei se estou ganhando ou perdendo." },
+  { nome: "Carla Menezes", cidade: "Belo Horizonte, MG", negocio: "Salão de Beleza", texto: "Antes eu anotava tudo no caderno e no WhatsApp. Perdi clientes, perdi dinheiro. Com o Optimio meu caixa fecha certinho todo mês." },
+  { nome: "Rafael Souza", cidade: "São Paulo, SP", negocio: "Loja de Móveis Planejados", texto: "Minhas ordens de produção ficavam espalhadas. Hoje consigo acompanhar cada pedido, estoque e fornecedor em um único lugar. Economizei horas por semana." },
+  { nome: "Patrícia Lima", cidade: "Goiânia, GO", negocio: "Clínica Estética", texto: "Fiz 3 meses no plano trimestral e já paguei o investimento só com os agendamentos que eu deixava escapar antes. Vale muito." },
+  { nome: "Marcos Andrade", cidade: "Curitiba, PR", negocio: "Pet Shop", texto: "A parte financeira era um caos total. Agora eu vejo receita, despesas e lucro real em tempo real. Finalmente sei se estou ganhando ou perdendo." },
 ];
 
 export default function Landing() {
@@ -64,58 +80,58 @@ export default function Landing() {
   const ctaUrl = ciclo === "mensal" ? checkoutMensal : checkoutTrimestral;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
 
       {/* ── BARRA DE URGÊNCIA ──────────────────────────────────────── */}
-      <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 py-2.5 px-4 text-center text-sm font-semibold tracking-wide text-white">
-        ⚡ OFERTA ESPECIAL encerra em:{" "}
-        <span className="inline-flex items-center gap-1 ml-1 font-mono text-base font-black bg-black/20 px-2 py-0.5 rounded">
-          {h}:{m}:{s}
-        </span>
-        {" "}— Aproveite antes que o preço suba!
+      <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 py-3 px-4">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3 text-white">
+          <span className="text-sm font-bold tracking-wide">⚡ OFERTA ESPECIAL encerra em:</span>
+          <CountdownDisplay h={h} m={m} s={s} dark />
+          <span className="text-sm font-semibold opacity-90">Aproveite antes que o preço suba!</span>
+        </div>
       </div>
 
       {/* ── NAV ───────────────────────────────────────────────────── */}
-      <nav className="px-5 py-4 flex items-center justify-between max-w-6xl mx-auto">
+      <nav className="px-5 py-4 flex items-center justify-between max-w-6xl mx-auto border-b border-gray-100">
         <Logo />
         <Link to="/auth">
-          <button className="text-sm text-white/60 hover:text-white transition border border-white/20 hover:border-white/40 px-4 py-2 rounded-xl">
+          <button className="text-sm text-gray-500 hover:text-gray-800 transition border border-gray-300 hover:border-gray-400 px-4 py-2 rounded-xl">
             Já tenho conta
           </button>
         </Link>
       </nav>
 
       {/* ── HERO ──────────────────────────────────────────────────── */}
-      <section className="px-5 pt-10 pb-16 max-w-4xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-semibold px-4 py-1.5 rounded-full mb-6 uppercase tracking-widest">
+      <section className="px-5 pt-12 pb-16 max-w-4xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 bg-orange-50 border border-orange-200 text-orange-600 text-xs font-bold px-4 py-1.5 rounded-full mb-6 uppercase tracking-widest">
           <Zap className="h-3.5 w-3.5" /> Sistema de Gestão para Pequenas Empresas
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-[1.08] mb-6">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-[1.08] mb-6 text-gray-900">
           Chega de perder dinheiro<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">
             por falta de controle.
           </span>
         </h1>
 
-        <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-4 leading-relaxed">
-          O <strong className="text-white">Optimio</strong> organiza seu negócio inteiro — clientes, vendas, estoque,
+        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-4 leading-relaxed">
+          O <strong className="text-gray-900">Optimio</strong> organiza seu negócio inteiro — clientes, vendas, estoque,
           financeiro e produção — em um único painel simples e poderoso.
         </p>
-        <p className="text-base text-white/50 mb-10">
+        <p className="text-base text-gray-400 mb-10">
           Sem planilha. Sem caderno. Sem caos.
         </p>
 
         <a href="#planos">
-          <button className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-[0_0_40px_rgba(249,115,22,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(249,115,22,0.6)]">
+          <button className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-lg shadow-orange-200 transition-all hover:scale-105">
             QUERO ORGANIZAR MEU NEGÓCIO <ArrowRight className="h-5 w-5" />
           </button>
         </a>
-        <p className="text-xs text-white/30 mt-3">🔒 Acesso imediato · Sem fidelidade · Cancele quando quiser</p>
+        <p className="text-xs text-gray-400 mt-3">Acesso imediato · Sem fidelidade · Cancele quando quiser</p>
       </section>
 
       {/* ── NÚMEROS SOCIAIS ───────────────────────────────────────── */}
-      <div className="border-y border-white/10 bg-white/[0.03] py-8 px-5">
+      <div className="border-y border-gray-100 bg-gray-50 py-8 px-5">
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
             { n: "+1.200", l: "empresas usam o Optimio" },
@@ -124,8 +140,8 @@ export default function Landing() {
             { n: "24h", l: "suporte via WhatsApp" },
           ].map(({ n, l }) => (
             <div key={l}>
-              <div className="text-2xl md:text-3xl font-black text-orange-400">{n}</div>
-              <div className="text-xs text-white/50 mt-1">{l}</div>
+              <div className="text-2xl md:text-3xl font-black text-orange-500">{n}</div>
+              <div className="text-xs text-gray-500 mt-1">{l}</div>
             </div>
           ))}
         </div>
@@ -133,8 +149,8 @@ export default function Landing() {
 
       {/* ── O PROBLEMA ────────────────────────────────────────────── */}
       <section className="px-5 py-16 max-w-3xl mx-auto">
-        <div className="bg-rose-500/10 border border-rose-500/20 rounded-3xl p-8 md:p-10">
-          <h2 className="text-2xl md:text-3xl font-black text-center mb-8 text-rose-300">
+        <div className="bg-rose-50 border border-rose-200 rounded-3xl p-8 md:p-10">
+          <h2 className="text-2xl md:text-3xl font-black text-center mb-8 text-rose-700">
             Você se identifica com algum disso?
           </h2>
           <div className="space-y-4">
@@ -147,24 +163,24 @@ export default function Landing() {
               "Não tem tempo de olhar para o negócio porque está apagando incêndio",
             ].map((t) => (
               <div key={t} className="flex items-start gap-3">
-                <X className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
-                <span className="text-white/80">{t}</span>
+                <X className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+                <span className="text-gray-700">{t}</span>
               </div>
             ))}
           </div>
-          <div className="mt-8 p-4 bg-rose-500/20 rounded-2xl text-center text-rose-200 font-semibold text-sm">
-            ⚠️ A maioria das pequenas empresas fecha em até 5 anos — e a causa número 1 é a falta de controle financeiro e operacional.
+          <div className="mt-8 p-4 bg-rose-100 border border-rose-200 rounded-2xl text-center text-rose-700 font-semibold text-sm">
+            A maioria das pequenas empresas fecha em até 5 anos. A causa número 1 é a falta de controle financeiro e operacional.
           </div>
         </div>
       </section>
 
       {/* ── O QUE É O OPTIMIO ────────────────────────────────────── */}
       <section className="px-5 py-10 max-w-4xl mx-auto text-center">
-        <h2 className="text-3xl md:text-4xl font-black mb-4">
+        <h2 className="text-3xl md:text-4xl font-black mb-4 text-gray-900">
           O Optimio resolve tudo isso
-          <br /><span className="text-orange-400">de uma vez só.</span>
+          <br /><span className="text-orange-500">de uma vez só.</span>
         </h2>
-        <p className="text-white/60 text-lg mb-12">Um sistema completo para quem quer crescer sem perder o controle.</p>
+        <p className="text-gray-500 text-lg mb-12">Um sistema completo para quem quer crescer sem perder o controle.</p>
 
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
           {[
@@ -175,10 +191,10 @@ export default function Landing() {
             { icon: "🛒", t: "Vendas & Orçamentos", d: "Do orçamento à venda em um clique, com histórico e relatórios." },
             { icon: "📊", t: "Dashboard & BI", d: "Veja receita, ticket médio, crescimento e previsões em tempo real." },
           ].map(({ icon, t, d }) => (
-            <div key={t} className="bg-white/[0.05] border border-white/10 rounded-2xl p-5 text-left hover:border-orange-500/30 hover:bg-orange-500/5 transition-all">
+            <div key={t} className="bg-white border border-gray-200 rounded-2xl p-5 text-left hover:border-orange-300 hover:shadow-md hover:shadow-orange-50 transition-all">
               <div className="text-3xl mb-3">{icon}</div>
-              <div className="font-bold mb-1">{t}</div>
-              <div className="text-sm text-white/50">{d}</div>
+              <div className="font-bold mb-1 text-gray-900">{t}</div>
+              <div className="text-sm text-gray-500">{d}</div>
             </div>
           ))}
         </div>
@@ -186,21 +202,21 @@ export default function Landing() {
 
       {/* ── COMPARATIVO ──────────────────────────────────────────── */}
       <section className="px-5 py-12 max-w-3xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-black text-center mb-8">Antes × Depois do Optimio</h2>
+        <h2 className="text-2xl md:text-3xl font-black text-center mb-8 text-gray-900">Antes × Depois do Optimio</h2>
         <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-6">
-            <h3 className="font-bold text-rose-300 mb-4 text-center">❌ Sem o Optimio</h3>
-            <ul className="space-y-3 text-sm text-white/70">
-              {["Caderno, planilha e WhatsApp misturados", "Caixa no vermelho sem saber por quê", "Cliente some e você não percebe", "Estoque acabando na hora errada", "Horas fechando planilha no fim do mês", "Decisão no escuro, na intuição"].map(t => (
-                <li key={t} className="flex gap-2"><X className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />{t}</li>
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6">
+            <h3 className="font-bold text-rose-600 mb-4 text-center">Sem o Optimio</h3>
+            <ul className="space-y-3 text-sm text-gray-600">
+              {["Caderno, planilha e WhatsApp misturados", "Caixa no vermelho sem saber por que", "Cliente some e você não percebe", "Estoque acabando na hora errada", "Horas fechando planilha no fim do mês", "Decisão no escuro, na intuição"].map(t => (
+                <li key={t} className="flex gap-2"><X className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />{t}</li>
               ))}
             </ul>
           </div>
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6">
-            <h3 className="font-bold text-emerald-300 mb-4 text-center">✅ Com o Optimio</h3>
-            <ul className="space-y-3 text-sm text-white/70">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
+            <h3 className="font-bold text-emerald-700 mb-4 text-center">Com o Optimio</h3>
+            <ul className="space-y-3 text-sm text-gray-600">
               {["Tudo centralizado em um único painel", "Lucro real visível todo dia", "CRM com histórico e alertas de retorno", "Estoque com alerta automático de mínimo", "Relatórios em 1 clique, sem planilha", "Decisão com dados, não com chute"].map(t => (
-                <li key={t} className="flex gap-2"><Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />{t}</li>
+                <li key={t} className="flex gap-2"><Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />{t}</li>
               ))}
             </ul>
           </div>
@@ -208,20 +224,20 @@ export default function Landing() {
       </section>
 
       {/* ── DEPOIMENTOS ──────────────────────────────────────────── */}
-      <section className="px-5 py-12 bg-white/[0.03] border-y border-white/10">
+      <section className="px-5 py-12 bg-gray-50 border-y border-gray-100">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-black text-center mb-2">O que dizem quem já usa</h2>
-          <p className="text-center text-white/40 mb-10 text-sm">Resultados reais de pequenos negócios como o seu.</p>
+          <h2 className="text-2xl md:text-3xl font-black text-center mb-2 text-gray-900">O que dizem quem já usa</h2>
+          <p className="text-center text-gray-400 mb-10 text-sm">Resultados reais de pequenos negócios como o seu.</p>
           <div className="grid sm:grid-cols-2 gap-5">
             {depoimentos.map(({ nome, cidade, negocio, texto }) => (
-              <div key={nome} className="bg-white/[0.05] border border-white/10 rounded-2xl p-6">
+              <div key={nome} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div className="flex text-amber-400 mb-3">
                   {[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-amber-400" />)}
                 </div>
-                <p className="text-white/80 text-sm leading-relaxed mb-4">"{texto}"</p>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">"{texto}"</p>
                 <div>
-                  <div className="font-bold text-sm">{nome}</div>
-                  <div className="text-xs text-white/40">{negocio} · {cidade}</div>
+                  <div className="font-bold text-sm text-gray-900">{nome}</div>
+                  <div className="text-xs text-gray-400">{negocio} · {cidade}</div>
                 </div>
               </div>
             ))}
@@ -231,23 +247,23 @@ export default function Landing() {
 
       {/* ── PLANOS / PRICING ─────────────────────────────────────── */}
       <section id="planos" className="px-5 py-16 max-w-2xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-widest">
+        <div className="inline-flex items-center gap-2 bg-orange-50 border border-orange-200 text-orange-600 text-xs font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-widest">
           ⚡ Oferta por tempo limitado
         </div>
-        <h2 className="text-3xl md:text-4xl font-black mb-2">Um plano. Tudo incluso.</h2>
-        <p className="text-white/50 mb-8">Escolha como prefere pagar:</p>
+        <h2 className="text-3xl md:text-4xl font-black mb-2 text-gray-900">Um plano. Tudo incluso.</h2>
+        <p className="text-gray-500 mb-8">Escolha como prefere pagar:</p>
 
         {/* Toggle ciclo */}
-        <div className="inline-flex bg-white/[0.07] border border-white/10 rounded-2xl p-1 mb-8">
+        <div className="inline-flex bg-gray-100 border border-gray-200 rounded-2xl p-1 mb-8">
           <button
             onClick={() => setCiclo("mensal")}
-            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${ciclo === "mensal" ? "bg-orange-500 text-white shadow" : "text-white/50 hover:text-white"}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${ciclo === "mensal" ? "bg-orange-500 text-white shadow" : "text-gray-500 hover:text-gray-800"}`}
           >
             Mensal
           </button>
           <button
             onClick={() => setCiclo("trimestral")}
-            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${ciclo === "trimestral" ? "bg-orange-500 text-white shadow" : "text-white/50 hover:text-white"}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${ciclo === "trimestral" ? "bg-orange-500 text-white shadow" : "text-gray-500 hover:text-gray-800"}`}
           >
             Trimestral
             <span className="absolute -top-2.5 -right-2 bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">-40%</span>
@@ -255,7 +271,7 @@ export default function Landing() {
         </div>
 
         {/* Card preço */}
-        <div className="bg-white/[0.06] border-2 border-orange-500/50 rounded-3xl p-8 relative overflow-hidden">
+        <div className="bg-white border-2 border-orange-400 rounded-3xl p-8 relative overflow-hidden shadow-xl shadow-orange-100">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-orange-500 to-amber-400" />
           <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-black px-3 py-1 rounded-full">
             MAIS POPULAR
@@ -263,24 +279,24 @@ export default function Landing() {
 
           {ciclo === "mensal" ? (
             <div className="mb-6">
-              <div className="text-white/40 text-sm line-through mb-1">De R$89,90/mês</div>
+              <div className="text-gray-400 text-sm line-through mb-1">De R$89,90/mês</div>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-4xl font-black text-white">R$37</span>
-                <span className="text-2xl font-black text-orange-400">,90</span>
-                <span className="text-white/50 text-sm">/mês</span>
+                <span className="text-4xl font-black text-gray-900">R$37</span>
+                <span className="text-2xl font-black text-orange-500">,90</span>
+                <span className="text-gray-400 text-sm">/mês</span>
               </div>
-              <div className="text-emerald-400 text-sm font-semibold mt-1">Você economiza R$52,00/mês vs preço cheio</div>
+              <div className="text-emerald-600 text-sm font-semibold mt-1">Você economiza R$52,00/mês vs preço cheio</div>
             </div>
           ) : (
             <div className="mb-6">
-              <div className="text-white/40 text-sm line-through mb-1">De R$113,70 (3x mensal)</div>
+              <div className="text-gray-400 text-sm line-through mb-1">De R$113,70 (3x mensal)</div>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-4xl font-black text-white">R$67</span>
-                <span className="text-2xl font-black text-orange-400">,90</span>
-                <span className="text-white/50 text-sm">/trimestre</span>
+                <span className="text-4xl font-black text-gray-900">R$67</span>
+                <span className="text-2xl font-black text-orange-500">,90</span>
+                <span className="text-gray-400 text-sm">/trimestre</span>
               </div>
-              <div className="text-white/60 text-sm mt-1">R$22,63/mês · 3 meses de acesso</div>
-              <div className="text-emerald-400 text-sm font-semibold">Você economiza R$45,80 vs plano mensal</div>
+              <div className="text-gray-500 text-sm mt-1">R$22,63/mês · 3 meses de acesso</div>
+              <div className="text-emerald-600 text-sm font-semibold">Você economiza R$45,80 vs plano mensal</div>
             </div>
           )}
 
@@ -298,56 +314,56 @@ export default function Landing() {
               "Atualizações gratuitas para sempre",
             ].map(t => (
               <div key={t} className="flex items-center gap-3">
-                <div className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <Check className="h-3 w-3 text-emerald-400" />
+                <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                  <Check className="h-3 w-3 text-emerald-600" />
                 </div>
-                <span className="text-sm text-white/80">{t}</span>
+                <span className="text-sm text-gray-700">{t}</span>
               </div>
             ))}
           </div>
 
           <a href={ctaUrl} target="_blank" rel="noopener noreferrer">
-            <button className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-black text-lg py-4 rounded-2xl shadow-[0_0_40px_rgba(249,115,22,0.35)] transition-all hover:scale-[1.02] hover:shadow-[0_0_60px_rgba(249,115,22,0.55)]">
-              QUERO ACESSAR AGORA →
+            <button className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-200 transition-all hover:scale-[1.02]">
+              QUERO ACESSAR AGORA
             </button>
           </a>
-          <p className="text-xs text-white/30 mt-3">🔒 Pagamento 100% seguro · Acesso imediato após confirmação</p>
+          <p className="text-xs text-gray-400 mt-3">Pagamento 100% seguro · Acesso imediato após confirmação</p>
         </div>
 
-        {/* Urgência abaixo do card */}
-        <div className="mt-6 flex items-center justify-center gap-2 text-amber-400 text-sm font-semibold">
-          <span>⏰</span>
-          <span>Oferta encerra em: <span className="font-mono font-black">{h}:{m}:{s}</span></span>
+        {/* Countdown abaixo do card */}
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <p className="text-sm font-semibold text-gray-600">Oferta encerra em:</p>
+          <CountdownDisplay h={h} m={m} s={s} />
         </div>
       </section>
 
       {/* ── GARANTIA ─────────────────────────────────────────────── */}
       <section className="px-5 py-10 max-w-2xl mx-auto">
-        <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-8 text-center">
-          <Shield className="h-14 w-14 text-emerald-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-black mb-3">Garantia de 7 dias</h2>
-          <p className="text-white/60 leading-relaxed text-sm">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-8 text-center">
+          <Shield className="h-14 w-14 text-emerald-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-black mb-3 text-gray-900">Garantia de 7 dias</h2>
+          <p className="text-gray-600 leading-relaxed text-sm">
             Experimente o Optimio por 7 dias completos. Se por qualquer motivo não gostar,
-            devolvemos 100% do seu dinheiro. <strong className="text-white">Sem perguntas. Sem burocracia.</strong>
+            devolvemos 100% do seu dinheiro. <strong className="text-gray-900">Sem perguntas. Sem burocracia.</strong>
           </p>
         </div>
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────── */}
       <section className="px-5 py-10 max-w-2xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-black text-center mb-8">Perguntas frequentes</h2>
+        <h2 className="text-2xl md:text-3xl font-black text-center mb-8 text-gray-900">Perguntas frequentes</h2>
         <div className="space-y-3">
           {faq.map(({ q, a }, i) => (
-            <div key={i} className="border border-white/10 rounded-2xl overflow-hidden bg-white/[0.03]">
+            <div key={i} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
               <button
                 onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
+                className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-gray-50 transition"
               >
-                <span className="font-semibold text-sm text-white/90">{q}</span>
-                {openFaq === i ? <ChevronUp className="h-4 w-4 text-white/40 shrink-0" /> : <ChevronDown className="h-4 w-4 text-white/40 shrink-0" />}
+                <span className="font-semibold text-sm text-gray-800">{q}</span>
+                {openFaq === i ? <ChevronUp className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />}
               </button>
               {openFaq === i && (
-                <div className="px-5 pb-4 text-sm text-white/60 leading-relaxed border-t border-white/10 pt-3">{a}</div>
+                <div className="px-5 pb-4 text-sm text-gray-500 leading-relaxed border-t border-gray-100 pt-3">{a}</div>
               )}
             </div>
           ))}
@@ -356,18 +372,18 @@ export default function Landing() {
 
       {/* ── CTA FINAL ────────────────────────────────────────────── */}
       <section className="px-5 py-16 max-w-2xl mx-auto text-center">
-        <div className="bg-gradient-to-b from-orange-500/10 to-transparent border border-orange-500/20 rounded-3xl p-10">
-          <h2 className="text-3xl md:text-4xl font-black mb-4">
+        <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200 rounded-3xl p-10">
+          <h2 className="text-3xl md:text-4xl font-black mb-4 text-gray-900">
             Seu negócio merece<br />
-            <span className="text-orange-400">gestão profissional.</span>
+            <span className="text-orange-500">gestão profissional.</span>
           </h2>
-          <p className="text-white/60 mb-8">Comece hoje. Em minutos você já tem tudo configurado.</p>
+          <p className="text-gray-500 mb-8">Comece hoje. Em minutos você já tem tudo configurado.</p>
           <a href={ctaUrl} target="_blank" rel="noopener noreferrer">
-            <button className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-black text-xl px-12 py-5 rounded-2xl shadow-[0_0_50px_rgba(249,115,22,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_80px_rgba(249,115,22,0.6)]">
+            <button className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-black text-xl px-12 py-5 rounded-2xl shadow-xl shadow-orange-200 transition-all hover:scale-105">
               QUERO O OPTIMIO AGORA <ArrowRight className="h-6 w-6" />
             </button>
           </a>
-          <div className="mt-5 flex flex-wrap justify-center gap-4 text-xs text-white/40">
+          <div className="mt-5 flex flex-wrap justify-center gap-4 text-xs text-gray-400">
             <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> Pagamento seguro</span>
             <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Garantia 7 dias</span>
             <span className="flex items-center gap-1"><Check className="h-3 w-3" /> Acesso imediato</span>
@@ -377,14 +393,14 @@ export default function Landing() {
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────────── */}
-      <footer className="border-t border-white/10 px-5 py-8 text-center text-xs text-white/30">
+      <footer className="border-t border-gray-100 px-5 py-8 text-center text-xs text-gray-400 bg-gray-50">
         <Logo />
         <p className="mt-4">© {new Date().getFullYear()} Optimio. Todos os direitos reservados.</p>
         <div className="mt-3 flex justify-center gap-4">
-          <Link to="/termos" className="hover:text-white/60 transition">Termos de uso</Link>
-          <Link to="/privacidade" className="hover:text-white/60 transition">Privacidade</Link>
-          <Link to="/reembolso" className="hover:text-white/60 transition">Reembolso</Link>
-          <Link to="/auth" className="hover:text-white/60 transition">Entrar</Link>
+          <Link to="/termos" className="hover:text-gray-600 transition">Termos de uso</Link>
+          <Link to="/privacidade" className="hover:text-gray-600 transition">Privacidade</Link>
+          <Link to="/reembolso" className="hover:text-gray-600 transition">Reembolso</Link>
+          <Link to="/auth" className="hover:text-gray-600 transition">Entrar</Link>
         </div>
       </footer>
     </div>
