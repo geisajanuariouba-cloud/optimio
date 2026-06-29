@@ -37,14 +37,16 @@ export default function AppLayout() {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
 
+  // Extrai booleans estáveis fora do effect — evita re-triggers por mudança de referência da função.
+  const wantClients = isModuleVisible("clients");
+  const wantProducts = isModuleVisible("products");
+  const wantServices = isModuleVisible("services");
+
   useEffect(() => {
     if (!q.trim() || !user) { setHits([]); return; }
+    let cancelled = false;
     const t = setTimeout(async () => {
       const like = `%${q}%`;
-      // Busca global respeita a visibilidade de módulos: só consulta o que o tenant usa.
-      const wantClients = isModuleVisible("clients");
-      const wantProducts = isModuleVisible("products");
-      const wantServices = isModuleVisible("services");
       const [c, p, s] = await Promise.all([
         wantClients
           ? supabase.from("clients").select("id, full_name, phone").is("deleted_at", null).ilike("full_name", like).limit(5)
@@ -56,15 +58,16 @@ export default function AppLayout() {
           ? supabase.from("services").select("id, name, category").is("deleted_at", null).ilike("name", like).limit(5)
           : Promise.resolve({ data: [] }),
       ]);
+      if (cancelled) return;
       const h: Hit[] = [
         ...(c.data ?? []).map((x: any) => ({ kind: "Cliente", id: x.id, label: x.full_name, sub: x.phone })),
         ...(p.data ?? []).map((x: any) => ({ kind: "Produto", id: x.id, label: x.name, sub: x.category })),
         ...(s.data ?? []).map((x: any) => ({ kind: "Serviço", id: x.id, label: x.name, sub: x.category })),
       ];
       setHits(h);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [q, user, isModuleVisible]);
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [q, user, wantClients, wantProducts, wantServices]);
 
   if (authLoading || loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background bg-mesh">

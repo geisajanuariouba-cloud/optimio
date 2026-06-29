@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -81,24 +81,25 @@ export default function Dashboard() {
   const [notes, setNotes] = useState<any[]>([]);
   const [noteInput, setNoteInput] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
 
-    const [fin, finPrev, appts, clients, al, db, ls, qn] = await Promise.all([
-      supabase.from("financial").select("net_amount,gross_amount,type,transaction_date,origin,client_id,items").gte("transaction_date", startIso).lte("transaction_date", endIso),
-      supabase.from("financial").select("net_amount,gross_amount,type,origin").gte("transaction_date", iso(prev.start)).lte("transaction_date", iso(prev.end)),
-      // Agenda/serviços só quando o módulo está visível.
+    // Limita financial a 2000 registros para evitar cargas descontroladas em contas antigas.
+    // Novos × Recorrentes: busca só clientes criados no período (muito menor que a tabela toda).
+    const [fin, finPrev, appts, newClients, al, db, ls, qn] = await Promise.all([
+      supabase.from("financial").select("net_amount,gross_amount,type,transaction_date,origin,client_id,items").gte("transaction_date", startIso).lte("transaction_date", endIso).limit(2000),
+      supabase.from("financial").select("net_amount,gross_amount,type,origin").gte("transaction_date", iso(prev.start)).lte("transaction_date", iso(prev.end)).limit(1000),
       showAppointments
-        ? supabase.from("appointments").select("service_id,amount,status").gte("appointment_date", startIso).lte("appointment_date", endIso).is("deleted_at", null).neq("status", "cancelled")
+        ? supabase.from("appointments").select("service_id,amount,status").gte("appointment_date", startIso).lte("appointment_date", endIso).is("deleted_at", null).neq("status", "cancelled").limit(500)
         : Promise.resolve({ data: [] }),
-      supabase.from("clients").select("id,created_at").is("deleted_at", null),
+      // Apenas clientes criados no período — evita carregar a tabela inteira.
+      supabase.from("clients").select("id").is("deleted_at", null).gte("created_at", startIso + "T00:00:00").lte("created_at", endIso + "T23:59:59"),
       showAlerts
         ? supabase.from("alerts").select("id,title,severity,status").eq("status", "open").order("created_at", { ascending: false }).limit(6)
         : Promise.resolve({ data: [] }),
       supabase.from("debts").select("id,total_amount,client_id,status,due_date").eq("status", "open").order("due_date", { ascending: true }).limit(6),
-      // Estoque baixo só quando o módulo de produtos está visível.
       showProducts
-        ? supabase.from("products").select("id,name,stock,min_stock").is("deleted_at", null).eq("status", "active")
+        ? supabase.from("products").select("id,name,stock,min_stock").is("deleted_at", null).eq("status", "active").limit(500)
         : Promise.resolve({ data: [] }),
       supabase.from("quick_notes").select("*").eq("resolved", false).order("created_at", { ascending: false }).limit(8),
     ]);
@@ -156,13 +157,11 @@ export default function Dashboard() {
     const topSv = Array.from(svcAgg.entries()).map(([id, v]) => ({ name: svcNames[id] ?? "Serviço", qty: v.qty, total: v.total }))
       .sort((a, b) => b.total - a.total).slice(0, 5);
 
-    // Novos × Recorrentes (com base em clients criados no período vs já existentes que compraram)
+    // Novos × Recorrentes: newClients já contém só os criados no período.
+    const newClientIds = new Set((newClients.data ?? []).map((c: any) => c.id));
     let novos = 0, recorrentes = 0;
     for (const cId of clientIdsInPeriod) {
-      const c = (clients.data ?? []).find((x: any) => x.id === cId);
-      if (!c) continue;
-      const created = new Date(c.created_at);
-      if (created >= start && created <= end) novos++; else recorrentes++;
+      if (newClientIds.has(cId)) novos++; else recorrentes++;
     }
 
     // Período anterior
@@ -195,20 +194,22 @@ export default function Dashboard() {
     const alertOnExact = (profile as any)?.alert_on_min_stock_exact ?? true;
     setLowStock((ls.data ?? []).filter((p: any) => isLowStock(p.stock, p.min_stock, alertOnExact)).slice(0, 6));
     setNotes(qn.data ?? []);
-  };
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [user, range, custom.from, custom.to, cycleStart, showProducts, showServices, showAppointments, showAlerts]);
+  }, [user, startIso, endIso, prev.start, prev.end, showProducts, showAppointments, showAlerts]);
 
-  const addNote = async () => {
+  useEffect(() => { load(); }, [load]);
+
+  const addNote = useCallback(async () => {
     if (!noteInput.trim() || !user) return;
     await supabase.from("quick_notes").insert({ user_id: user.id, content: noteInput.trim() });
-    setNoteInput(""); load();
-  };
-  const resolveNote = async (id: string) => {
+    setNoteInput("");
+    load();
+  }, [noteInput, user, load]);
+
+  const resolveNote = useCallback(async (id: string) => {
     await supabase.from("quick_notes").update({ resolved: true, resolved_at: new Date().toISOString() }).eq("id", id);
     load();
-  };
+  }, [load]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();

@@ -72,7 +72,7 @@ const Reports = lazy(() => import("./pages/app/Reports"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
+    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 5 * 60_000, gcTime: 10 * 60_000 },
     mutations: { retry: 0 },
   },
 });
