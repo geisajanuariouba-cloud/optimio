@@ -59,12 +59,12 @@ export default function Trash() {
 
   const restore = async (it: Item) => {
     await supabase.from(it.table as any).update({ deleted_at: null }).eq("id", it.id);
-    if (user) await supabase.from("audit_log").insert({ user_id: user.id, action: "restore", entity_table: it.table, entity_id: it.id });
+    if (user) await supabase.from("audit_logs").insert({ user_id: user.id, action: "restore", entity_table: it.table, entity_id: it.id });
     toast.success("Restaurado"); load();
   };
   const purge = async (it: Item) => {
     if (!confirm("Excluir permanentemente? Esta ação fica registrada no log de auditoria.")) return;
-    if (user) await supabase.from("audit_log").insert({ user_id: user.id, action: "purge", entity_table: it.table, entity_id: it.id });
+    if (user) await supabase.from("audit_logs").insert({ user_id: user.id, action: "purge", entity_table: it.table, entity_id: it.id });
     await supabase.from(it.table as any).delete().eq("id", it.id);
     toast.success("Excluído"); load();
   };
@@ -75,7 +75,7 @@ export default function Trash() {
     const byTable: Record<string, string[]> = {};
     for (const k of selected) { const [t, id] = k.split("|"); (byTable[t] ||= []).push(id); }
     for (const [t, ids] of Object.entries(byTable)) {
-      if (user) await Promise.all(ids.map(id => supabase.from("audit_log").insert({ user_id: user.id, action: "purge", entity_table: t, entity_id: id })));
+      if (user) await Promise.all(ids.map(id => supabase.from("audit_logs").insert({ user_id: user.id, action: "purge", entity_table: t, entity_id: id })));
       await supabase.from(t as any).delete().in("id", ids);
     }
     toast.success(`${selected.size} item(ns) excluído(s)`); load();

@@ -22,6 +22,7 @@ const SEV: Record<string, string> = {
   info: "bg-blue-500/10 text-blue-700",
   warn: "bg-amber-500/10 text-amber-700",
   danger: "bg-rose-500/10 text-rose-700",
+  high: "bg-rose-500/10 text-rose-700",
 };
 
 export default function Alerts() {

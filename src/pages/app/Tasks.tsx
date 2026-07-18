@@ -53,7 +53,7 @@ export default function Tasks() {
   const loadMembers = async () => {
     if (!user) return;
     const { data } = await supabase.from("team_members")
-      .select("member_user_id,name,email").eq("status", "active");
+      .select("member_user_id,name,email").eq("user_id", user.id).eq("status", "active");
     setMembers((data ?? []) as Member[]);
   };
   useEffect(() => { if (user) { load(); loadMembers(); } }, [user]);

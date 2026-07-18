@@ -69,6 +69,8 @@ const Campaigns = lazy(() => import("./pages/app/Campaigns"));
 const Meetings = lazy(() => import("./pages/app/Meetings"));
 const PlanUpgrade = lazy(() => import("./pages/app/PlanUpgrade"));
 const Reports = lazy(() => import("./pages/app/Reports"));
+const ProductIdeas = lazy(() => import("./pages/app/ProductIdeas"));
+const LegalApp = lazy(() => import("./pages/app/Legal"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -151,6 +153,8 @@ const App = () => (
                     <Route path="meetings" element={<Meetings />} />
                     <Route path="upgrade" element={<PlanUpgrade />} />
                     <Route path="reports" element={<Reports />} />
+                    <Route path="product-ideas" element={<ProductIdeas />} />
+                    <Route path="legal" element={<LegalApp />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

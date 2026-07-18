@@ -109,7 +109,7 @@ export default function Reports() {
         data = d ?? [];
       } else if (kind === "clients") {
         const { data: d } = await supabase.from("clients")
-          .select("full_name, phone_number, email, city, state, created_at")
+          .select("full_name, phone, email, address_city, address_state, created_at")
           .is("deleted_at", null).order("created_at", { ascending: false }).limit(2000);
         data = d ?? [];
       }

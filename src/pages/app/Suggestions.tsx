@@ -32,7 +32,7 @@ export default function Suggestions() {
         supabase.from("products").select("id,name,stock,min_stock").is("deleted_at", null).not("min_stock", "is", null).limit(200),
         supabase.from("debts").select("id,client_id,total_amount").eq("status", "open").limit(50),
         supabase.from("leads").select("id,name,updated_at,stage").lt("updated_at", since).limit(50),
-        supabase.from("quotes").select("id,client_id,status").eq("status", "draft").limit(50),
+        supabase.from("quotes").select("id,client_id,status").eq("status", "open").limit(50),
       ]);
       const out: Suggestion[] = [];
       (prodNoCost.data ?? []).slice(0, 10).forEach((p: any) => out.push({

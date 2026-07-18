@@ -126,7 +126,7 @@ export default function Appointments() {
       service_id: form.service_id ? form.service_id : (items[0]?.service_id || null),
       status: form.status,
       amount: baseAmount,
-      is_walk_in: false,
+      is_walk_in: form.is_walk_in,
       notes: form.notes || null,
       professional: form.professional || null,
       payment_method: form.payment_method,

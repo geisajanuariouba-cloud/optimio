@@ -48,11 +48,11 @@ export default function Marketing() {
     const [{ data: posts, error }, { data: ts }, { data: ig }] = await Promise.all([
       supabase.from("marketing_posts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("tasks").select("id, title, due_date, status").is("deleted_at", null).order("due_date", { ascending: true, nullsFirst: false }),
-      supabase.from("integrations").select("id,config,status").eq("provider", "instagram").maybeSingle(),
+      supabase.from("tenant_integrations").select("id,metadata,status").eq("provider", "instagram").maybeSingle(),
     ]);
     if (error) toast.error(friendlyError(error)); else setPosts((posts ?? []) as Post[]);
     setTasks((ts ?? []) as Task[]);
-    setInstagramHandle(((ig?.config as any)?.handle ?? "") as string);
+    setInstagramHandle(((ig?.metadata as any)?.handle ?? "") as string);
     setInstagramId((ig as any)?.id ?? null);
   };
   useEffect(() => { if (user) load(); }, [user]);
@@ -76,7 +76,7 @@ export default function Marketing() {
 
   const addTask = async () => {
     if (!user || !taskTitle.trim()) return;
-    await supabase.from("tasks").insert({ user_id: user.id, title: taskTitle, due_date: taskDate || null });
+    await supabase.from("tasks").insert({ user_id: user.id, title: taskTitle, due_date: taskDate || null, status: "todo" });
     setTaskTitle(""); setTaskDate(""); load();
   };
   const toggleTask = async (t: Task) => {
