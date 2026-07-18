@@ -88,14 +88,22 @@ export default function Settings() {
     if (!user) return;
     setLoading(true);
     const safeDay = Math.min(28, Math.max(1, Number(cycleDay) || 1));
+    const nicheChanged = niche !== profile?.niche;
     const { error } = await supabase.from("profiles").update({
       company_name: companyName, full_name: fullName,
       primary_color: primaryColor, border_style: borderStyle,
       operational_cycle_start_day: safeDay,
       alert_on_min_stock_exact: alertExact,
+      niche,
+      // Quando o nicho muda, aplica os módulos e termos do preset automaticamente
+      ...(nicheChanged && {
+        enabled_modules: NICHES[niche].modules,
+        terms: NICHES[niche].terms,
+      }),
     } as any).eq("id", user.id);
     setLoading(false);
-    if (error) toast.error(friendlyError(error)); else { toast.success("Configurações salvas!"); refresh(); }
+    if (error) toast.error(friendlyError(error));
+    else { toast.success(nicheChanged ? `Preset "${NICHES[niche].label}" aplicado!` : "Configurações salvas!"); refresh(); }
   };
 
   const doRestore = async () => {
