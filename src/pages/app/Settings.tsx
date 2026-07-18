@@ -37,7 +37,7 @@ export default function Settings() {
   const { profile, refresh } = useTenant();
   const [companyName, setCompanyName] = useState("");
   const [fullName, setFullName] = useState("");
-  const [niche, setNiche] = useState<NicheKey>("beauty");
+  const [niche, setNiche] = useState<NicheKey>("beauty_salon");
   const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [cycleDay, setCycleDay] = useState<number>(1);
@@ -64,7 +64,7 @@ export default function Settings() {
     if (!profile) return;
     setCompanyName(profile.company_name ?? "");
     setFullName(profile.full_name ?? "");
-    setNiche((profile.niche as NicheKey) ?? "beauty");
+    setNiche((profile.niche as NicheKey) ?? "beauty_salon");
     setPrimaryColor(profile.primary_color);
     setBorderStyle(profile.border_style);
     setCycleDay(Number((profile as any).operational_cycle_start_day ?? 1));

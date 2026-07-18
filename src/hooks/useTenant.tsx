@@ -119,7 +119,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   }, [profile?.primary_color, profile?.secondary_color, profile?.accent_color, profile?.border_style]);
 
 
-  const niche = NICHES[(profile?.niche as NicheKey) ?? "beauty"] ?? NICHES.beauty;
+  const niche = NICHES[(profile?.niche as NicheKey) ?? "beauty_salon"] ?? NICHES.beauty_salon;
   const adminMaster = !!profile?.is_admin_master;
   const isUnlimited = profile?.plan === "unlimited";
   const enabled = useMemo(
