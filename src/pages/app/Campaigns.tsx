@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
-import { Megaphone, Sparkles, Calendar, DollarSign } from "lucide-react";
+import { Megaphone, Sparkles, Calendar, DollarSign, Trash2 } from "lucide-react";
 
 type Campaign = { id: string; name: string; channel: string; status: string; budget: number; starts_at: string | null; ends_at: string | null; objective: string | null; audience: string | null; ai_generated: boolean };
 
@@ -61,6 +61,13 @@ export default function Campaigns() {
     load();
   };
 
+  const remove = async (id: string) => {
+    if (!confirm("Excluir campanha permanentemente?")) return;
+    await supabase.from("marketing_campaigns").delete().eq("id", id);
+    toast.success("Campanha excluída");
+    load();
+  };
+
   const activeCount = list.filter(c => c.status === "active").length;
   const totalBudget = list.reduce((a, c) => a + Number(c.budget), 0);
 
@@ -99,10 +106,11 @@ export default function Campaigns() {
                 {c.starts_at && <Badge variant="outline" className="gap-1"><Calendar className="h-3 w-3" />{new Date(c.starts_at).toLocaleDateString("pt-BR")}</Badge>}
                 {c.audience && <Badge variant="outline">{c.audience}</Badge>}
               </div>
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2 pt-1 flex-wrap">
                 {c.status !== "active" && <Button size="sm" onClick={() => setStatus(c.id, "active")} className="rounded-2xl">Ativar</Button>}
                 {c.status === "active" && <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")} className="rounded-2xl">Pausar</Button>}
                 <Button size="sm" variant="ghost" onClick={() => setStatus(c.id, "finished")}>Encerrar</Button>
+                <Button size="sm" variant="ghost" onClick={() => remove(c.id)} className="text-destructive hover:text-destructive ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
               </div>
             </Card>
           ))}

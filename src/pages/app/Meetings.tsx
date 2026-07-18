@@ -52,7 +52,8 @@ export default function Meetings() {
   };
 
   const aiSummary = () => {
-    setSummary("Resumo IA: principais decisões, próximos passos, responsáveis e prazos. (Conecte transcrição para geração real.)");
+    if (summary.trim()) return; // não sobrescreve conteúdo já escrito pelo usuário
+    setSummary("Principais decisões:\n- \n\nPróximos passos:\n- \n\nResponsáveis e prazos:\n- ");
   };
 
   return (

@@ -212,6 +212,9 @@ export default function Appointments() {
           <p className="text-muted-foreground text-sm">Métricas, fila de vendas e venda rápida no mesmo lugar.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={openQuickSale} className="rounded-2xl gap-2">
+            <Zap className="h-4 w-4" />Venda Rápida
+          </Button>
           <Button onClick={() => openNew()} className="bg-gradient-brand text-white border-0 rounded-2xl gap-2">
             <Calendar className="h-4 w-4" />Agendamento
           </Button>

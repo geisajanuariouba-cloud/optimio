@@ -144,16 +144,6 @@ export default function Settings() {
     if (error) toast.error(friendlyError(error)); else toast.success("Anamnese atualizada");
   };
 
-  const goCheckout = (plan: string) => {
-    toast.info("Redirecionando para o checkout…");
-    // TODO: integrar gateway. Por hora abre WhatsApp/admin para upgrade.
-    supabase.from("app_settings").select("whatsapp_link").eq("id", 1).maybeSingle().then(({ data }) => {
-      const link = data?.whatsapp_link || "https://wa.me/";
-      const url = `${link}${link.includes("?") ? "&" : "?"}text=${encodeURIComponent(`Olá, quero fazer upgrade para o plano ${plan}.`)}`;
-      window.open(url, "_blank");
-    });
-  };
-
   const grouped = (k: Cat["kind"]) => cats.filter(c => c.kind === k);
 
   return (

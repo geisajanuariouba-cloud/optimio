@@ -74,9 +74,9 @@ export default function Products() {
 
   const load = async () => {
     const [a, b, v] = await Promise.all([
-      supabase.from("products").select("*").is("deleted_at", null).order("name"),
-      supabase.from("suppliers").select("id,name").is("deleted_at", null).order("name"),
-      supabase.from("product_variations").select("id,product_id,name,codname,color,size,model,finish,fabric,material,sku,sale_price,stock"),
+      supabase.from("products").select("*").is("deleted_at", null).order("name").limit(1000),
+      supabase.from("suppliers").select("id,name").is("deleted_at", null).order("name").limit(500),
+      supabase.from("product_variations").select("id,product_id,name,codname,color,size,model,finish,fabric,material,sku,sale_price,stock").limit(2000),
     ]);
     setList((a.data ?? []) as Product[]);
     setSuppliers((b.data ?? []) as Supplier[]);
@@ -99,7 +99,7 @@ export default function Products() {
   };
 
   useEffect(() => { if (user) load(); }, [user]);
-  useEffect(() => { if (user && list.length) loadBestSeller(); }, [user, period, list]);
+  useEffect(() => { if (user && list.length) loadBestSeller(); }, [user, period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setVariations([]); setTab("geral"); setOpen(true); };
 

@@ -25,7 +25,7 @@ export default function Sales() {
     if (!user) return;
     const [{ data: f }, { data: c }, { data: m }] = await Promise.all([
       supabase.from("financial").select("*").eq("type", "income").order("transaction_date", { ascending: false }).limit(500),
-      supabase.from("clients").select("id,full_name").is("deleted_at", null),
+      supabase.from("clients").select("id,full_name").is("deleted_at", null).limit(1000),
       supabase.from("payment_methods").select("*").eq("active", true),
     ]);
     setSales(f ?? []); setClients(c ?? []); setPms(m ?? []);

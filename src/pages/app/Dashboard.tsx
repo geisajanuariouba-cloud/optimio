@@ -62,7 +62,7 @@ export default function Dashboard() {
   const showServices = isModuleVisible("services");
   const showAppointments = isModuleVisible("appointments");
   const showAlerts = !isComingSoon("/app/alerts");
-  const cycleStart = Number((profile as any)?.operational_cycle_start_day ?? 1);
+  const cycleStart = Number(profile?.operational_cycle_start_day ?? 1);
 
   const [range, setRange] = useState<RangeKey>("30d");
   const [custom, setCustom] = useState<{ from: string; to: string }>({ from: iso(new Date()), to: iso(new Date()) });
@@ -191,7 +191,7 @@ export default function Dashboard() {
     setTopServices(topSv);
     setAlerts((al.data ?? []) as any);
     setDebts(db.data ?? []);
-    const alertOnExact = (profile as any)?.alert_on_min_stock_exact ?? true;
+    const alertOnExact = profile?.alert_on_min_stock_exact ?? true;
     setLowStock((ls.data ?? []).filter((p: any) => isLowStock(p.stock, p.min_stock, alertOnExact)).slice(0, 6));
     setNotes(qn.data ?? []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,7 +216,7 @@ export default function Dashboard() {
     return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
   }, []);
 
-  const name = (profile as any)?.full_name?.split(" ")[0] ?? (profile as any)?.company_name ?? "";
+  const name = profile?.full_name?.split(" ")[0] ?? profile?.company_name ?? "";
 
   const rangeLabel = range === "cycle"
     ? `Mês operacional · ${getCycleLabel(cycleStart)}`

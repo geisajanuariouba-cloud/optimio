@@ -30,7 +30,7 @@ export default function Clients() {
   const [form, setForm] = useState<any>(empty);
 
   const load = async () => {
-    const { data, error } = await supabase.from("clients").select("*").is("deleted_at", null).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("clients").select("*").is("deleted_at", null).order("created_at", { ascending: false }).limit(1000);
     if (error) toast.error(friendlyError(error)); else setClients(data as Client[]);
   };
   useEffect(() => { if (user) load(); }, [user]);

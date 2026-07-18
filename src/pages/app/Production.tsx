@@ -57,9 +57,9 @@ export default function Production() {
     if (!tenantOwnerId) return;
     setLoading(true);
     const [m, p, r, o, tm] = await Promise.all([
-      supabase.from("raw_materials" as any).select("*").order("name"),
-      supabase.from("products").select("id,name,stock").eq("user_id", tenantOwnerId).is("deleted_at", null).order("name"),
-      supabase.from("product_recipes" as any).select("*"),
+      supabase.from("raw_materials" as any).select("*").order("name").limit(500),
+      supabase.from("products").select("id,name,stock").eq("user_id", tenantOwnerId).is("deleted_at", null).order("name").limit(500),
+      supabase.from("product_recipes" as any).select("*").limit(500),
       supabase.from("production_orders" as any).select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("team_members").select("member_user_id,email,role").eq("owner_user_id", tenantOwnerId).eq("status", "active"),
     ]);

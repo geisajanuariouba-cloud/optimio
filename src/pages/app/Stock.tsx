@@ -35,7 +35,7 @@ export default function Stock() {
   const load = async () => {
     const sinceSales = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
     const [p, m, f] = await Promise.all([
-      supabase.from("products").select("id,name,stock,min_stock,cost,sale_price,code,category,supplier_id").is("deleted_at", null).eq("status", "active").order("name"),
+      supabase.from("products").select("id,name,stock,min_stock,cost,sale_price,code,category,supplier_id").is("deleted_at", null).eq("status", "active").order("name").limit(1000),
       supabase.from("stock_movements").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("financial").select("items,transaction_date,type").eq("type", "income").gte("transaction_date", sinceSales),
     ]);

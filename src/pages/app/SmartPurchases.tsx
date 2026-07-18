@@ -27,7 +27,7 @@ export default function SmartPurchases() {
     if (!tenantOwnerId) return;
     const since = new Date(Date.now() - 90 * 86400e3).toISOString();
     const [p, m, r, rm] = await Promise.all([
-      supabase.from("products").select("id,name,stock,min_stock,cost,supplier_id").eq("user_id", tenantOwnerId).is("deleted_at", null).eq("status", "active"),
+      supabase.from("products").select("id,name,stock,min_stock,cost,supplier_id").eq("user_id", tenantOwnerId).is("deleted_at", null).eq("status", "active").limit(1000),
       supabase.from("stock_movements").select("product_id,quantity,type,created_at").eq("user_id", tenantOwnerId).gte("created_at", since),
       productionOn ? supabase.from("product_recipes" as any).select("product_id,raw_material_id,quantity,yield_quantity").eq("user_id", tenantOwnerId) : Promise.resolve({ data: [] }),
       productionOn ? supabase.from("raw_materials" as any).select("id,name,unit,stock,min_stock,average_cost,last_cost").eq("user_id", tenantOwnerId).order("name") : Promise.resolve({ data: [] }),
