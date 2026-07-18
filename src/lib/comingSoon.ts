@@ -7,6 +7,7 @@ export const COMING_SOON_ROUTES: ReadonlySet<string> = new Set([
   "/app/card-machines",
   "/app/campaigns",
   "/app/knowledge",
+  "/app/start",
 ]);
 
 export function isComingSoon(pathname: string): boolean {
