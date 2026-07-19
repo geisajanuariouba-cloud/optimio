@@ -13,9 +13,7 @@ type Sub = { plan_slug: string; status: string; current_period_end: string; last
 
 const CHECKOUT_KEY: Record<string, string> = {
   basic: "checkout_basic_url",
-  standard: "checkout_pro_url",
-  pro: "checkout_pro_url",
-  unlimited: "checkout_advanced_url",
+  unlimited: "checkout_unlimited_url",
 };
 
 export default function PlanUpgrade() {
@@ -30,7 +28,7 @@ export default function PlanUpgrade() {
     (async () => {
       const [{ data: p }, { data: ss }, { data: s }, { data: app }] = await Promise.all([
         supabase.from("plans").select("*").eq("active", true).order("sort_order"),
-        supabase.from("system_settings").select("key,value").eq("scope", "global").in("key", ["checkout_basic_url","checkout_pro_url","checkout_advanced_url"]),
+        supabase.from("system_settings").select("key,value").eq("scope", "global").in("key", ["checkout_basic_url","checkout_unlimited_url"]),
         supabase.from("subscriptions").select("plan_slug,status,current_period_end,last_paid_at").eq("user_id", profile?.id ?? "00000000-0000-0000-0000-000000000000").order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("app_settings").select("whatsapp_link").eq("id", 1).maybeSingle(),
       ]);
