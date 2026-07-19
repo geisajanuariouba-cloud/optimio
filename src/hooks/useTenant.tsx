@@ -53,7 +53,7 @@ const C = createContext<Ctx>({
   profile: null, loading: true, isAdmin: false, isSuperAdmin: false, enabledModules: [],
   tenantOwnerId: null, isOwner: true, role: null, permissions: {},
   can: () => true,
-  niche: NICHES.beauty, hasModule: () => true, t: (k) => k, refresh: async () => {},
+  niche: NICHES.beauty_salon, hasModule: () => true, t: (k) => k, refresh: async () => {},
 });
 
 export const TenantProvider = ({ children }: { children: ReactNode }) => {
