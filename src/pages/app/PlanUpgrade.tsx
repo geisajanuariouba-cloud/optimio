@@ -16,7 +16,6 @@ const CHECKOUT_KEY: Record<string, string> = {
   standard: "checkout_pro_url",
   pro: "checkout_pro_url",
   unlimited: "checkout_advanced_url",
-  advanced: "checkout_advanced_url",
 };
 
 export default function PlanUpgrade() {

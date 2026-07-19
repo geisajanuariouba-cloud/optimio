@@ -404,7 +404,6 @@ function BillingPanel() {
     await Promise.all([
       saveSetting("checkout_basic_url", getStr("checkout_basic_url")),
       saveSetting("checkout_pro_url", getStr("checkout_pro_url")),
-      saveSetting("checkout_advanced_url", getStr("checkout_advanced_url")),
       saveSetting("kiwify_webhook_secret", getStr("kiwify_webhook_secret")),
       saveSetting("kiwify_product_map", getStr("kiwify_product_map"), true),
       saveSetting("demo_video_url", getStr("demo_video_url")),
@@ -460,10 +459,9 @@ function BillingPanel() {
           <p className="text-xs text-muted-foreground">A Kiwify pode validar via <code>?token=</code> (padrão) ou <code>x-kiwify-signature</code> HMAC-SHA1 do corpo. Ambos aceitos.</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid md:grid-cols-2 gap-3">
           <div><Label>Checkout URL — Basic</Label><Input value={getStr("checkout_basic_url")} onChange={(e) => setStr("checkout_basic_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
           <div><Label>Checkout URL — Pro</Label><Input value={getStr("checkout_pro_url")} onChange={(e) => setStr("checkout_pro_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
-          <div><Label>Checkout URL — Advanced</Label><Input value={getStr("checkout_advanced_url")} onChange={(e) => setStr("checkout_advanced_url", e.target.value)} placeholder="https://pay.kiwify.com.br/..." /></div>
         </div>
         <div className="grid md:grid-cols-2 gap-3">
           <div><Label>Kiwify Webhook Secret</Label><Input value={getStr("kiwify_webhook_secret")} onChange={(e) => setStr("kiwify_webhook_secret", e.target.value)} placeholder="token compartilhado" /></div>
@@ -490,7 +488,7 @@ function BillingPanel() {
         <div>
           <Label>Mapeamento Kiwify (JSON: product_id → internal_plan)</Label>
           <textarea className="w-full min-h-[100px] rounded-md bg-secondary/40 border border-border px-3 py-2 font-mono text-xs" value={typeof settings.kiwify_product_map === "string" ? settings.kiwify_product_map : JSON.stringify(settings.kiwify_product_map ?? {}, null, 2)} onChange={(e) => setStr("kiwify_product_map", e.target.value)} placeholder='{"PROD_ID_BASIC":"basic","PROD_ID_PRO":"pro"}' />
-          <p className="text-xs text-muted-foreground mt-1">Use o ID do produto Kiwify como chave e o plano interno (basic/pro/advanced) como valor.</p>
+          <p className="text-xs text-muted-foreground mt-1">Use o ID do produto Kiwify como chave e o plano interno (basic/pro/unlimited) como valor.</p>
         </div>
         <Button onClick={saveAll} disabled={busy} className="bg-gradient-brand text-white border-0 gap-2"><Save className="h-4 w-4" />{busy ? "Salvando…" : "Salvar configurações"}</Button>
       </Card>
