@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { NICHES, NicheKey } from "@/lib/niches";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, ArrowUp, LifeBuoy, Shield, ShieldCheck, AlertTriangle, Lock, Puzzle } from "lucide-react";
+import { Settings as SettingsIcon, Palette, RefreshCw, Crown, Tags, Plus, Trash2, ClipboardList, LifeBuoy, Shield, ShieldCheck, AlertTriangle, Lock, Puzzle, Mail, UserCog } from "lucide-react";
 import ModulesSettings from "@/components/app/ModulesSettings";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
@@ -34,7 +34,7 @@ type Q = { key: string; label: string };
 
 export default function Settings() {
   const { user } = useAuth();
-  const { profile, refresh } = useTenant();
+  const { profile, refresh, isSuperAdmin } = useTenant();
   const [companyName, setCompanyName] = useState("");
   const [fullName, setFullName] = useState("");
   const [niche, setNiche] = useState<NicheKey>("beauty_salon");
@@ -59,6 +59,14 @@ export default function Settings() {
   const [questions, setQuestions] = useState<Q[]>([]);
   const [savingAnam, setSavingAnam] = useState(false);
 
+  // Admin: gestão de planos
+  const [plans, setPlans] = useState<{ id: string; slug: string; name: string }[]>([]);
+  const [adminSelfPlan, setAdminSelfPlan] = useState("");
+  const [targetEmail, setTargetEmail] = useState("");
+  const [targetPlan, setTargetPlan] = useState("");
+  const [targetMonths, setTargetMonths] = useState(1);
+  const [adminBusy, setAdminBusy] = useState(false);
+
 
   useEffect(() => {
     if (!profile) return;
@@ -75,14 +83,43 @@ export default function Settings() {
 
   const loadExtras = async () => {
     if (!user) return;
-    const [{ data: c }, { data: a }] = await Promise.all([
+    const [{ data: c }, { data: a }, { data: p }] = await Promise.all([
       supabase.from("categories").select("id,kind,name").order("kind").order("name"),
       supabase.from("anamnesis_templates").select("questions").eq("user_id", user.id).maybeSingle(),
+      supabase.from("plans").select("id,slug,name").eq("active", true).order("sort_order"),
     ]);
     setCats((c ?? []) as any);
     setQuestions(((a?.questions as any) ?? []) as Q[]);
+    if (p) setPlans(p as any);
   };
   useEffect(() => { loadExtras(); }, [user]);
+
+  const selfUpgrade = async () => {
+    if (!user || !adminSelfPlan) return;
+    setAdminBusy(true);
+    const { error } = await supabase.from("profiles")
+      .update({ plan: adminSelfPlan, account_status: "active" } as any)
+      .eq("id", user.id);
+    setAdminBusy(false);
+    if (error) toast.error(friendlyError(error));
+    else { toast.success(`Seu plano alterado para ${adminSelfPlan}`); refresh(); }
+  };
+
+  const upgradeOther = async () => {
+    if (!targetEmail.trim() || !targetPlan) return;
+    setAdminBusy(true);
+    const { error } = await supabase.rpc("admin_set_plan_by_email" as any, {
+      p_email: targetEmail.trim().toLowerCase(),
+      p_plan: targetPlan,
+      p_months: targetMonths,
+    });
+    setAdminBusy(false);
+    if (error) toast.error(friendlyError(error));
+    else {
+      toast.success(`Plano de ${targetEmail} alterado para ${targetPlan} (+${targetMonths}m)`);
+      setTargetEmail(""); setTargetPlan(""); setTargetMonths(1);
+    }
+  };
 
   const save = async () => {
     if (!user) return;
@@ -189,6 +226,13 @@ export default function Settings() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div><Label>Nome completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-secondary/50 border-0 h-11" /></div>
               <div><Label>Nome da empresa (whitelabel)</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="bg-secondary/50 border-0 h-11" /></div>
+            </div>
+            <div>
+              <Label>Email cadastrado</Label>
+              <div className="flex items-center gap-2 mt-1 h-11 px-3 rounded-lg bg-secondary/50 text-sm text-muted-foreground select-all">
+                <Mail className="h-4 w-4 shrink-0" />
+                {user?.email ?? "—"}
+              </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
@@ -436,6 +480,85 @@ export default function Settings() {
             </div>
             <p className="text-xs text-muted-foreground">A página de upgrade carrega seu vencimento, plano atual e os links de checkout configurados pelo administrador.</p>
           </Card>
+
+          {isSuperAdmin && (
+            <Card className="p-6 rounded-3xl border-0 shadow-sm space-y-5 border border-primary/30">
+              <div className="flex items-center gap-2">
+                <UserCog className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Gestão de planos</h2>
+                <Badge className="bg-primary/10 text-primary border-primary/20">Super Admin</Badge>
+              </div>
+
+              {/* Auto-subir de plano */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Alterar meu próprio plano</Label>
+                <div className="flex gap-2">
+                  <Select value={adminSelfPlan} onValueChange={setAdminSelfPlan}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecionar plano…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans.map(p => <SelectItem key={p.id} value={p.slug}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={selfUpgrade} disabled={adminBusy || !adminSelfPlan} className="rounded-2xl">
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-border/50 pt-4 space-y-3">
+                <Label className="text-sm font-medium">Subir plano de outro usuário</Label>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 text-amber-700 text-xs">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  Requer a migration <code>20260718000000_admin_set_plan_by_email.sql</code> aplicada no Supabase.
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Email do usuário</Label>
+                    <Input
+                      type="email"
+                      placeholder="email@exemplo.com"
+                      value={targetEmail}
+                      onChange={e => setTargetEmail(e.target.value)}
+                      className="mt-1 bg-secondary/50 border-0 h-10"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Novo plano</Label>
+                    <Select value={targetPlan} onValueChange={setTargetPlan}>
+                      <SelectTrigger className="mt-1 h-10">
+                        <SelectValue placeholder="Plano…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {plans.map(p => <SelectItem key={p.id} value={p.slug}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={String(targetMonths)} onValueChange={v => setTargetMonths(Number(v))}>
+                    <SelectTrigger className="w-36 h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 mês</SelectItem>
+                      <SelectItem value="3">3 meses</SelectItem>
+                      <SelectItem value="6">6 meses</SelectItem>
+                      <SelectItem value="12">12 meses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={upgradeOther}
+                    disabled={adminBusy || !targetEmail.trim() || !targetPlan}
+                    className="rounded-2xl"
+                  >
+                    {adminBusy ? "Aplicando…" : "Subir plano"}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
