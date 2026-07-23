@@ -144,10 +144,12 @@ export function AppSidebar() {
   const visible = (it: Item) => {
     // Painel interno da Optimio: só Super Admin (verificado antes de qualquer atalho).
     if (it.superAdminOnly) return isSuperAdmin;
+    // Módulos sempre respeitam o que foi configurado, mesmo para Admin Master —
+    // é justamente a própria conta que customiza o que aparece.
+    if (it.mod && !isModuleVisible(it.mod)) return false;
     if (adminMaster) return true;
     if (it.adminOnly && !isAdmin) return false;
     if (it.ownerOnly && !isOwner) return false;
-    if (it.mod && !isModuleVisible(it.mod)) return false;
     return true;
   };
 

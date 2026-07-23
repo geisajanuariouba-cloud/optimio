@@ -139,8 +139,8 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   }, [adminMaster, isOwner, role, permissions]);
 
   const hasModule = useCallback(
-    (m: string) => adminMaster || enabled.includes(m),
-    [adminMaster, enabled]
+    (m: string) => enabled.includes(m),
+    [enabled]
   );
 
   const t = useCallback(
