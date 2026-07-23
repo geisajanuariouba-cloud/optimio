@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback,
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { NICHES, NicheKey, NicheConfig } from "@/lib/niches";
+import { MODULE_CATALOG } from "@/lib/modules";
 
 type Profile = {
   id: string;
@@ -122,10 +123,13 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   const niche = NICHES[(profile?.niche as NicheKey) ?? "beauty_salon"] ?? NICHES.beauty_salon;
   const adminMaster = !!profile?.is_admin_master;
   const isUnlimited = profile?.plan === "unlimited";
-  const enabled = useMemo(
-    () => (profile?.enabled_modules?.length ? profile.enabled_modules : niche.modules),
-    [profile?.enabled_modules, niche]
-  );
+  const enabled = useMemo(() => {
+    // Se o tenant já customizou os módulos (via Configurações → Módulos), respeita a escolha.
+    if (profile?.enabled_modules?.length) return profile.enabled_modules;
+    // Sem customização: unlimited libera tudo por padrão; demais planos usam o padrão do nicho.
+    if (isUnlimited) return MODULE_CATALOG.map((m) => m.key);
+    return niche.modules;
+  }, [profile?.enabled_modules, niche, isUnlimited]);
 
   const can = useCallback((perm: string) => {
     if (adminMaster) return true;
@@ -135,8 +139,8 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   }, [adminMaster, isOwner, role, permissions]);
 
   const hasModule = useCallback(
-    (m: string) => adminMaster || isUnlimited || enabled.includes(m),
-    [adminMaster, isUnlimited, enabled]
+    (m: string) => adminMaster || enabled.includes(m),
+    [adminMaster, enabled]
   );
 
   const t = useCallback(
