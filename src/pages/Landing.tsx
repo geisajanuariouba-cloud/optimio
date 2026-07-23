@@ -34,7 +34,7 @@ function useCountdown() {
 function TimeBox({ v, label }: { v: string; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="bg-orange-500 text-white font-mono font-black text-xl sm:text-2xl rounded-xl px-4 py-2 min-w-[56px] text-center leading-none shadow-md">
+      <div className="bg-lime-400 text-gray-900 font-mono font-black text-xl sm:text-2xl rounded-xl px-4 py-2 min-w-[56px] text-center leading-none shadow-md">
         {v}
       </div>
       <span className="text-[10px] text-gray-400 font-semibold mt-1 tracking-widest uppercase">{label}</span>
@@ -61,7 +61,7 @@ function DashboardMock() {
           {[
             { label: "Receita", val: "R$18.420", color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Despesas", val: "R$9.130", color: "text-rose-600", bg: "bg-rose-50" },
-            { label: "Lucro", val: "R$9.290", color: "text-orange-600", bg: "bg-orange-50" },
+            { label: "Lucro", val: "R$9.290", color: "text-lime-700", bg: "bg-lime-50" },
           ].map(({ label, val, color, bg }) => (
             <div key={label} className={`${bg} rounded-2xl p-3 text-center`}>
               <p className="text-[10px] text-gray-500 mb-0.5">{label}</p>
@@ -184,7 +184,7 @@ export default function Landing() {
           {/* desktop links */}
           <div className="hidden md:flex items-center gap-6 text-sm text-gray-500 font-medium">
             {[["recursos", "Recursos"], ["como-funciona", "Como Funciona"], ["planos", "Planos"], ["depoimentos", "Depoimentos"]].map(([id, label]) => (
-              <button key={id} onClick={() => scrollTo(id)} className="hover:text-orange-500 transition">{label}</button>
+              <button key={id} onClick={() => scrollTo(id)} className="hover:text-lime-600 transition">{label}</button>
             ))}
           </div>
           <div className="flex items-center gap-3">
@@ -194,7 +194,7 @@ export default function Landing() {
               </button>
             </Link>
             <a href="#planos">
-              <button className="bg-orange-500 hover:bg-orange-400 text-white text-sm font-bold px-5 py-2 rounded-xl transition shadow-sm shadow-orange-200">
+              <button className="bg-lime-400 hover:bg-lime-300 text-gray-900 text-sm font-bold px-5 py-2 rounded-xl transition shadow-sm shadow-lime-200">
                 Começar agora
               </button>
             </a>
@@ -207,7 +207,7 @@ export default function Landing() {
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-4 text-sm font-medium text-gray-600">
             {[["recursos", "Recursos"], ["como-funciona", "Como Funciona"], ["planos", "Planos"], ["depoimentos", "Depoimentos"]].map(([id, label]) => (
-              <button key={id} onClick={() => scrollTo(id)} className="text-left hover:text-orange-500 transition">{label}</button>
+              <button key={id} onClick={() => scrollTo(id)} className="text-left hover:text-lime-600 transition">{label}</button>
             ))}
           </div>
         )}
@@ -217,12 +217,12 @@ export default function Landing() {
       <section className="pt-28 pb-20 px-5 max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-block bg-orange-50 border border-orange-200 text-orange-600 text-xs font-bold px-4 py-1.5 rounded-full mb-5 uppercase tracking-widest">
+            <span className="inline-block bg-lime-50 border border-lime-300 text-lime-700 text-xs font-bold px-4 py-1.5 rounded-full mb-5 uppercase tracking-widest">
               Sistema ERP para pequenas empresas
             </span>
             <h1 className="text-4xl sm:text-5xl font-black leading-[1.1] mb-5 text-gray-900">
               Gerencie sua empresa de forma{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-600 to-green-600">
                 simples e inteligente.
               </span>
             </h1>
@@ -231,11 +231,11 @@ export default function Landing() {
             </p>
             <div className="flex flex-wrap gap-3 mb-6">
               <a href="#planos">
-                <button className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-400 text-white font-bold text-base px-7 py-3.5 rounded-2xl shadow-lg shadow-orange-100 transition hover:scale-105">
+                <button className="inline-flex items-center gap-2 bg-lime-400 hover:bg-lime-300 text-gray-900 font-bold text-base px-7 py-3.5 rounded-2xl shadow-lg shadow-lime-200 transition hover:scale-105">
                   Testar agora <ArrowRight className="h-4 w-4" />
                 </button>
               </a>
-              <button onClick={() => scrollTo("planos")} className="inline-flex items-center gap-2 border border-gray-200 hover:border-orange-300 text-gray-600 hover:text-orange-600 font-semibold text-base px-7 py-3.5 rounded-2xl transition">
+              <button onClick={() => scrollTo("planos")} className="inline-flex items-center gap-2 border border-gray-200 hover:border-lime-300 text-gray-600 hover:text-lime-700 font-semibold text-base px-7 py-3.5 rounded-2xl transition">
                 Ver planos
               </button>
             </div>
@@ -261,7 +261,7 @@ export default function Landing() {
             { n: "7 dias", l: "garantia de reembolso" },
           ].map(({ n, l }) => (
             <div key={l}>
-              <div className="text-2xl md:text-3xl font-black text-orange-500">{n}</div>
+              <div className="text-2xl md:text-3xl font-black text-lime-600">{n}</div>
               <div className="text-xs text-gray-400 mt-1">{l}</div>
             </div>
           ))}
@@ -271,14 +271,14 @@ export default function Landing() {
       {/* ── RECURSOS ─────────────────────────────────────────────── */}
       <section id="recursos" className="py-20 px-5 max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Funcionalidades</span>
+          <span className="text-xs font-bold text-lime-600 uppercase tracking-widest">Funcionalidades</span>
           <h2 className="text-3xl md:text-4xl font-black mt-2 text-gray-900">Tudo que sua empresa precisa</h2>
           <p className="text-gray-500 mt-3 max-w-xl mx-auto">Um sistema completo, sem precisar contratar 4 ferramentas diferentes.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {recursos.map(({ icon, titulo, desc }) => (
-            <div key={titulo} className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-orange-300 hover:shadow-lg hover:shadow-orange-50 transition-all group">
-              <div className="h-11 w-11 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4 group-hover:bg-orange-500 group-hover:text-white transition-all">
+            <div key={titulo} className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-100 transition-all group">
+              <div className="h-11 w-11 rounded-xl bg-lime-50 text-lime-600 flex items-center justify-center mb-4 group-hover:bg-lime-400 group-hover:text-gray-900 transition-all">
                 {icon}
               </div>
               <h3 className="font-bold text-gray-900 mb-1">{titulo}</h3>
@@ -292,14 +292,14 @@ export default function Landing() {
       <section id="como-funciona" className="py-20 px-5 bg-gray-50 border-y border-gray-100">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Passo a passo</span>
+            <span className="text-xs font-bold text-lime-600 uppercase tracking-widest">Passo a passo</span>
             <h2 className="text-3xl md:text-4xl font-black mt-2 text-gray-900">Como o Optimio funciona</h2>
             <p className="text-gray-500 mt-3">Da configuração ao controle total, em minutos.</p>
           </div>
           <div className="space-y-8">
             {comoFunciona.map(({ num, titulo, desc, items }) => (
               <div key={num} className="bg-white border border-gray-200 rounded-3xl p-7 flex gap-6 items-start shadow-sm">
-                <div className="text-4xl font-black text-orange-100 shrink-0 leading-none">{num}</div>
+                <div className="text-4xl font-black text-lime-100 shrink-0 leading-none">{num}</div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{titulo}</h3>
                   <p className="text-sm text-gray-500 leading-relaxed mb-3">{desc}</p>
@@ -320,7 +320,7 @@ export default function Landing() {
       {/* ── PLANOS ───────────────────────────────────────────────── */}
       <section id="planos" className="py-20 px-5 max-w-5xl mx-auto">
         <div className="text-center mb-10">
-          <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Preços</span>
+          <span className="text-xs font-bold text-lime-600 uppercase tracking-widest">Preços</span>
           <h2 className="text-3xl md:text-4xl font-black mt-2 text-gray-900">Um plano. Tudo incluso.</h2>
           <p className="text-gray-500 mt-3">Escolha a forma de pagamento que preferir.</p>
         </div>
@@ -330,9 +330,9 @@ export default function Landing() {
           <p className="text-sm font-semibold text-gray-500">Oferta especial encerra em:</p>
           <div className="flex items-start gap-3">
             <TimeBox v={h} label="Horas" />
-            <span className="text-orange-400 font-black text-2xl mt-2">:</span>
+            <span className="text-lime-500 font-black text-2xl mt-2">:</span>
             <TimeBox v={m} label="Min" />
-            <span className="text-orange-400 font-black text-2xl mt-2">:</span>
+            <span className="text-lime-500 font-black text-2xl mt-2">:</span>
             <TimeBox v={s} label="Seg" />
           </div>
         </div>
@@ -342,13 +342,13 @@ export default function Landing() {
           <div className="inline-flex bg-gray-100 border border-gray-200 rounded-2xl p-1">
             <button
               onClick={() => setCiclo("mensal")}
-              className={`px-7 py-2.5 rounded-xl text-sm font-semibold transition-all ${ciclo === "mensal" ? "bg-orange-500 text-white shadow" : "text-gray-500 hover:text-gray-800"}`}
+              className={`px-7 py-2.5 rounded-xl text-sm font-semibold transition-all ${ciclo === "mensal" ? "bg-lime-400 text-gray-900 shadow" : "text-gray-500 hover:text-gray-800"}`}
             >
               Mensal
             </button>
             <button
               onClick={() => setCiclo("trimestral")}
-              className={`px-7 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${ciclo === "trimestral" ? "bg-orange-500 text-white shadow" : "text-gray-500 hover:text-gray-800"}`}
+              className={`px-7 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${ciclo === "trimestral" ? "bg-lime-400 text-gray-900 shadow" : "text-gray-500 hover:text-gray-800"}`}
             >
               Trimestral
               <span className="absolute -top-2.5 -right-3 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full whitespace-nowrap">-40%</span>
@@ -357,15 +357,15 @@ export default function Landing() {
         </div>
 
         {/* Card */}
-        <div className="max-w-md mx-auto bg-white border-2 border-orange-400 rounded-3xl overflow-hidden shadow-xl shadow-orange-100">
-          <div className="h-1.5 bg-gradient-to-r from-orange-500 to-amber-400" />
+        <div className="max-w-md mx-auto bg-white border-2 border-lime-400 rounded-3xl overflow-hidden shadow-xl shadow-lime-200">
+          <div className="h-1.5 bg-gradient-to-r from-lime-400 to-green-400" />
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <p className="text-xs font-bold text-orange-500 uppercase tracking-widest mb-0.5">Plano Optimio</p>
+                <p className="text-xs font-bold text-lime-600 uppercase tracking-widest mb-0.5">Plano Optimio</p>
                 <p className="text-sm text-gray-400">Acesso completo a todos os módulos</p>
               </div>
-              <span className="bg-orange-500 text-white text-xs font-black px-3 py-1 rounded-full">MAIS POPULAR</span>
+              <span className="bg-lime-400 text-gray-900 text-xs font-black px-3 py-1 rounded-full">MAIS POPULAR</span>
             </div>
 
             {ciclo === "mensal" ? (
@@ -373,7 +373,7 @@ export default function Landing() {
                 <p className="text-gray-400 text-sm line-through mb-1">De R$89,90/mês</p>
                 <div className="flex items-baseline gap-1">
                   <span className="text-5xl font-black text-gray-900">R$37</span>
-                  <span className="text-3xl font-black text-orange-500">,90</span>
+                  <span className="text-3xl font-black text-lime-600">,90</span>
                   <span className="text-gray-400 text-sm">/mês</span>
                 </div>
                 <p className="text-emerald-600 text-sm font-semibold mt-1">Economia de R$52,00 vs preço cheio</p>
@@ -383,7 +383,7 @@ export default function Landing() {
                 <p className="text-gray-400 text-sm line-through mb-1">De R$113,70 (3x o mensal)</p>
                 <div className="flex items-baseline gap-1">
                   <span className="text-5xl font-black text-gray-900">R$67</span>
-                  <span className="text-3xl font-black text-orange-500">,90</span>
+                  <span className="text-3xl font-black text-lime-600">,90</span>
                   <span className="text-gray-400 text-sm">/trimestre</span>
                 </div>
                 <p className="text-gray-400 text-sm mt-0.5">Equivale a R$22,63/mês por 3 meses</p>
@@ -414,7 +414,7 @@ export default function Landing() {
             </div>
 
             <a href={ctaUrl} target="_blank" rel="noopener noreferrer" className="block">
-              <button className="w-full bg-orange-500 hover:bg-orange-400 text-white font-black text-lg py-4 rounded-2xl transition hover:scale-[1.02] shadow-lg shadow-orange-100">
+              <button className="w-full bg-lime-400 hover:bg-lime-300 text-gray-900 font-black text-lg py-4 rounded-2xl transition hover:scale-[1.02] shadow-lg shadow-lime-200">
                 Começar agora
               </button>
             </a>
@@ -452,7 +452,7 @@ export default function Landing() {
       <section id="depoimentos" className="py-20 px-5 bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Depoimentos</span>
+            <span className="text-xs font-bold text-lime-600 uppercase tracking-widest">Depoimentos</span>
             <h2 className="text-3xl md:text-4xl font-black mt-2 text-gray-900">Quem usa, recomenda</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -463,7 +463,7 @@ export default function Landing() {
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed mb-5">"{texto}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-orange-100 text-orange-600 font-black text-sm flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-lime-100 text-lime-700 font-black text-sm flex items-center justify-center shrink-0">
                     {iniciais}
                   </div>
                   <div>
@@ -480,7 +480,7 @@ export default function Landing() {
       {/* ── FAQ ──────────────────────────────────────────────────── */}
       <section className="py-20 px-5 max-w-2xl mx-auto">
         <div className="text-center mb-12">
-          <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Dúvidas</span>
+          <span className="text-xs font-bold text-lime-600 uppercase tracking-widest">Dúvidas</span>
           <h2 className="text-3xl md:text-4xl font-black mt-2 text-gray-900">Perguntas frequentes</h2>
         </div>
         <div className="space-y-3">
@@ -502,18 +502,18 @@ export default function Landing() {
       </section>
 
       {/* ── CTA FINAL ────────────────────────────────────────────── */}
-      <section className="px-5 py-16 bg-gradient-to-br from-orange-500 to-amber-500">
+      <section className="px-5 py-16 bg-gradient-to-br from-lime-500 to-emerald-600">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
             Pronto para ter controle total do seu negócio?
           </h2>
-          <p className="text-orange-100 mb-8 text-lg">Comece agora e veja a diferença em menos de uma semana.</p>
+          <p className="text-lime-100 mb-8 text-lg">Comece agora e veja a diferença em menos de uma semana.</p>
           <a href={ctaUrl} target="_blank" rel="noopener noreferrer">
-            <button className="inline-flex items-center gap-2 bg-white text-orange-600 hover:bg-orange-50 font-black text-xl px-12 py-5 rounded-2xl shadow-xl transition hover:scale-105">
+            <button className="inline-flex items-center gap-2 bg-white text-lime-700 hover:bg-lime-50 font-black text-xl px-12 py-5 rounded-2xl shadow-xl transition hover:scale-105">
               Começar agora <ArrowRight className="h-6 w-6" />
             </button>
           </a>
-          <div className="mt-5 flex flex-wrap justify-center gap-5 text-sm text-orange-100">
+          <div className="mt-5 flex flex-wrap justify-center gap-5 text-sm text-lime-100">
             <span className="flex items-center gap-1.5"><Lock className="h-4 w-4" /> Pagamento seguro</span>
             <span className="flex items-center gap-1.5"><Shield className="h-4 w-4" /> Garantia 7 dias</span>
             <span className="flex items-center gap-1.5"><Check className="h-4 w-4" /> Acesso imediato</span>

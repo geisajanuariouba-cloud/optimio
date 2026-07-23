@@ -15,6 +15,7 @@ import { ArrowRight, Check, Upload, Loader2, X } from "lucide-react";
 import { extractPaletteFromFile, Palette } from "@/lib/colorExtract";
 
 const COLORS = [
+  { name: "Verde Limão Neon", value: "72 100% 50%" },
   { name: "Roxo Optimio", value: "271 91% 65%" },
   { name: "Ciano", value: "174 80% 55%" },
   { name: "Rosa Jewelry", value: "322 70% 55%" },
@@ -40,7 +41,7 @@ export default function Onboarding() {
     has_appointments: true,
     produces_own: "resell" as "produce" | "resell" | "none",
     estimated_volume: "low",
-    primary_color: "271 91% 65%",
+    primary_color: "72 100% 50%",
     secondary_color: "220 15% 25%",
     accent_color: "174 80% 55%",
     border_style: "rounded",

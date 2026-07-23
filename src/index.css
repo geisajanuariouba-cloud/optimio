@@ -15,8 +15,8 @@
     --popover: 258 35% 10%;
     --popover-foreground: 240 20% 96%;
 
-    --primary: 271 91% 65%;
-    --primary-foreground: 240 20% 98%;
+    --primary: 72 100% 50%;
+    --primary-foreground: 90 30% 8%;
 
     --secondary: 258 30% 16%;
     --secondary-foreground: 240 20% 96%;
@@ -24,15 +24,15 @@
     --muted: 258 25% 14%;
     --muted-foreground: 240 10% 65%;
 
-    --accent: 174 80% 55%;
-    --accent-foreground: 258 60% 10%;
+    --accent: 90 100% 45%;
+    --accent-foreground: 90 30% 8%;
 
     --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 258 25% 18%;
     --input: 258 25% 18%;
-    --ring: 271 91% 65%;
+    --ring: 72 100% 50%;
 
     --radius: 1rem;
 
@@ -41,6 +41,7 @@
     --brand-purple: 280 85% 55%;
     --brand-cyan: 174 80% 55%;
     --brand-blue: 220 90% 65%;
+    --brand-lime: 72 100% 50%;
 
     /* Skillset (backoffice) - applied via .theme-skillset */
     --skill-bg: 220 14% 96%;
@@ -58,25 +59,25 @@
 
     --sidebar-background: 258 40% 8%;
     --sidebar-foreground: 240 15% 85%;
-    --sidebar-primary: 271 91% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 72 100% 50%;
+    --sidebar-primary-foreground: 90 30% 8%;
     --sidebar-accent: 258 30% 14%;
     --sidebar-accent-foreground: 240 20% 96%;
     --sidebar-border: 258 25% 16%;
-    --sidebar-ring: 174 80% 55%;
+    --sidebar-ring: 72 100% 50%;
 
     /* Gradients */
-    --gradient-brand: linear-gradient(135deg, hsl(280 85% 55%), hsl(271 91% 65%) 45%, hsl(220 90% 65%) 75%, hsl(174 80% 55%));
-    --gradient-radial: radial-gradient(1200px 600px at 20% 0%, hsl(271 91% 65% / 0.25), transparent 60%),
-                       radial-gradient(900px 500px at 90% 30%, hsl(174 80% 55% / 0.18), transparent 60%),
-                       radial-gradient(800px 600px at 50% 100%, hsl(280 85% 55% / 0.18), transparent 60%);
+    --gradient-brand: linear-gradient(135deg, hsl(90 100% 45%), hsl(72 100% 50%) 50%, hsl(150 90% 45%) 100%);
+    --gradient-radial: radial-gradient(1200px 600px at 20% 0%, hsl(72 100% 50% / 0.22), transparent 60%),
+                       radial-gradient(900px 500px at 90% 30%, hsl(90 100% 45% / 0.16), transparent 60%),
+                       radial-gradient(800px 600px at 50% 100%, hsl(150 90% 45% / 0.16), transparent 60%);
     --gradient-card: linear-gradient(180deg, hsl(258 35% 12% / 0.9), hsl(258 40% 8% / 0.9));
-    --glow-primary: 0 0 60px hsl(271 91% 65% / 0.45);
-    --glow-accent: 0 0 50px hsl(174 80% 55% / 0.35);
+    --glow-primary: 0 0 60px hsl(72 100% 50% / 0.45);
+    --glow-accent: 0 0 50px hsl(90 100% 45% / 0.35);
     --shadow-elegant: 0 30px 80px -20px hsl(280 60% 10% / 0.6);
   }
 
-  /* OPTIMIO V2 — Premium dark orange (app shell, default) */
+  /* OPTIMIO V2 — Premium dark lime (app shell, default) */
   .theme-skillset {
     --background: 0 0% 2%;
     --foreground: 0 0% 100%;
@@ -84,35 +85,35 @@
     --card-foreground: 0 0% 100%;
     --popover: 0 0% 6.3%;
     --popover-foreground: 0 0% 100%;
-    --primary: 22 100% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 72 100% 50%;
+    --primary-foreground: 90 30% 7%;
     --secondary: 0 0% 9%;
     --secondary-foreground: 0 0% 100%;
     --muted: 0 0% 9%;
     --muted-foreground: 0 0% 63%;
-    --accent: 22 100% 57%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 90 100% 48%;
+    --accent-foreground: 90 30% 7%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 14.5%;
     --input: 0 0% 14.5%;
-    --ring: 22 100% 50%;
+    --ring: 72 100% 50%;
     --radius: 0.875rem;
 
     --sidebar-background: 0 0% 3.5%;
     --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 22 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 72 100% 50%;
+    --sidebar-primary-foreground: 90 30% 7%;
     --sidebar-accent: 0 0% 9%;
-    --sidebar-accent-foreground: 22 100% 60%;
+    --sidebar-accent-foreground: 84 100% 55%;
     --sidebar-border: 0 0% 12%;
-    --sidebar-ring: 22 100% 50%;
+    --sidebar-ring: 72 100% 50%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(22 100% 50%), hsl(28 100% 60%));
+    --gradient-brand: linear-gradient(135deg, hsl(72 100% 50%), hsl(90 100% 45%));
     --gradient-card: linear-gradient(180deg, hsl(0 0% 8% / 0.95), hsl(0 0% 5% / 0.95));
-    --glow-primary: 0 0 40px hsl(22 100% 50% / 0.35);
-    --glow-accent: 0 0 32px hsl(22 100% 57% / 0.30);
-    --shadow-elegant: 0 20px 60px -20px hsl(22 100% 30% / 0.4);
+    --glow-primary: 0 0 40px hsl(72 100% 50% / 0.35);
+    --glow-accent: 0 0 32px hsl(90 100% 48% / 0.30);
+    --shadow-elegant: 0 20px 60px -20px hsl(90 90% 30% / 0.4);
   }
 
   /* Light mode variant — high-contrast premium.
@@ -126,25 +127,25 @@
     --card-foreground: 0 0% 8%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 8%;
-    --primary: 22 100% 48%;
+    --primary: 84 78% 34%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 12%;
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 32%;
-    --accent: 22 100% 55%;
+    --accent: 84 78% 38%;
     --accent-foreground: 0 0% 100%;
     --border: 0 0% 88%;
     --input: 0 0% 88%;
-    --ring: 22 100% 48%;
+    --ring: 84 78% 34%;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 18%;
-    --sidebar-primary: 22 100% 48%;
+    --sidebar-primary: 84 78% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 95%;
-    --sidebar-accent-foreground: 22 100% 42%;
+    --sidebar-accent-foreground: 84 78% 30%;
     --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 22 100% 48%;
+    --sidebar-ring: 84 78% 34%;
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
     --shadow-elegant: 0 20px 60px -20px hsl(0 0% 0% / 0.12);
   }
@@ -237,8 +238,8 @@
     transition: border-color .25s ease, transform .25s ease, box-shadow .25s ease;
   }
   .theme-skillset .premium-card:hover {
-    border-color: hsl(22 100% 50% / 0.35);
-    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.05) inset, 0 30px 80px -30px hsl(22 100% 30% / 0.45);
+    border-color: hsl(72 100% 50% / 0.35);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.05) inset, 0 30px 80px -30px hsl(90 90% 30% / 0.45);
   }
   .light .theme-skillset .premium-card,
   .theme-skillset.light .premium-card {
@@ -250,18 +251,18 @@
   .light .theme-skillset .premium-feature,
   .theme-skillset.light .premium-feature {
     background:
-      radial-gradient(120% 80% at 0% 0%, hsl(22 100% 50% / 0.10), transparent 55%),
-      radial-gradient(100% 80% at 100% 100%, hsl(28 100% 60% / 0.08), transparent 55%),
+      radial-gradient(120% 80% at 0% 0%, hsl(72 100% 50% / 0.10), transparent 55%),
+      radial-gradient(100% 80% at 100% 100%, hsl(90 100% 50% / 0.08), transparent 55%),
       linear-gradient(180deg, #ffffff, #fafafa);
-    border: 1px solid hsl(22 100% 50% / 0.25);
+    border: 1px solid hsl(72 100% 50% / 0.25);
     color: hsl(var(--foreground));
   }
   .theme-skillset .premium-feature {
     background:
-      radial-gradient(120% 80% at 0% 0%, hsl(22 100% 50% / 0.20), transparent 55%),
-      radial-gradient(100% 80% at 100% 100%, hsl(28 100% 60% / 0.14), transparent 55%),
+      radial-gradient(120% 80% at 0% 0%, hsl(72 100% 50% / 0.20), transparent 55%),
+      radial-gradient(100% 80% at 100% 100%, hsl(90 100% 50% / 0.14), transparent 55%),
       linear-gradient(180deg, hsl(0 0% 8% / 0.95), hsl(0 0% 5% / 0.95));
-    border: 1px solid hsl(22 100% 50% / 0.28);
+    border: 1px solid hsl(72 100% 50% / 0.28);
   }
   .theme-skillset .pill {
     border-radius: 999px;
@@ -310,11 +311,11 @@
 .theme-skillset ::-webkit-scrollbar { width: 6px; height: 6px; }
 .theme-skillset ::-webkit-scrollbar-track { background: transparent; }
 .theme-skillset ::-webkit-scrollbar-thumb {
-  background: hsl(22 100% 50% / 0.45);
+  background: hsl(72 100% 50% / 0.45);
   border-radius: 999px;
   transition: background .2s;
 }
-.theme-skillset ::-webkit-scrollbar-thumb:hover { background: hsl(22 100% 50% / 0.75); }
+.theme-skillset ::-webkit-scrollbar-thumb:hover { background: hsl(72 100% 50% / 0.75); }
 /* Premium scrollbar — light mode */
 .light .theme-skillset ::-webkit-scrollbar-thumb,
 .theme-skillset.light ::-webkit-scrollbar-thumb {
@@ -322,5 +323,5 @@
 }
 .light .theme-skillset ::-webkit-scrollbar-thumb:hover,
 .theme-skillset.light ::-webkit-scrollbar-thumb:hover {
-  background: hsl(22 100% 50% / 0.65);
+  background: hsl(72 100% 50% / 0.65);
 }

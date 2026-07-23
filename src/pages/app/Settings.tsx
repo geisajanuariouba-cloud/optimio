@@ -21,6 +21,7 @@ import { getCycleLabel } from "@/lib/operationalCycle";
 
 
 const COLORS = [
+  { name: "Verde Limão Neon", value: "72 100% 50%" },
   { name: "Roxo", value: "271 91% 65%" },
   { name: "Ciano", value: "174 80% 55%" },
   { name: "Rosa", value: "322 70% 55%" },
@@ -38,7 +39,7 @@ export default function Settings() {
   const [companyName, setCompanyName] = useState("");
   const [fullName, setFullName] = useState("");
   const [niche, setNiche] = useState<NicheKey>("beauty_salon");
-  const [primaryColor, setPrimaryColor] = useState("271 91% 65%");
+  const [primaryColor, setPrimaryColor] = useState("72 100% 50%");
   const [borderStyle, setBorderStyle] = useState("rounded");
   const [cycleDay, setCycleDay] = useState<number>(1);
   const [alertExact, setAlertExact] = useState<boolean>(false);
