@@ -1,5 +1,5 @@
 // Niche presets — drives Feature Toggle and terminology across the app.
-export type NicheKey = "beauty_salon" | "infoproduct" | "marketplace";
+export type NicheKey = "beauty_salon" | "infoproduct" | "marketplace" | "infoproduct_ecommerce";
 
 export type NicheConfig = {
   key: NicheKey;
@@ -53,6 +53,27 @@ export const NICHES: Record<NicheKey, NicheConfig> = {
       services: "Produtos Digitais",
       professional: "Mentor",
       appointment: "Mentoria",
+    },
+  },
+
+  infoproduct_ecommerce: {
+    key: "infoproduct_ecommerce",
+    label: "E-commerce de Infoprodutos",
+    group: "product",
+    modules: [
+      "dashboard", "clients",
+      "products",
+      "funnel", "campaigns",
+      "financial", ...FINANCIAL_CORE,
+      ...MARKETING_CORE,
+    ],
+    terms: {
+      client: "Comprador",
+      clients: "Compradores",
+      service: "Produto Digital",
+      services: "Produtos Digitais",
+      professional: "Produtor",
+      appointment: "Entrega",
     },
   },
 
