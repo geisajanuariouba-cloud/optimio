@@ -71,6 +71,9 @@ const PlanUpgrade = lazy(() => import("./pages/app/PlanUpgrade"));
 const Reports = lazy(() => import("./pages/app/Reports"));
 const ProductIdeas = lazy(() => import("./pages/app/ProductIdeas"));
 const LegalApp = lazy(() => import("./pages/app/Legal"));
+const AdAccounts = lazy(() => import("./pages/app/AdAccounts"));
+const AdCreatives = lazy(() => import("./pages/app/AdCreatives"));
+const AdCash = lazy(() => import("./pages/app/AdCash"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -155,6 +158,9 @@ const App = () => (
                     <Route path="reports" element={<Reports />} />
                     <Route path="product-ideas" element={<ProductIdeas />} />
                     <Route path="legal" element={<LegalApp />} />
+                    <Route path="ad-accounts" element={<AdAccounts />} />
+                    <Route path="ad-creatives" element={<AdCreatives />} />
+                    <Route path="ad-cash" element={<AdCash />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

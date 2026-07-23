@@ -11,12 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Users, Search, Pencil, Trash2, Phone, Mail, ExternalLink } from "lucide-react";
 import { AddressFields, Address, fullAddress } from "@/components/app/AddressFields";
 
-type Client = Address & { id: string; full_name: string; email: string | null; phone: string | null; notes: string | null; created_at: string; cpf_cnpj: string | null; birth_date: string | null };
+type Client = Address & { id: string; full_name: string; email: string | null; phone: string | null; notes: string | null; created_at: string; cpf_cnpj: string | null; birth_date: string | null; interest_category: string | null };
 
 const empty = { full_name: "", email: "", phone: "", notes: "", cpf_cnpj: "", birth_date: "", address_zip: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "" };
 
@@ -25,6 +27,7 @@ export default function Clients() {
   const nav = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState<any>(empty);
@@ -67,7 +70,11 @@ export default function Clients() {
     toast.success("Movido para lixeira"); load();
   };
 
-  const filtered = clients.filter(c => c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.phone ?? "").includes(search) || (c.cpf_cnpj ?? "").includes(search));
+  const categories = Array.from(new Set(clients.map(c => c.interest_category).filter(Boolean))) as string[];
+  const filtered = clients.filter(c =>
+    (c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.phone ?? "").includes(search) || (c.cpf_cnpj ?? "").includes(search)) &&
+    (categoryFilter === "all" || c.interest_category === categoryFilter)
+  );
   const last30 = clients.filter(c => new Date(c.created_at).getTime() > Date.now() - 30 * 86400000).length;
 
   return (
@@ -81,9 +88,18 @@ export default function Clients() {
       ]} />
 
       <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center gap-2">
+        <div className="p-4 border-b border-border flex items-center gap-2 flex-wrap">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, telefone ou CPF/CNPJ…" className="border-0 bg-transparent focus-visible:ring-0 h-9" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, telefone ou CPF/CNPJ…" className="border-0 bg-transparent focus-visible:ring-0 h-9 flex-1 min-w-[200px]" />
+          {categories.length > 0 && (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[180px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorias</SelectItem>
+                {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         {filtered.length === 0 ? (
           <EmptyState icon={Users} title="Nenhum cliente ainda" description="Cadastre seu primeiro cliente para começar a montar o histórico." actionLabel="Cliente" onAction={openNew} />
@@ -102,7 +118,10 @@ export default function Clients() {
                 {filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/30" onClick={() => nav(`/app/clients/${c.id}`)}>
                     <TableCell className="font-medium">
-                      {c.full_name}
+                      <div className="flex items-center gap-2">
+                        {c.full_name}
+                        {c.interest_category && <Badge variant="outline" className="text-[10px]">{c.interest_category}</Badge>}
+                      </div>
                       {c.cpf_cnpj && <div className="text-xs text-muted-foreground">{c.cpf_cnpj}</div>}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground space-y-1">

@@ -64,6 +64,7 @@ export const NICHES: Record<NicheKey, NicheConfig> = {
       "dashboard", "clients",
       "products",
       "funnel", "campaigns",
+      "product_ideas", "ad_accounts", "ad_creatives", "ad_cash",
       "financial", ...FINANCIAL_CORE,
       ...MARKETING_CORE,
     ],
@@ -106,6 +107,7 @@ export const ALL_MODULES = [
   "financial", "sales", "cash_drawer", "payment_methods",
   "marketing", "integrations",
   "tasks", "team",
+  "funnel", "campaigns", "product_ideas", "ad_accounts", "ad_creatives", "ad_cash",
 ];
 
 export const NICHES_WITH_ANAMNESIS: NicheKey[] = ["beauty_salon"];

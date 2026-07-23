@@ -11,6 +11,7 @@ export type ModuleGroup =
   | "producao"
   | "operacoes"
   | "marketing"
+  | "midia_paga"
   | "gestao";
 
 export type ModuleDef = {
@@ -57,9 +58,14 @@ export const MODULE_CATALOG: ModuleDef[] = [
 
   // Marketing
   { key: "marketing", label: "Marketing", description: "Visão geral de marketing.", group: "marketing" },
-  { key: "campaigns", label: "Campanhas", description: "Campanhas e disparos.", group: "marketing" },
+  { key: "campaigns", label: "Campanhas", description: "Campanhas e disparos.", group: "marketing", depends: ["ad_accounts"] },
   { key: "automations", label: "Automações", description: "Fluxos automáticos.", group: "marketing", depends: ["clients"] },
   { key: "product_ideas", label: "Ideias de Produto", description: "Banco de ideias e validação.", group: "marketing" },
+
+  // Mídia Paga
+  { key: "ad_accounts", label: "Contas de Anúncio", description: "BM, páginas e pixels por conta.", group: "midia_paga" },
+  { key: "ad_creatives", label: "Biblioteca de Criativos", description: "Criativos validados para replicar.", group: "midia_paga" },
+  { key: "ad_cash", label: "Caixa de Anúncios", description: "Saldo e alertas das contas que pagam tráfego.", group: "midia_paga" },
 
   // Gestão / RH / Diversos
   { key: "team", label: "Equipe & Permissões", description: "Membros, cargos e acessos.", group: "gestao" },
@@ -79,6 +85,7 @@ export const MODULE_GROUPS: { key: ModuleGroup; label: string }[] = [
   { key: "operacoes", label: "Operações" },
   { key: "financeiro", label: "Financeiro" },
   { key: "marketing", label: "Marketing" },
+  { key: "midia_paga", label: "Mídia Paga" },
   { key: "gestao", label: "Gestão" },
 ];
 

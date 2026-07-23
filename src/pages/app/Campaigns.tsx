@@ -15,24 +15,35 @@ import { PageHeader, MetricsRow } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Megaphone, Sparkles, Calendar, DollarSign, Trash2 } from "lucide-react";
 
-type Campaign = { id: string; name: string; channel: string; status: string; budget: number; starts_at: string | null; ends_at: string | null; objective: string | null; audience: string | null; ai_generated: boolean };
+type Campaign = { id: string; name: string; channel: string; status: string; budget: number; starts_at: string | null; ends_at: string | null; objective: string | null; audience: string | null; ai_generated: boolean; ad_account_id: string | null; daily_spend: number | null };
+type AdAccount = { id: string; platform: string; business_manager_name: string | null; page_name: string | null };
 
 const CHANNELS = ["instagram", "facebook", "google", "tiktok", "whatsapp", "email"];
 const STATUS: Record<string, string> = { draft: "Rascunho", active: "Ativa", paused: "Pausada", finished: "Encerrada" };
 
-const empty = { name: "", channel: "instagram", budget: 0, starts_at: "", ends_at: "", objective: "", audience: "" };
+const empty = { name: "", channel: "instagram", budget: 0, starts_at: "", ends_at: "", objective: "", audience: "", ad_account_id: "", daily_spend: "" };
 
 export default function Campaigns() {
   const { user } = useAuth();
   const [list, setList] = useState<Campaign[]>([]);
+  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(empty);
 
   const load = async () => {
-    const { data } = await supabase.from("marketing_campaigns").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: accs }] = await Promise.all([
+      supabase.from("marketing_campaigns").select("*").order("created_at", { ascending: false }),
+      supabase.from("ad_accounts" as any).select("id,platform,business_manager_name,page_name").is("deleted_at", null),
+    ]);
     setList((data ?? []) as Campaign[]);
+    setAdAccounts((accs ?? []) as AdAccount[]);
   };
   useEffect(() => { if (user) load(); }, [user]);
+
+  const accountLabel = (id?: string | null) => {
+    const a = adAccounts.find(x => x.id === id);
+    return a ? (a.business_manager_name || a.page_name || a.platform) : null;
+  };
 
   const save = async () => {
     if (!user || !form.name) return toast.error("Nome obrigatório");
@@ -40,6 +51,8 @@ export default function Campaigns() {
       user_id: user.id, name: form.name, channel: form.channel, budget: form.budget,
       starts_at: form.starts_at || null, ends_at: form.ends_at || null,
       objective: form.objective, audience: form.audience, status: "draft",
+      ad_account_id: form.ad_account_id || null,
+      daily_spend: form.daily_spend ? Number(form.daily_spend) : null,
     });
     if (error) return toast.error(friendlyError(error));
     toast.success("Campanha criada"); setOpen(false); setForm(empty); load();
@@ -103,8 +116,10 @@ export default function Campaigns() {
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
                 {c.budget > 0 && <Badge variant="outline" className="gap-1"><DollarSign className="h-3 w-3" />R$ {Number(c.budget).toFixed(0)}</Badge>}
+                {c.daily_spend != null && <Badge variant="outline" className="gap-1">R$ {Number(c.daily_spend).toFixed(0)}/dia</Badge>}
                 {c.starts_at && <Badge variant="outline" className="gap-1"><Calendar className="h-3 w-3" />{new Date(c.starts_at).toLocaleDateString("pt-BR")}</Badge>}
                 {c.audience && <Badge variant="outline">{c.audience}</Badge>}
+                {accountLabel(c.ad_account_id) && <Badge variant="outline">{accountLabel(c.ad_account_id)}</Badge>}
               </div>
               <div className="flex gap-2 pt-1 flex-wrap">
                 {c.status !== "active" && <Button size="sm" onClick={() => setStatus(c.id, "active")} className="rounded-2xl">Ativar</Button>}
@@ -130,6 +145,17 @@ export default function Campaigns() {
                 </Select>
               </div>
               <div><Label>Orçamento (R$)</Label><Input type="number" value={form.budget} onChange={e => setForm({ ...form, budget: +e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Conta de anúncio</Label>
+                <Select value={form.ad_account_id} onValueChange={v => setForm({ ...form, ad_account_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                  <SelectContent>
+                    {adAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.business_manager_name || a.page_name || a.platform}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Gasto diário (R$)</Label><Input type="number" value={form.daily_spend} onChange={e => setForm({ ...form, daily_spend: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Início</Label><Input type="date" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} /></div>

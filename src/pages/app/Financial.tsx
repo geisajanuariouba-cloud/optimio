@@ -115,6 +115,21 @@ export default function Financial() {
       await supabase.from("clients").update(form.delivery_address).eq("id", form.client_id);
     }
 
+    // Segmentação automática: se o cliente ainda não tem categoria de interesse,
+    // herda a categoria do primeiro produto/serviço vendido.
+    if (isVendaServico && form.client_id && items.length > 0) {
+      const client = clients.find((c: any) => c.id === form.client_id);
+      if (client && !client.interest_category) {
+        const firstProductItem = items.find(it => it.kind !== "service" && it.product_id);
+        if (firstProductItem?.product_id) {
+          const { data: prod } = await supabase.from("products").select("category").eq("id", firstProductItem.product_id).maybeSingle();
+          if (prod?.category) {
+            await supabase.from("clients").update({ interest_category: prod.category }).eq("id", form.client_id);
+          }
+        }
+      }
+    }
+
     const snapshotItems = isVendaServico ? items.map(it => ({
       kind: it.kind, ref_id: it.ref_id, product_id: it.product_id ?? null,
       name: it.name, image_url: it.image_url ?? null,

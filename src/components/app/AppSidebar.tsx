@@ -13,6 +13,7 @@ import {
   Megaphone, Sparkles, Layers, BarChart3, Trash2,
   Briefcase, CheckSquare, BookOpen, ShieldCheck,
   Settings as SettingsIcon, Crown, LogOut, LifeBuoy, ChevronRight, ChevronLeft,
+  Lightbulb as IdeaIcon, Landmark, Image, Wallet2,
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
 import { useModuleVisibility } from "@/hooks/useModuleVisibility";
@@ -101,6 +102,15 @@ export function AppSidebar() {
         { title: "Marketing", url: "/app/marketing", icon: Megaphone, mod: "marketing" },
         { title: "Campanhas IA", url: "/app/campaigns", icon: Sparkles, mod: "campaigns", badge: "IA" },
         { title: "Combos & Pacotes", url: "/app/combos", icon: Layers, mod: "packages" },
+        { title: "Ideias de Produto", url: "/app/product-ideas", icon: IdeaIcon, mod: "product_ideas" },
+      ],
+    },
+    {
+      label: "Mídia Paga",
+      items: [
+        { title: "Contas de Anúncio", url: "/app/ad-accounts", icon: Landmark, mod: "ad_accounts" },
+        { title: "Biblioteca de Criativos", url: "/app/ad-creatives", icon: Image, mod: "ad_creatives" },
+        { title: "Caixa de Anúncios", url: "/app/ad-cash", icon: Wallet2, mod: "ad_cash" },
       ],
     },
     {
